@@ -702,9 +702,9 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label for="ssn_1">SSN / Tax ID <span class="required">*</span></label>
+            <label id="ssn_1_label" for="ssn_1">SSN / Tax ID <span class="required">*</span></label>
             <input id="ssn_1" name="ssn.1" type="text" maxlength="20" autocomplete="off" placeholder="XXX-XX-XXXX">
-            <span class="sensitive-note">US/CA: enter 9 digits as XXX-XX-XXXX</span>
+            <span class="sensitive-note" id="ssn_1_hint">US/CA: enter 9 digits as XXX-XX-XXXX</span>
             <span class="field-error" id="err_ssn_1"></span>
           </div>
           <div class="form-group">
@@ -850,7 +850,7 @@
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label for="ssn_2">SSN / Tax ID <span class="required">*</span></label>
+              <label id="ssn_2_label" for="ssn_2">SSN / Tax ID <span class="required">*</span></label>
               <input id="ssn_2" name="ssn.2" type="text" maxlength="20" autocomplete="off" placeholder="XXX-XX-XXXX">
               <span class="field-error" id="err_ssn_2"></span>
             </div>
@@ -957,15 +957,15 @@
 
       <div class="form-row">
         <div class="form-group">
-          <label for="routing_number">Routing Number <span class="required">*</span></label>
+          <label id="routing_number_label" for="routing_number">Routing Number <span class="required">*</span></label>
           <input id="routing_number" name="routing_number" type="text" maxlength="20" autocomplete="off" required placeholder="9-digit routing number">
-          <span class="sensitive-note">US: exactly 9 digits</span>
+          <span class="sensitive-note" id="routing_number_hint">US: exactly 9 digits</span>
           <span class="field-error" id="err_routing_number"></span>
         </div>
         <div class="form-group">
-          <label for="account_number">Account Number <span class="required">*</span></label>
+          <label id="account_number_label" for="account_number">Account Number <span class="required">*</span></label>
           <input id="account_number" name="account_number" type="text" maxlength="20" autocomplete="off" required>
-          <span class="sensitive-note">US: 8–17 digits</span>
+          <span class="sensitive-note" id="account_number_hint">US: 8–17 digits</span>
           <span class="field-error" id="err_account_number"></span>
         </div>
       </div>
@@ -1540,10 +1540,11 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       var savedStep = parseInt(localStorage.getItem('emap_step'), 10);
       if (!savedStep || savedStep < 2 || savedStep > 6) savedStep = 2;
 
-      // Restore CA banking visibility
+      // Restore CA banking visibility and country-dependent labels
       if (step1Country === 'CA') {
         document.getElementById('ca_banking_fields').style.display = 'block';
       }
+      if (step1Country) updateCountryLabels(step1Country);
 
       // Restore marketingModel checkbox state
       try {
@@ -1568,6 +1569,67 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
     });
 
     // ── Conditional field logic ──────────────────────────────────────────────
+    // Country-dependent label map for banking and SSN fields
+    var COUNTRY_LABELS = {
+      routing_number: {
+        US: 'Routing Number', CA: 'Transit Number / Routing Number',
+        AU: 'BSB Code', GB: 'Sort Code',
+        _default: 'BIC Code / SWIFT Code / Routing Number'
+      },
+      account_number: {
+        US: 'Account Number', CA: 'Account Number',
+        AU: 'Account Number', GB: 'Account Number',
+        _default: 'IBAN / Account Number'
+      },
+      ssn: {
+        US: 'SSN / SIN', CA: 'SSN / SIN',
+        _default: 'Personal Tax ID / Government ID Number'
+      }
+    };
+
+    function updateCountryLabels(country) {
+      var c = (country || '').toUpperCase();
+
+      // Routing Number label
+      var rLabel = document.getElementById('routing_number_label');
+      var rHint  = document.getElementById('routing_number_hint');
+      if (rLabel) {
+        var rText = COUNTRY_LABELS.routing_number[c] || COUNTRY_LABELS.routing_number._default;
+        rLabel.innerHTML = rText + ' <span class="required">*</span>';
+      }
+      if (rHint) {
+        rHint.textContent = c === 'US' ? 'US: exactly 9 digits' :
+                            c === 'CA' ? 'CA: 5-digit transit number' :
+                            c === 'AU' ? 'AU: 6-digit BSB code' :
+                            c === 'GB' ? 'UK: 6-digit sort code (e.g. 12-34-56)' : '';
+      }
+
+      // Account Number label
+      var aLabel = document.getElementById('account_number_label');
+      var aHint  = document.getElementById('account_number_hint');
+      if (aLabel) {
+        var aText = COUNTRY_LABELS.account_number[c] || COUNTRY_LABELS.account_number._default;
+        aLabel.innerHTML = aText + ' <span class="required">*</span>';
+      }
+      if (aHint) {
+        aHint.textContent = c === 'US' ? 'US: 8–17 digits' : '';
+      }
+
+      // SSN labels (Owner 1 and Owner 2)
+      var ssnText = COUNTRY_LABELS.ssn[c] || COUNTRY_LABELS.ssn._default;
+      var ssnReq  = ' <span class="required">*</span>';
+      var ssn1Label = document.getElementById('ssn_1_label');
+      var ssn2Label = document.getElementById('ssn_2_label');
+      var ssn1Hint  = document.getElementById('ssn_1_hint');
+      if (ssn1Label) ssn1Label.innerHTML = 'Owner 1 ' + ssnText + ssnReq;
+      if (ssn2Label) ssn2Label.innerHTML = 'Owner 2 ' + ssnText + ssnReq;
+      if (ssn1Hint) {
+        ssn1Hint.textContent = (c === 'US' || c === 'CA')
+          ? 'Enter 9 digits — formatted as XXX-XX-XXXX'
+          : 'Enter your government-issued tax or ID number';
+      }
+    }
+
     // Step 1: country → state
     document.getElementById('country').addEventListener('change', function () {
       var isUS = this.value === 'US';
@@ -1584,6 +1646,8 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         var isCA = this.value === 'CA';
         caFields.style.display = isCA ? 'block' : 'none';
       }
+      // Update banking and SSN labels based on selected country
+      updateCountryLabels(this.value);
     });
 
     // Step 1: industry_type → other
@@ -1958,8 +2022,9 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         localStorage.setItem('emap_country', step1Country);
         goToStep(2);
         updateFederalTaxVisibility();
-        // Show CA banking if needed
+        // Show CA banking if needed and update country-dependent labels
         document.getElementById('ca_banking_fields').style.display = step1Country === 'CA' ? 'block' : 'none';
+        updateCountryLabels(step1Country);
       }
     });
 

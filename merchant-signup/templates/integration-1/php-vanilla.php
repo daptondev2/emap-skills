@@ -49,6 +49,9 @@ if (!$parsedBase || !isset($parsedBase['host'])) {
     die('Server configuration error');
 }
 $emapOrigin = ($parsedBase['scheme'] ?? 'https') . '://' . $parsedBase['host'];
+if (isset($parsedBase['port'])) {
+    $emapOrigin .= ':' . $parsedBase['port'];
+}
 
 // ── CSRF token ────────────────────────────────────────────────────────────────
 if (empty($_SESSION['csrf_token'])) {
@@ -56,7 +59,7 @@ if (empty($_SESSION['csrf_token'])) {
 }
 $csrfToken = $_SESSION['csrf_token'];
 
-// ── Dropdown proxy (GET ?_dropdown=...) ──────────────────────────────────────
+// ── Dropdown proxy (GET ?_dropdown=... OR path-based /api/* routes) ──────────
 $dropdownMap = [
     'countries'        => '/api/partner/countries',
     'states'           => '/api/partner/states',
@@ -65,6 +68,20 @@ $dropdownMap = [
     'referral-sources' => '/api/partner/referral-sources',
     'interest-details' => '/api/partner/interest-details',
 ];
+
+// Also support path-based routes used by plain-html.html (/api/countries, etc.)
+$requestPath = strtok($_SERVER['REQUEST_URI'] ?? '', '?');
+$pathToKey = [
+    '/api/countries'        => 'countries',
+    '/api/states'           => 'states',
+    '/api/industry-types'   => 'industry-types',
+    '/api/shopping-carts'   => 'shopping-carts',
+    '/api/referral-sources' => 'referral-sources',
+    '/api/interest-details' => 'interest-details',
+];
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($pathToKey[$requestPath])) {
+    $_GET['_dropdown'] = $pathToKey[$requestPath];
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['_dropdown'])) {
     $key = (string)$_GET['_dropdown'];

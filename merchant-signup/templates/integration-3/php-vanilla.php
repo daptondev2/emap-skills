@@ -236,7 +236,7 @@ function emapPost(string $url, array $payload, string $partnerKey): array
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['_dropdown']) && $_GET['_dropdown'] === 'industry-types') {
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: public, max-age=3600');
-    $ch = curl_init($emapOrigin . '/api/partner/industry-types');
+    $ch = curl_init($emapBaseUrl . '/api/partner/industry-types');
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT        => 10,

@@ -1,139 +1,163 @@
-# Merchant Signup Integration — Developer Guide
+# EMAP Merchant Signup Integration
 
-This skill helps you build a merchant signup form on your website that feeds into
-Easy Pay Direct's (EMAP) onboarding system. Merchants fill in their basic business
-info on your site; EMAP handles everything else (company details, banking, e-signature).
+A drop-in integration kit for embedding Easy Pay Direct (EMAP) merchant onboarding into your website or application. Merchants submit their business details through your interface; EMAP handles underwriting, e-signature, and account provisioning.
 
 ---
 
 ## Integration modes
 
-| Mode | How it works | Backend required? |
+| Mode | Description | Backend required |
 |---|---|---|
-| **Integration 1 — Full form** | Partner hosts all 6 steps; backend proxies each step to EMAP API | Yes |
-| **Integration 2 — Redirect** | Browser redirects to EMAP `/signup` with step-1 data in URL params | No |
-| **Integration 3 — API** | Your backend POSTs step-1 data to EMAP's REST API | Yes |
+| **1 — Full Form** | You host all 6 signup steps; your server proxies each submission to the EMAP API. Merchants never leave your domain. | Yes |
+| **2 — Redirect Handoff** | You collect step-1 fields; on submit the browser redirects to EMAP's `/signup` with data pre-filled as URL parameters. | No |
+| **3 — Email Signup** | You collect step-1 fields; your server POSTs to the EMAP API and EMAP emails the merchant a secure link to complete their application. | Yes |
 
 ---
 
-## Quick start: load the skill in your AI assistant
+## Quickstart
 
-### Claude Code
-```bash
-# From your project directory, reference the skill directly
-claude --context /path/to/signup-skills/merchant-signup/SKILL.md
-```
-Or tell the assistant: *"Load the skill at `signup-skills/merchant-signup/SKILL.md` and help me build an EMAP partner signup form."*
+### 1. Get your credentials
 
-### Cursor / GitHub Copilot / Gemini CLI
-Add `AGENTS.md` from this directory to your project root, or tell the assistant:
-> "Load the skill at `signup-skills/merchant-signup/SKILL.md` and help me build an EMAP partner signup form."
+Contact Easy Pay Direct to receive:
+- Your `EMAP_BASE_URL` (production or staging)
+- Your `EMAP_PARTNER_KEY` (backend only — never expose to browsers)
 
-### Plain chat (no file access)
-Paste the full contents of `SKILL.md` into the chat, then describe your project stack. The assistant will guide you through the integration.
-
----
-
-## Environment variables
-
-Set these in `.env` (never commit `.env` to git):
-
-| Variable | Required for | Description |
-|---|---|---|
-| `EMAP_BASE_URL` | All modes | EMAP host — `https://emap.epd.dev` (or staging URL from Easy Pay Direct) |
-| `EMAP_PARTNER_KEY` | Integration 1, Integration 3 | Your partner `security_key` from EMAP — backend only, never in browser |
-| `EMAP_PARTNER_SECRET_KEY` | Integration 2 | Same `security_key` value — added to redirect URL server-side |
-
----
-
-## Available templates
+### 2. Pick a template
 
 ```
 templates/
   integration-1/
-    plain-html.html     — complete 6-step form hosted on partner site
-    node-express.js     — Express.js backend proxying all 6 steps to EMAP API
-    nextjs-route.ts     — Next.js App Router route handlers for all 6 steps
-    php-vanilla.php     — Plain PHP: serves the form + proxies all 6 steps
+    plain-html.html     — 6-step form (copy and style)
+    php-vanilla.php     — PHP backend: serves form + proxies all 6 steps
+    node-express.js     — Express.js backend
+    nextjs-route.ts     — Next.js App Router route handlers
   integration-2/
-    plain-html.html     — standalone HTML page, client-side redirect, no backend needed
-    node-express.js     — Express.js server that builds the redirect URL server-side
-    nextjs-route.ts     — Next.js App Router route handler for building redirect URL
-    php-vanilla.php     — Plain PHP: renders form + builds redirect URL server-side
+    plain-html.html     — Standalone HTML, no backend needed
+    php-vanilla.php     — PHP: renders form + builds redirect server-side
+    node-express.js     — Express.js variant
+    nextjs-route.ts     — Next.js variant
   integration-3/
-    plain-html.html     — HTML form that POSTs JSON to your backend
-    node-express.js     — Express.js backend proxy to EMAP API
-    nextjs-route.ts     — Next.js App Router API route handler (TypeScript)
-    php-vanilla.php     — Plain PHP: form + backend proxy in a single file
+    plain-html.html     — Single-step HTML form
+    php-vanilla.php     — PHP backend: form + EMAP API proxy in one file
+    node-express.js     — Express.js backend
+    nextjs-route.ts     — Next.js API route (TypeScript)
 ```
+
+### 3. Set environment variables
+
+```bash
+EMAP_BASE_URL=https://emap.epd.dev       # provided by Easy Pay Direct
+EMAP_PARTNER_KEY=your_key_here           # backend only, never in browser code
+```
+
+### 4. Drop the template into your project
+
+Each template is self-contained. Copy the file(s) into your project, set the environment variables, and the integration is live.
 
 ---
 
 ## Choosing a mode
 
-**Use Integration 1 if:**
-- You want to keep merchants on your domain for the entire 6-step signup
-- You need full control over branding, layout, and copy on every step
-- You have a backend server (Node, PHP, Python, etc.) and are comfortable proxying 6 API endpoints
+**Integration 1** — Full control. The merchant stays on your domain for all 6 steps. Requires a backend to proxy each step to EMAP. Best for partners who want full branding ownership and access to all application data as it's collected.
 
-**Use Integration 2 if:**
-- You have a static site or CMS with no backend (Webflow, WordPress with no custom PHP, etc.)
-- You want the fastest possible integration (a client-side HTML form is all you need)
-- You're comfortable with PII appearing briefly in the URL and the merchant being redirected to EMAP
+**Integration 2** — Zero backend. A static HTML form sends the merchant to EMAP's hosted signup page with their details pre-filled. Suitable for Webflow, WordPress, or any environment with no server-side code. Step-1 PII will appear briefly in the redirect URL.
 
-**Use Integration 3 if:**
-- You have a backend server (Node, PHP, Python, etc.) or can add a serverless function
-- You want a cleaner UX for step 1 (no browser redirect, show your own success/error messages)
-- You need the `uuid` for your own records or CRM
-- You want to implement the "Resend link" feature
-- You're OK with the merchant continuing on EMAP from step 2 onward
+**Integration 3** — Clean handoff. Your form POSTs to your server, which calls the EMAP API and returns a UUID. EMAP emails the merchant a secure link to complete their application from step 2 onward. Good middle ground: you control the first impression, EMAP handles the rest.
 
 ---
 
-## Testing
+## API overview
 
-1. Set `EMAP_BASE_URL` to the EMAP staging URL provided by Easy Pay Direct.
-2. **Integration 1:** Complete all 6 steps with test data. Verify Step 6 shows the success panel.
-   Check that conditionals work: country=US shows state, ownership_percentage.1 < 51 shows Owner 2.
-3. **Integration 2:** Submit the form. Verify you land on the EMAP signup page with fields pre-filled.
-   For full auto-submit, include all non-excluded fields — the form should auto-submit and land on step 2.
-4. **Integration 3:** Submit with a unique test email. Verify you receive `{"status":true,"uuid":"..."}`.
-   Check that the welcome email arrives.
+All backend modes proxy to these EMAP endpoints:
+
+| Step | EMAP endpoint | Key fields |
+|---|---|---|
+| 1 — Business basics | `POST /api/v1/signup` | `first_name`, `last_name`, `email`, `phone`, `name`, `website`, `country`, `annual_sales` |
+| 2 — Company info | `POST /api/v1/application/step` | `step_count=2`, `uuid`, legal address, EIN, revenue model |
+| 3 — Products | `POST /api/v1/application/step` | `step_count=3`, processing percentages, fulfillment, refund policy |
+| 4 — Ownership | `POST /api/v1/ownership` | `uuid`, owner SSN/SIN, DOB, ownership percentage |
+| 5 — Banking | `POST /api/v1/application/step` | `step_count=5`, `uuid`, routing/account numbers |
+| 6 — Final details | `POST /api/v1/application/step` | `step_count=6`, `uuid`, referral source, T&C acceptance |
+
+Step-1 success returns `{ "status": true, "uuid": "..." }`. Store the `uuid` in session — every subsequent step requires it.
+
+### Dropdown data endpoints
+
+Populate selects from these EMAP GET endpoints (results are cacheable):
+
+| Data | Endpoint |
+|---|---|
+| Countries | `GET /api/partner/countries` |
+| US states | `GET /api/partner/states` |
+| Industry types | `GET /api/partner/industry-types` |
+| Shopping carts | `GET /api/partner/shopping-carts` |
+| Referral sources | `GET /api/partner/referral-sources` |
+| Interest details | `GET /api/partner/interest-details` |
+
+Country options return ISO 3166-1 alpha-2 codes as values (`US`, `CA`, `GB`, `AU`). Industry-type values are slugs (e.g. `Retail(eCommerce)-Other`) — use the API value as-is for submission.
+
+---
+
+## Country-dependent field labels
+
+Three fields on Steps 4 and 5 change label and hint text based on the country selected in Step 1:
+
+| Field | US / CA | AU | GB | Other |
+|---|---|---|---|---|
+| SSN field | SSN / SIN | Personal Tax ID | Personal Tax ID | Personal Tax ID / Gov ID |
+| Routing number | Routing Number / Transit Number | BSB Code | Sort Code | BIC / SWIFT / Routing Number |
+| Account number | Account Number | Account Number | Account Number | IBAN / Account Number |
+
+The `plain-html.html` templates handle this automatically via a `updateCountryLabels(country)` function called on country change and on step navigation.
+
+---
+
+## Security checklist
+
+- Store `EMAP_PARTNER_KEY` server-side only. It must never appear in browser-rendered HTML or JavaScript.
+- Integration 1 and 3 backends validate CSRF tokens on every POST (PHP template uses `$_SESSION['csrf_token']`).
+- All curl calls to EMAP enforce `CURLOPT_SSL_VERIFYPEER = true` and `CURLOPT_SSL_VERIFYHOST = 2`.
+- Honeypot field (`_hp`) silently discards bot submissions without revealing the check.
+- Integration 2 sends PII in URL parameters — acceptable for low-risk flows, but consider Integration 3 if you need to keep data off the URL.
+- Never log full request bodies — they contain SSNs and routing numbers.
+
+---
+
+## Field reference
+
+See [`references/field-catalog.md`](references/field-catalog.md) for the complete field list, types, validation rules, and which steps each field belongs to.
+
+For integration-specific deep dives:
+- [`references/mode-1-fullform.md`](references/mode-1-fullform.md) — all 6 steps, conditional logic, session handling
+- [`references/mode-2-redirect.md`](references/mode-2-redirect.md) — URL parameter encoding, auto-submit behavior
+- [`references/mode-3-api.md`](references/mode-3-api.md) — API call shape, success/error handling, resend link
+- [`references/api-errors.md`](references/api-errors.md) — error shapes, status codes, retry guidance
+- [`references/security-checklist.md`](references/security-checklist.md) — pre-launch checklist
+
+---
+
+## Testing locally
+
+A self-contained test harness is included in `skill-test/` (sibling directory):
+
+```bash
+# Requires PHP 7.4+ with curl extension and a local EMAP instance on port 8000
+php -S 127.0.0.1:3002 -t skill-test/ skill-test/router.php
+```
+
+Then open `http://127.0.0.1:3002` in your browser and select a mode to test.
+
+The harness routes:
+- `GET /api/*` → EMAP dropdown proxy
+- `POST /api/step/N` → EMAP step endpoint (no CSRF required in test mode)
+- `/int1.php`, `/int2.php`, `/int3.php` → individual integration wrappers
+
+Set `EMAP_BASE_URL` in `router.php` to point to your local EMAP instance.
 
 ---
 
 ## Support
 
-Contact Easy Pay Direct to:
-- Obtain your partner key
-- Get the staging environment URL
-- Troubleshoot integration issues
-
----
-
-## File structure
-
-```
-SKILL.md                     — AI assistant instructions (load this first)
-AGENTS.md                    — Short pointer for Codex/Cursor/Copilot/Gemini
-README.md                    — This file
-references/
-  field-catalog.md           — Complete step-1 field reference
-  mode-1-fullform.md         — Integration 1 deep dive (all 6 steps)
-  mode-2-redirect.md         — Integration 2 deep dive
-  mode-3-api.md              — Integration 3 deep dive
-  api-errors.md              — All error shapes and handling
-  security-checklist.md      — Pre-launch security checklist
-templates/
-  integration-1/
-    plain-html.html
-    node-express.js
-  integration-2/
-    plain-html.html
-    node-express.js
-  integration-3/
-    plain-html.html
-    node-express.js
-    php-vanilla.php
-    nextjs-route.ts
-```
+Contact Easy Pay Direct for partner credentials, staging access, or integration questions:
+- Email: newclients@easypaydirect.com
+- Phone: +1 (800) 805-4949

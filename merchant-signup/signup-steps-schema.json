@@ -1618,7 +1618,10 @@
           "maxLength": 20,
           "placeholder": "Account Number",
           "countryVariants": {
-            "US": { "minLength": 8, "maxLength": 17 },
+            "US": { "label": "Account Number", "minLength": 8, "maxLength": 17 },
+            "CA": { "label": "Account Number" },
+            "AU": { "label": "Account Number" },
+            "GB": { "label": "Account Number" },
             "default": { "label": "IBAN / Account Number" }
           }
         },
