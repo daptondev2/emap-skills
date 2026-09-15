@@ -4,12 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Apply for a Merchant Account</title>
-  <!--
-    Referrer-Policy: no-referrer prevents the EMAP URL (which contains PII in query params)
-    from being sent as the Referer header to any third-party scripts on the EMAP page.
-    Also set this in your HTTP response headers — the meta tag is a fallback only.
-  -->
-  <meta name="referrer" content="no-referrer">
   <style>
     *, *::before, *::after { box-sizing: border-box; }
 
@@ -30,27 +24,11 @@
       padding: 40px 36px;
     }
 
-    h1 {
-      font-size: 1.6rem;
-      margin: 0 0 6px;
-      color: #0f172a;
-    }
+    h1 { font-size: 1.6rem; margin: 0 0 6px; color: #0f172a; }
+    .subtitle { color: #64748b; margin: 0 0 28px; font-size: .95rem; }
 
-    .subtitle {
-      color: #64748b;
-      margin: 0 0 28px;
-      font-size: .95rem;
-    }
-
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-
-    .form-group {
-      margin-bottom: 18px;
-    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-group { margin-bottom: 18px; }
 
     label {
       display: block;
@@ -59,11 +37,7 @@
       color: #374151;
       margin-bottom: 5px;
     }
-
-    label .required {
-      color: #ef4444;
-      margin-left: 2px;
-    }
+    label .required { color: #ef4444; margin-left: 2px; }
 
     input, select {
       width: 100%;
@@ -76,23 +50,14 @@
       transition: border-color .15s;
       appearance: none;
     }
-
     input:focus, select:focus {
       outline: none;
       border-color: #3b82f6;
       box-shadow: 0 0 0 3px rgba(59,130,246,.15);
     }
+    input.error, select.error { border-color: #ef4444; }
 
-    input.error, select.error {
-      border-color: #ef4444;
-    }
-
-    .field-error {
-      display: block;
-      color: #ef4444;
-      font-size: .8rem;
-      margin-top: 4px;
-    }
+    .field-error { display: block; color: #ef4444; font-size: .8rem; margin-top: 4px; }
 
     .terms-group {
       margin: 20px 0;
@@ -100,22 +65,10 @@
       align-items: flex-start;
       gap: 10px;
     }
-
     .terms-group input[type="checkbox"] {
-      width: 17px;
-      height: 17px;
-      flex-shrink: 0;
-      margin-top: 2px;
-      cursor: pointer;
+      width: 17px; height: 17px; flex-shrink: 0; margin-top: 2px; cursor: pointer;
     }
-
-    .terms-group label {
-      font-size: .88rem;
-      font-weight: 400;
-      color: #4b5563;
-      cursor: pointer;
-    }
-
+    .terms-group label { font-size: .88rem; font-weight: 400; color: #4b5563; cursor: pointer; }
     .terms-group a { color: #3b82f6; }
 
     button[type="submit"] {
@@ -130,32 +83,39 @@
       cursor: pointer;
       transition: background .15s, opacity .15s;
     }
-
     button[type="submit"]:hover:not(:disabled) { background: #2563eb; }
     button[type="submit"]:disabled { opacity: .65; cursor: not-allowed; }
 
-    .alert {
-      padding: 12px 16px;
-      border-radius: 7px;
-      margin-bottom: 20px;
-      font-size: .9rem;
-    }
-    .alert-error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .alert { padding: 14px 16px; border-radius: 8px; margin-bottom: 20px; font-size: .9rem; }
+    .alert-error   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .alert-warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
 
-    /* Hide honeypot from real users */
     .hp-field { display: none !important; }
+
+    #success-panel { display: none; text-align: center; padding: 20px 0; }
+    #success-panel .icon { font-size: 3rem; margin-bottom: 12px; }
+    #success-panel h2 { color: #166534; margin: 0 0 8px; }
+    #success-panel p { color: #4b5563; }
   </style>
 </head>
 <body>
   <div class="card">
     <h1>Apply for a Merchant Account</h1>
-    <p class="subtitle">Fill in your business details below. You'll complete the rest on Easy Pay Direct's secure platform.</p>
+    <p class="subtitle">Fill in your business details to get started. You'll complete the application on Easy Pay Direct's secure platform.</p>
 
-    <div id="form-error" class="alert alert-error" style="display:none"></div>
+    <div id="form-alert" class="alert" style="display:none"></div>
+
+    <!-- Success state — shown after successful submission -->
+    <div id="success-panel">
+      <div class="icon">✅</div>
+      <h2>Application Submitted!</h2>
+      <p>Check your inbox for an email from Easy Pay Direct with next steps.</p>
+      <p id="success-uuid" style="color:#6b7280;font-size:.85rem"></p>
+    </div>
 
     <form id="signup-form" novalidate>
-
-      <!-- Honeypot: never shown to humans; bots often fill this in -->
+      <!-- Honeypot: never shown to real users; bots often fill this in -->
       <input class="hp-field" name="_hp" tabindex="-1" autocomplete="off">
 
       <div class="form-row">
@@ -183,6 +143,11 @@
         <span class="field-error" id="err_phone"></span>
       </div>
 
+      <!--
+        NOTE: The API field for company name is 'name' (not 'company_name').
+        We use name="company_name" on the HTML input for clarity and map it
+        to 'name' in the fetch call below.
+      -->
       <div class="form-group">
         <label for="company_name">Company Name <span class="required">*</span></label>
         <input id="company_name" name="company_name" type="text" maxlength="255" autocomplete="organization" required>
@@ -199,12 +164,7 @@
         <div class="form-group">
           <label for="country">Country <span class="required">*</span></label>
           <select id="country" name="country" required>
-            <option value="">Select country…</option>
-            <option value="US">United States</option>
-            <option value="CA">Canada</option>
-            <option value="GB">United Kingdom</option>
-            <option value="AU">Australia</option>
-            <!-- Add more countries from EMAP's supported list -->
+            <option value="">Loading countries…</option>
           </select>
           <span class="field-error" id="err_country"></span>
         </div>
@@ -255,7 +215,7 @@
       </div>
 
       <div class="terms-group">
-        <input type="checkbox" id="terms_agreed" name="terms_agreed" required>
+        <input type="checkbox" id="terms_agreed" name="terms_agreed">
         <label for="terms_agreed">
           I agree to the
           <a href="https://app.easypaydirect.com/terms" target="_blank" rel="noopener">Terms and Conditions</a>
@@ -263,26 +223,48 @@
       </div>
       <span class="field-error" id="err_terms" style="display:block;margin-top:-10px;margin-bottom:10px"></span>
 
-      <button type="submit" id="submit-btn">Continue to Easy Pay Direct →</button>
+      <button type="submit" id="submit-btn">Submit Application</button>
     </form>
   </div>
 
   <script>
-    // Set EMAP_BASE_URL to your EMAP environment.
-    // Production:  'https://app.easypaydirect.com'
-    // Staging:     get this URL from Easy Pay Direct
-    const EMAP_BASE_URL = '';
+    /*
+     * IMPORTANT: This form POSTs to /api/signup on YOUR backend.
+     * Your backend (see node-express.js / php-vanilla.php / nextjs-route.ts)
+     * then calls EMAP's API with your partner key from the environment.
+     * Never call EMAP's API directly from this file.
+     */
 
-    // Optional: your partner secretKey for attribution.
-    // Prefer setting this server-side if you have a backend.
-    // If using client-side only, store this value in your CMS/config — never hardcode a secret.
-    const EMAP_PARTNER_SECRET_KEY = '';
+    // ── Load countries from backend proxy ────────────────────────────────────
+    const FALLBACK_COUNTRIES = [
+      { code: 'US', name: 'United States' }, { code: 'CA', name: 'Canada' },
+      { code: 'GB', name: 'United Kingdom' }, { code: 'AU', name: 'Australia' },
+    ];
 
-    if (!EMAP_BASE_URL) {
-      console.error('[EMAP] EMAP_BASE_URL is not set. Set it in this script before deploying.');
-    }
+    (async function loadCountries() {
+      try {
+        const res = await fetch('/api/countries');
+        const json = await res.json();
+        const list = json.data || [];
+        const sel = document.getElementById('country');
+        sel.innerHTML = '<option value="">Select country…</option>';
+        list.forEach(function (c) {
+          const o = document.createElement('option');
+          o.value = c.code; o.textContent = c.name;
+          sel.appendChild(o);
+        });
+      } catch (_) {
+        const sel = document.getElementById('country');
+        sel.innerHTML = '<option value="">Select country…</option>';
+        FALLBACK_COUNTRIES.forEach(function (c) {
+          const o = document.createElement('option');
+          o.value = c.code; o.textContent = c.name;
+          sel.appendChild(o);
+        });
+      }
+    })();
 
-    // Show/hide state field based on country selection
+    // Show/hide state field
     document.getElementById('country').addEventListener('change', function () {
       const stateGroup = document.getElementById('state_group');
       const stateSelect = document.getElementById('business_state');
@@ -290,34 +272,37 @@
       stateGroup.style.display = isUS ? 'block' : 'none';
       stateSelect.required = isUS;
       if (!isUS) stateSelect.value = '';
+      clearError('business_state');
     });
 
-    // Collect UTM params and Google click IDs from the current page URL for pass-through
-    function getTrackingParams() {
-      const current = new URLSearchParams(window.location.search);
-      const tracking = {};
-      ['utm_campaign', 'utm_source', 'utm_medium', 'utm_term', 'utm_content',
-       'gclid', 'gbraid', 'wbraid'].forEach(function (k) {
-        if (current.has(k)) tracking[k] = current.get(k);
-      });
-      return tracking;
+    function showAlert(type, message) {
+      const el = document.getElementById('form-alert');
+      el.className = 'alert alert-' + type;
+      el.textContent = message;
+      el.style.display = 'block';
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
     function setError(fieldId, message) {
-      const el = document.getElementById('err_' + fieldId);
-      const input = document.getElementById(fieldId) || document.querySelector('[name="' + fieldId + '"]');
-      if (el) el.textContent = message || '';
-      if (input && message) input.classList.add('error');
-      else if (input) input.classList.remove('error');
+      const errorEl = document.getElementById('err_' + fieldId);
+      const input = document.getElementById(fieldId) ||
+                    document.querySelector('[name="' + fieldId + '"]');
+      if (errorEl) errorEl.textContent = message || '';
+      if (input) {
+        if (message) input.classList.add('error');
+        else input.classList.remove('error');
+      }
     }
 
-    function clearErrors() {
+    function clearError(fieldId) { setError(fieldId, ''); }
+
+    function clearAllErrors() {
       document.querySelectorAll('.field-error').forEach(function (el) { el.textContent = ''; });
       document.querySelectorAll('.error').forEach(function (el) { el.classList.remove('error'); });
-      document.getElementById('form-error').style.display = 'none';
+      document.getElementById('form-alert').style.display = 'none';
     }
 
-    function validateForm(data) {
+    function validateLocally(data) {
       const errors = {};
       if (!data.first_name)   errors.first_name   = 'First name is required';
       if (!data.last_name)    errors.last_name    = 'Last name is required';
@@ -327,16 +312,28 @@
       if (!data.company_name) errors.company_name = 'Company name is required';
       if (!data.website)      errors.website      = 'Website is required';
       if (!data.country)      errors.country      = 'Country is required';
-      if (!data.annual_sales || isNaN(data.annual_sales) || Number(data.annual_sales) < 1)
+      if (!data.annual_sales || isNaN(Number(data.annual_sales)) || Number(data.annual_sales) < 1)
                               errors.annual_sales = 'Annual sales must be a positive number';
       if (data.country === 'US' && !data.business_state)
                               errors.business_state = 'State is required for US businesses';
       return errors;
     }
 
-    document.getElementById('signup-form').addEventListener('submit', function (e) {
+    function displayServerErrors(errors) {
+      // EMAP uses 'name' for company; map it back to our form field
+      const fieldMap = { name: 'company_name' };
+      for (const [field, messages] of Object.entries(errors)) {
+        const localField = fieldMap[field] || field;
+        const msg = Array.isArray(messages) ? messages[0] : messages;
+        setError(localField, msg);
+      }
+      const firstError = document.querySelector('.field-error:not(:empty)');
+      if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    document.getElementById('signup-form').addEventListener('submit', async function (e) {
       e.preventDefault();
-      clearErrors();
+      clearAllErrors();
 
       // Honeypot check — silent rejection
       if (document.querySelector('[name="_hp"]').value) return;
@@ -352,9 +349,10 @@
         if (key !== '_hp' && key !== 'terms_agreed') data[key] = value.trim();
       }
 
-      const errors = validateForm(data);
-      if (Object.keys(errors).length > 0) {
-        Object.entries(errors).forEach(function ([field, msg]) { setError(field, msg); });
+      // Client-side pre-validation
+      const localErrors = validateLocally(data);
+      if (Object.keys(localErrors).length > 0) {
+        Object.entries(localErrors).forEach(function ([f, m]) { setError(f, m); });
         const firstError = document.querySelector('.field-error:not(:empty)');
         if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
@@ -362,24 +360,88 @@
 
       const btn = document.getElementById('submit-btn');
       btn.disabled = true;
-      btn.textContent = 'Redirecting…';
+      btn.textContent = 'Submitting…';
 
-      const params = new URLSearchParams();
+      try {
+        const response = await fetch('/api/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
 
-      // Core fields
-      ['first_name', 'last_name', 'email', 'phone', 'company_name', 'website',
-       'country', 'annual_sales', 'business_state', 'promo_code'].forEach(function (k) {
-        if (data[k]) params.set(k, data[k]);
-      });
+        const result = await response.json();
 
-      // Pass through tracking params from current page
-      Object.entries(getTrackingParams()).forEach(function ([k, v]) { params.set(k, v); });
+        if (response.status === 429) {
+          showAlert('error', 'Too many attempts. Please wait a few minutes and try again.');
+          btn.disabled = false;
+          btn.textContent = 'Submit Application';
+          return;
+        }
 
-      // Partner attribution from constant (prefer server-side)
-      if (EMAP_PARTNER_SECRET_KEY) params.set('secretKey', EMAP_PARTNER_SECRET_KEY);
+        if (response.status === 422) {
+          showAlert('error', 'Please correct the errors below.');
+          displayServerErrors(result.errors || {});
+          btn.disabled = false;
+          btn.textContent = 'Submit Application';
+          return;
+        }
 
-      const redirectUrl = EMAP_BASE_URL + '/signup?' + params.toString();
-      window.location.href = redirectUrl;
+        if (!response.ok) {
+          showAlert('error', 'Something went wrong. Please try again in a few moments.');
+          btn.disabled = false;
+          btn.textContent = 'Submit Application';
+          return;
+        }
+
+        // Existing user — has a verification link
+        if (result.verificationLink === true) {
+          document.getElementById('signup-form').style.display = 'none';
+          showAlert('warning',
+            'You already have an Easy Pay Direct account. Check your email for a verification link, ' +
+            'or click the button below to continue.'
+          );
+          if (result.url) {
+            const continueBtn = document.createElement('a');
+            continueBtn.href = result.url;
+            continueBtn.textContent = 'Continue my application →';
+            continueBtn.style.cssText = 'display:block;margin-top:12px;color:#3b82f6;font-weight:600';
+            document.getElementById('form-alert').after(continueBtn);
+          }
+          return;
+        }
+
+        // Company already exists
+        if (result.status === false && result.message === 'Company already exists') {
+          showAlert('warning',
+            'A company with this name already exists in our system. ' +
+            'Please check your email for your existing application.'
+          );
+          btn.disabled = false;
+          btn.textContent = 'Submit Application';
+          return;
+        }
+
+        // Success — new user created
+        if (result.status === true && result.uuid) {
+          document.getElementById('signup-form').style.display = 'none';
+          document.getElementById('success-panel').style.display = 'block';
+          if (result.uuid) {
+            document.getElementById('success-uuid').textContent =
+              'Application reference: ' + result.uuid;
+          }
+          return;
+        }
+
+        // Unexpected response shape
+        showAlert('error', 'An unexpected error occurred. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Submit Application';
+
+      } catch (err) {
+        showAlert('error', 'A network error occurred. Please check your connection and try again.');
+        btn.disabled = false;
+        btn.textContent = 'Submit Application';
+      }
     });
   </script>
 </body>

@@ -56,32 +56,97 @@ const TRACKING_FIELDS = [
   'gclid', 'gbraid', 'wbraid',
 ];
 
+// ── Regex constants ───────────────────────────────────────────────────────────
+// Same patterns EMAP uses server-side so client validation is always compatible.
+const PHONE_RE   = /^[0-9+\-()\s]+$/;
+const WEBSITE_RE = /^(https?:\/\/)?[a-zA-Z0-9]([a-zA-Z0-9\-]*\.)+[a-zA-Z]{2,}(\/[^\s]*)?$/;
+const EMAIL_RE   = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+const VALID_US_STATES = new Set([
+  'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA',
+  'KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ',
+  'NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT',
+  'VA','WA','WV','WI','WY','DC',
+]);
+
 // ── Validation ───────────────────────────────────────────────────────────────
 function validateSignupFields(body) {
   const errors = {};
 
-  if (!body.first_name?.trim())   errors.first_name   = 'First name is required';
-  if (!body.last_name?.trim())    errors.last_name    = 'Last name is required';
+  const firstName = body.first_name?.trim() ?? '';
+  if (!firstName)              errors.first_name = 'First name is required';
+  else if (firstName.length > 60) errors.first_name = 'First name must be 60 characters or fewer';
+
+  const lastName = body.last_name?.trim() ?? '';
+  if (!lastName)               errors.last_name  = 'Last name is required';
+  else if (lastName.length > 60) errors.last_name = 'Last name must be 60 characters or fewer';
 
   const email = body.email?.trim() ?? '';
-  if (!email) {
-    errors.email = 'Email is required';
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    errors.email = 'A valid email address is required';
-  }
+  if (!email)                           errors.email = 'Email is required';
+  else if (!EMAIL_RE.test(email))       errors.email = 'A valid email address is required';
 
-  if (!body.phone?.trim())        errors.phone        = 'Phone is required';
-  if (!body.company_name?.trim()) errors.company_name = 'Company name is required';
-  if (!body.website?.trim())      errors.website      = 'Website is required';
-  if (!body.country?.trim())      errors.country      = 'Country is required';
+  const phone = body.phone?.trim() ?? '';
+  if (!phone)                           errors.phone = 'Phone is required';
+  else if (phone.length > 20)           errors.phone = 'Phone must be 20 characters or fewer';
+  else if (!PHONE_RE.test(phone))       errors.phone = 'Phone may only contain digits, +, -, (, ), and spaces';
+
+  const companyName = body.company_name?.trim() ?? '';
+  if (!companyName)                     errors.company_name = 'Company name is required';
+  else if (companyName.length > 60)     errors.company_name = 'Company name must be 60 characters or fewer';
+
+  const website = body.website?.trim() ?? '';
+  if (!website)                         errors.website = 'Website is required';
+  else if (!WEBSITE_RE.test(website))   errors.website = 'Website must be a valid URL (e.g. https://yourcompany.com)';
+
+  const country = body.country?.trim().toUpperCase() ?? '';
+  if (!country)                         errors.country = 'Country is required';
+  else if (country.length !== 2)        errors.country = 'Country must be a 2-character ISO code (e.g. US, CA)';
 
   const sales = Number(body.annual_sales);
-  if (!body.annual_sales || isNaN(sales) || sales < 1) {
-    errors.annual_sales = 'Annual sales must be a positive number';
+  if (!body.annual_sales || isNaN(sales) || sales < 1)
+                                        errors.annual_sales = 'Annual sales must be at least 1';
+  else if (sales > 999999999999)        errors.annual_sales = 'Annual sales value is too large';
+
+  if (country === 'US') {
+    const state = body.business_state?.trim().toUpperCase() ?? '';
+    if (!state)                         errors.business_state = 'State is required for US businesses';
+    else if (!VALID_US_STATES.has(state)) errors.business_state = 'Must be a valid 2-character US state code (e.g. CA, TX)';
   }
 
-  if (body.country === 'US' && !body.business_state?.trim()) {
-    errors.business_state = 'State is required for US businesses';
+  // Optional auto-submit fields — validate format when provided
+  if (body.highest_transaction_amount !== undefined && body.highest_transaction_amount !== '') {
+    const hta = Number(body.highest_transaction_amount);
+    if (isNaN(hta) || hta < 0)         errors.highest_transaction_amount = 'Highest transaction amount must be a positive number';
+    else if (String(body.highest_transaction_amount).length > 16)
+                                        errors.highest_transaction_amount = 'Highest transaction amount must be 16 characters or fewer';
+  }
+
+  if (body.current_processing !== undefined && body.current_processing !== '') {
+    const cp = String(body.current_processing);
+    if (cp !== '0' && cp !== '1')       errors.current_processing = 'Currently processing must be 0 or 1';
+  }
+
+  if (body.expected_monthly_volume !== undefined && body.expected_monthly_volume !== '') {
+    const emv = Number(body.expected_monthly_volume);
+    if (isNaN(emv) || emv < 0)         errors.expected_monthly_volume = 'Expected monthly volume must be a positive number';
+  }
+
+  // Card entry percentages: each must be 0–100 and they must sum to 100 when all three are present
+  const hasCardFields = body.card_swiped !== undefined || body.customer_entered !== undefined || body.staff_entered !== undefined;
+  if (hasCardFields) {
+    const swiped   = Number(body.card_swiped   ?? 0);
+    const custEntr = Number(body.customer_entered ?? 0);
+    const staffEntr = Number(body.staff_entered  ?? 0);
+
+    if (isNaN(swiped)   || swiped   < 0 || swiped   > 100) errors.card_swiped       = 'Card swiped % must be 0–100';
+    if (isNaN(custEntr) || custEntr < 0 || custEntr > 100) errors.customer_entered  = 'Customer entered % must be 0–100';
+    if (isNaN(staffEntr)|| staffEntr< 0 || staffEntr> 100) errors.staff_entered     = 'Staff entered % must be 0–100';
+
+    if (!errors.card_swiped && !errors.customer_entered && !errors.staff_entered) {
+      if (swiped + custEntr + staffEntr !== 100) {
+        errors.card_swiped = 'Card swiped, customer entered, and staff entered percentages must sum to 100';
+      }
+    }
   }
 
   return errors;

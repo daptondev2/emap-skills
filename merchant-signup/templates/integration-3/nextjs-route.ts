@@ -48,50 +48,63 @@ try {
   throw new Error('EMAP_BASE_URL is not a valid URL');
 }
 
+// ── Regex constants ────────────────────────────────────────────────────────────
+const PHONE_RE   = /^[0-9+\-()\s]+$/;
+const WEBSITE_RE = /^(https?:\/\/)?[a-zA-Z0-9]([a-zA-Z0-9\-]*\.)+[a-zA-Z]{2,}(\/[^\s]*)?$/;
+const EMAIL_RE   = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+const VALID_US_STATES = new Set([
+  'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA',
+  'KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ',
+  'NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT',
+  'VA','WA','WV','WI','WY','DC',
+]);
+
 // ── Validation ────────────────────────────────────────────────────────────────
 
 function validatePayload(body: Record<string, unknown>): ValidationErrors {
   const errors: ValidationErrors = {};
 
-  if (!body.first_name || typeof body.first_name !== 'string' || !body.first_name.trim()) {
-    errors.first_name = ['First name is required'];
-  }
-  if (!body.last_name || typeof body.last_name !== 'string' || !body.last_name.trim()) {
-    errors.last_name = ['Last name is required'];
-  }
+  const firstName = typeof body.first_name === 'string' ? body.first_name.trim() : '';
+  if (!firstName)                errors.first_name = ['First name is required'];
+  else if (firstName.length > 60) errors.first_name = ['First name must be 60 characters or fewer'];
+
+  const lastName = typeof body.last_name === 'string' ? body.last_name.trim() : '';
+  if (!lastName)                 errors.last_name  = ['Last name is required'];
+  else if (lastName.length > 60) errors.last_name  = ['Last name must be 60 characters or fewer'];
 
   const email = typeof body.email === 'string' ? body.email.trim() : '';
-  if (!email) {
-    errors.email = ['Email is required'];
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    errors.email = ['A valid email address is required'];
-  }
+  if (!email)                          errors.email = ['Email is required'];
+  else if (!EMAIL_RE.test(email))      errors.email = ['A valid email address is required'];
 
-  if (!body.phone || typeof body.phone !== 'string' || !body.phone.trim()) {
-    errors.phone = ['Phone is required'];
-  }
+  const phone = typeof body.phone === 'string' ? body.phone.trim() : '';
+  if (!phone)                          errors.phone = ['Phone is required'];
+  else if (phone.length > 20)          errors.phone = ['Phone must be 20 characters or fewer'];
+  else if (!PHONE_RE.test(phone))      errors.phone = ['Phone may only contain digits, +, -, (, ), and spaces'];
 
-  // Accept either 'name' (EMAP's field name) or 'company_name' (common form field name)
-  const name = (body.name || body.company_name) as string | undefined;
-  if (!name || !String(name).trim()) {
-    errors.name = ['Company name is required'];
-  }
+  // Accept either 'name' (EMAP's field) or 'company_name' (common form field)
+  const name = String((body.name || body.company_name) ?? '').trim();
+  if (!name)                           errors.name = ['Company name is required'];
+  else if (name.length > 60)           errors.name = ['Company name must be 60 characters or fewer'];
 
-  if (!body.website || typeof body.website !== 'string' || !body.website.trim()) {
-    errors.website = ['Website is required'];
-  }
-  if (!body.country || typeof body.country !== 'string' || !body.country.trim()) {
-    errors.country = ['Country is required'];
-  }
+  const website = typeof body.website === 'string' ? body.website.trim() : '';
+  if (!website)                        errors.website = ['Website is required'];
+  else if (!WEBSITE_RE.test(website))  errors.website = ['Website must be a valid URL (e.g. https://yourcompany.com)'];
+
+  const country = typeof body.country === 'string' ? body.country.trim().toUpperCase() : '';
+  if (!country)                        errors.country = ['Country is required'];
+  else if (country.length !== 2)       errors.country = ['Country must be a 2-character ISO code (e.g. US, CA)'];
 
   const sales = Number(body.annual_sales);
-  if (!body.annual_sales || isNaN(sales) || sales < 1) {
-    errors.annual_sales = ['Annual sales must be a positive number'];
-  }
+  if (!body.annual_sales || isNaN(sales) || sales < 1)
+                                       errors.annual_sales = ['Annual sales must be at least 1'];
+  else if (sales > 999_999_999_999)    errors.annual_sales = ['Annual sales value is too large'];
 
-  const country = String(body.country || '').toUpperCase();
-  if (country === 'US' && (!body.business_state || !String(body.business_state).trim())) {
-    errors.business_state = ['State is required for US businesses'];
+  if (country === 'US') {
+    const state = typeof body.business_state === 'string'
+      ? body.business_state.trim().toUpperCase() : '';
+    if (!state)                          errors.business_state = ['State is required for US businesses'];
+    else if (!VALID_US_STATES.has(state)) errors.business_state = ['Must be a valid 2-character US state code (e.g. CA, TX)'];
   }
 
   return errors;

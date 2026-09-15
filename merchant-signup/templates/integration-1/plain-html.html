@@ -1,0 +1,1780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apply for a Merchant Account</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f7fa;
+      color: #1a1a2e;
+      margin: 0;
+      padding: 40px 16px;
+    }
+
+    .card {
+      max-width: 640px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.08);
+      padding: 40px 36px;
+    }
+
+    /* Progress bar */
+    .progress-bar {
+      display: flex;
+      align-items: center;
+      margin-bottom: 32px;
+      gap: 0;
+    }
+    .progress-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+      position: relative;
+    }
+    .progress-step:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      width: 100%;
+      height: 2px;
+      background: #e5e7eb;
+      z-index: 0;
+    }
+    .progress-step.done::after, .progress-step.active::after { background: #3b82f6; }
+    .step-circle {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #e5e7eb;
+      color: #9ca3af;
+      font-size: .75rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      z-index: 1;
+    }
+    .progress-step.active .step-circle { background: #3b82f6; color: #fff; }
+    .progress-step.done .step-circle { background: #10b981; color: #fff; }
+    .step-label {
+      font-size: .65rem;
+      color: #9ca3af;
+      margin-top: 4px;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .progress-step.active .step-label { color: #3b82f6; font-weight: 600; }
+    .progress-step.done .step-label { color: #10b981; }
+
+    h2 { font-size: 1.4rem; margin: 0 0 4px; color: #0f172a; }
+    .step-subtitle { color: #64748b; margin: 0 0 24px; font-size: .9rem; }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-group { margin-bottom: 16px; }
+    .form-section { margin-top: 24px; margin-bottom: 8px; border-top: 1px solid #e5e7eb; padding-top: 20px; }
+    .form-section h3 { font-size: .9rem; font-weight: 700; color: #374151; margin: 0 0 16px; text-transform: uppercase; letter-spacing: .04em; }
+
+    label {
+      display: block;
+      font-size: .85rem;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 5px;
+    }
+    label .required { color: #ef4444; margin-left: 2px; }
+    label .hint { font-weight: 400; color: #6b7280; font-size: .8rem; }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 13px;
+      border: 1.5px solid #d1d5db;
+      border-radius: 7px;
+      font-size: .95rem;
+      color: #1f2937;
+      background: #fff;
+      transition: border-color .15s;
+      appearance: none;
+      font-family: inherit;
+    }
+    textarea { resize: vertical; min-height: 80px; }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,.15);
+    }
+    input.error, select.error, textarea.error { border-color: #ef4444; }
+    .field-error { display: block; color: #ef4444; font-size: .8rem; margin-top: 4px; }
+
+    .checkbox-group { display: flex; flex-direction: column; gap: 8px; }
+    .checkbox-item { display: flex; align-items: center; gap: 10px; }
+    .checkbox-item input[type="checkbox"] { width: 16px; height: 16px; flex-shrink: 0; cursor: pointer; }
+    .checkbox-item label { font-weight: 400; color: #374151; cursor: pointer; margin-bottom: 0; }
+
+    .radio-group { display: flex; gap: 20px; flex-wrap: wrap; }
+    .radio-item { display: flex; align-items: center; gap: 8px; }
+    .radio-item input[type="radio"] { width: 16px; height: 16px; cursor: pointer; }
+    .radio-item label { font-weight: 400; cursor: pointer; margin-bottom: 0; }
+
+    .pct-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .pct-sum-note { font-size: .8rem; color: #6b7280; margin-top: 4px; }
+    .pct-sum-note.error { color: #ef4444; }
+
+    .terms-group { margin: 20px 0; display: flex; align-items: flex-start; gap: 10px; }
+    .terms-group input[type="checkbox"] { width: 17px; height: 17px; flex-shrink: 0; margin-top: 2px; cursor: pointer; }
+    .terms-group label { font-size: .88rem; font-weight: 400; color: #4b5563; cursor: pointer; }
+    .terms-group a { color: #3b82f6; }
+
+    .btn-row { display: flex; gap: 12px; margin-top: 24px; }
+    button[type="button"].btn-back {
+      flex: 0 0 auto;
+      padding: 12px 20px;
+      background: #f3f4f6;
+      color: #374151;
+      border: 1.5px solid #d1d5db;
+      border-radius: 8px;
+      font-size: .95rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button[type="button"].btn-back:hover { background: #e5e7eb; }
+    button[type="submit"] {
+      flex: 1;
+      padding: 13px;
+      background: #3b82f6;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s, opacity .15s;
+    }
+    button[type="submit"]:hover:not(:disabled) { background: #2563eb; }
+    button[type="submit"]:disabled { opacity: .65; cursor: not-allowed; }
+
+    .alert { padding: 12px 16px; border-radius: 7px; margin-bottom: 20px; font-size: .9rem; }
+    .alert-error   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .alert-warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+
+    .step-section { display: none; }
+    .step-section.active { display: block; }
+
+    #success-panel { display: none; text-align: center; padding: 20px 0; }
+    #success-panel .icon { font-size: 3.5rem; margin-bottom: 12px; }
+    #success-panel h2 { color: #166534; margin: 0 0 8px; }
+    #success-panel p { color: #4b5563; }
+
+    .sensitive-note { font-size: .75rem; color: #6b7280; margin-top: 4px; }
+
+    .hp-field { display: none !important; }
+
+    @media (max-width: 520px) {
+      .card { padding: 28px 20px; }
+      .form-row, .pct-row { grid-template-columns: 1fr; }
+      .step-label { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+
+    <!-- Progress bar -->
+    <div class="progress-bar" id="progress-bar">
+      <div class="progress-step active" data-step="1"><div class="step-circle">1</div><div class="step-label">Basics</div></div>
+      <div class="progress-step" data-step="2"><div class="step-circle">2</div><div class="step-label">Company</div></div>
+      <div class="progress-step" data-step="3"><div class="step-circle">3</div><div class="step-label">Products</div></div>
+      <div class="progress-step" data-step="4"><div class="step-circle">4</div><div class="step-label">Owners</div></div>
+      <div class="progress-step" data-step="5"><div class="step-circle">5</div><div class="step-label">Banking</div></div>
+      <div class="progress-step" data-step="6"><div class="step-circle">6</div><div class="step-label">Final</div></div>
+    </div>
+
+    <div id="form-alert" class="alert" style="display:none"></div>
+
+    <!-- ── Step 1: Contact & Business Basics ─────────────────────────────── -->
+    <form id="form-step1" class="step-section active" novalidate>
+      <input class="hp-field" name="_hp" tabindex="-1" autocomplete="off">
+      <h2>Contact &amp; Business Basics</h2>
+      <p class="step-subtitle">Tell us about yourself and your company.</p>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="first_name">First Name <span class="required">*</span></label>
+          <input id="first_name" name="first_name" type="text" maxlength="255" autocomplete="given-name" required>
+          <span class="field-error" id="err_first_name"></span>
+        </div>
+        <div class="form-group">
+          <label for="last_name">Last Name <span class="required">*</span></label>
+          <input id="last_name" name="last_name" type="text" maxlength="255" autocomplete="family-name" required>
+          <span class="field-error" id="err_last_name"></span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email Address <span class="required">*</span></label>
+        <input id="email" name="email" type="email" maxlength="255" autocomplete="email" required>
+        <span class="field-error" id="err_email"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="phone">Phone Number <span class="required">*</span></label>
+        <input id="phone" name="phone" type="tel" maxlength="20" autocomplete="tel" placeholder="+1 202 555 1234" required>
+        <span class="field-error" id="err_phone"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="company_name">Company Name <span class="required">*</span></label>
+        <input id="company_name" name="company_name" type="text" maxlength="255" autocomplete="organization" required>
+        <span class="field-error" id="err_company_name"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="website">Company Website <span class="required">*</span></label>
+        <input id="website" name="website" type="url" maxlength="255" autocomplete="url" placeholder="https://yourcompany.com" required>
+        <span class="field-error" id="err_website"></span>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="country">Formation Country <span class="required">*</span></label>
+          <select id="country" name="country" required>
+            <option value="">Loading countries…</option>
+          </select>
+          <span class="field-error" id="err_country"></span>
+        </div>
+        <div class="form-group" id="state_group" style="display:none">
+          <label for="business_state">Formation State <span class="required">*</span></label>
+          <select id="business_state" name="business_state">
+            <option value="">Select state…</option>
+          </select>
+          <span class="field-error" id="err_business_state"></span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="annual_sales">Estimated Annual Sales (USD) <span class="required">*</span></label>
+        <input id="annual_sales" name="annual_sales" type="number" min="1" required placeholder="e.g. 500000">
+        <span class="field-error" id="err_annual_sales"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="industry_type">Industry Type <span class="required">*</span></label>
+        <select id="industry_type" name="industry_type" required>
+          <option value="">Loading industries…</option>
+        </select>
+        <span class="field-error" id="err_industry_type"></span>
+      </div>
+
+      <div class="form-group" id="industry_type_other_group" style="display:none">
+        <label for="industry_type_other">Describe your industry <span class="required">*</span></label>
+        <input id="industry_type_other" name="industry_type_other" type="text" maxlength="255" placeholder="Briefly describe your industry">
+        <span class="field-error" id="err_industry_type_other"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="promo_code">Referral / Promo Code <span class="hint">(optional)</span></label>
+        <input id="promo_code" name="promo_code" type="text" maxlength="255" autocomplete="off">
+      </div>
+
+      <div class="btn-row">
+        <button type="submit" id="btn-step1">Continue — Company Info →</button>
+      </div>
+    </form>
+
+    <!-- ── Step 2: Company Information ──────────────────────────────────── -->
+    <form id="form-step2" class="step-section" novalidate>
+      <h2>Company Information</h2>
+      <p class="step-subtitle">Legal structure, address, and revenue model.</p>
+
+      <div class="form-group">
+        <label for="legal_name">Legal Company Name <span class="required">*</span></label>
+        <input id="legal_name" name="legal_name" type="text" maxlength="255" required>
+        <span class="field-error" id="err_legal_name"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="dba_name">DBA / Trading Name <span class="required">*</span></label>
+        <input id="dba_name" name="name" type="text" maxlength="255" required>
+        <span class="field-error" id="err_name"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="customer_service_telephone_number">Customer Service Phone <span class="required">*</span></label>
+        <input id="customer_service_telephone_number" name="customer_service_telephone_number" type="tel" maxlength="20" placeholder="+1 800 000 0000" required>
+        <span class="field-error" id="err_customer_service_telephone_number"></span>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="business_organized">Legal Structure <span class="required">*</span></label>
+          <select id="business_organized" name="business_organized" required>
+            <option value="">Select…</option>
+            <option value="Corporation">Corporation</option>
+            <option value="LLC">LLC</option>
+            <option value="Partnership">Partnership</option>
+            <option value="Government">Government</option>
+            <option value="Sole-Proprietorship">Sole Proprietorship</option>
+            <option value="Non-Profit">Non-Profit</option>
+            <option value="Other">Other</option>
+          </select>
+          <span class="field-error" id="err_business_organized"></span>
+        </div>
+        <div class="form-group">
+          <label for="business_location">Company Location Type <span class="required">*</span></label>
+          <select id="business_location" name="business_location" required>
+            <option value="">Select…</option>
+            <option value="Home-Based">Home Based</option>
+            <option value="Co-Working">Co-Working</option>
+            <option value="Corporate-Office">Corporate Office</option>
+            <option value="Storefront">Storefront</option>
+            <option value="Others">Others</option>
+          </select>
+          <span class="field-error" id="err_business_location"></span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="business_formed">Company Formation Date <span class="required">*</span></label>
+        <input id="business_formed" name="business_formed" type="date" required>
+        <span class="field-error" id="err_business_formed"></span>
+      </div>
+
+      <div class="form-group" id="federal_tax_id_group">
+        <label for="federal_tax_id">Federal Tax ID <span class="required">*</span> <span class="hint">(EIN)</span></label>
+        <input id="federal_tax_id" name="federal_tax_id" type="text" maxlength="20" placeholder="XX-XXXXXXX" autocomplete="off">
+        <span class="field-error" id="err_federal_tax_id"></span>
+      </div>
+
+      <div class="form-group" id="business_register_number_group" style="display:none">
+        <label for="business_register_number">Business Registration Number <span class="required">*</span></label>
+        <input id="business_register_number" name="business_register_number" type="text" maxlength="20">
+        <span class="field-error" id="err_business_register_number"></span>
+      </div>
+
+      <div class="form-group">
+        <label>Revenue Model <span class="required">*</span></label>
+        <div class="checkbox-group" id="marketing_model_group">
+          <div class="checkbox-item">
+            <input type="checkbox" id="mm1" name="marketingModel[]" value="1">
+            <label for="mm1">One Time Purchase</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="mm2" name="marketingModel[]" value="2">
+            <label for="mm2">Recurring / Continuity / Subscription</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="mm3" name="marketingModel[]" value="3">
+            <label for="mm3">Trial Offer + Subscription</label>
+          </div>
+        </div>
+        <span class="field-error" id="err_marketingModel"></span>
+      </div>
+
+      <div class="form-group" id="subscription_frequency_group" style="display:none">
+        <label for="subscription_frequency">Subscription Frequency <span class="required">*</span></label>
+        <select id="subscription_frequency" name="subscription_frequency">
+          <option value="">Select…</option>
+          <option value="1">Monthly</option>
+          <option value="2">Yearly</option>
+          <option value="3">Other</option>
+        </select>
+        <span class="field-error" id="err_subscription_frequency"></span>
+      </div>
+
+      <div class="form-group" id="subscription_frequency_other_group" style="display:none">
+        <label for="subscription_frequency_other">Describe frequency <span class="required">*</span></label>
+        <input id="subscription_frequency_other" name="subscription_frequency_other" type="text" maxlength="255" minlength="5" placeholder="e.g. Quarterly">
+        <span class="field-error" id="err_subscription_frequency_other"></span>
+      </div>
+
+      <!-- Legal Address -->
+      <div class="form-section">
+        <h3>Legal Address</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="street_number">Street Number <span class="required">*</span></label>
+            <input id="street_number" name="street_number" type="text" maxlength="10" required placeholder="123">
+            <span class="field-error" id="err_street_number"></span>
+          </div>
+          <div class="form-group">
+            <label for="street_address">Street Name <span class="required">*</span></label>
+            <input id="street_address" name="street_address" type="text" maxlength="255" required placeholder="Main St">
+            <span class="field-error" id="err_street_address"></span>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="city">City <span class="required">*</span></label>
+            <input id="city" name="city" type="text" maxlength="100" required>
+            <span class="field-error" id="err_city"></span>
+          </div>
+          <div class="form-group">
+            <label for="state">State / Province <span class="required">*</span></label>
+            <input id="state" name="state" type="text" maxlength="100" required>
+            <span class="field-error" id="err_state"></span>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="postal_code">Postal Code <span class="required">*</span></label>
+            <input id="postal_code" name="postal_code" type="text" maxlength="20" required>
+            <span class="field-error" id="err_postal_code"></span>
+          </div>
+          <div class="form-group">
+            <label for="address_country">Country <span class="required">*</span></label>
+            <select id="address_country" name="address_country" required>
+              <option value="">Select…</option>
+            </select>
+            <span class="field-error" id="err_address_country"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Is your physical address the same as your legal address? <span class="required">*</span></label>
+        <div class="radio-group">
+          <div class="radio-item"><input type="radio" id="phys_same" name="is_physical_address_same_as_legal_address" value="1" checked><label for="phys_same">Yes</label></div>
+          <div class="radio-item"><input type="radio" id="phys_diff" name="is_physical_address_same_as_legal_address" value="0"><label for="phys_diff">No — enter separate address</label></div>
+        </div>
+      </div>
+
+      <!-- Physical Address (shown only when different) -->
+      <div id="physical_address_section" style="display:none">
+        <div class="form-section">
+          <h3>Physical Address</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="physical_address_street_number">Street Number <span class="required">*</span></label>
+              <input id="physical_address_street_number" name="physical_address_street_number" type="text" maxlength="10">
+              <span class="field-error" id="err_physical_address_street_number"></span>
+            </div>
+            <div class="form-group">
+              <label for="physical_address_street_address">Street Name <span class="required">*</span></label>
+              <input id="physical_address_street_address" name="physical_address_street_address" type="text" maxlength="255">
+              <span class="field-error" id="err_physical_address_street_address"></span>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="physical_address_city">City <span class="required">*</span></label>
+              <input id="physical_address_city" name="physical_address_city" type="text" maxlength="100">
+              <span class="field-error" id="err_physical_address_city"></span>
+            </div>
+            <div class="form-group">
+              <label for="physical_address_state">State / Province <span class="required">*</span></label>
+              <input id="physical_address_state" name="physical_address_state" type="text" maxlength="100">
+              <span class="field-error" id="err_physical_address_state"></span>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="physical_address_postal_code">Postal Code <span class="required">*</span></label>
+              <input id="physical_address_postal_code" name="physical_address_postal_code" type="text" maxlength="20">
+              <span class="field-error" id="err_physical_address_postal_code"></span>
+            </div>
+            <div class="form-group">
+              <label for="physical_address_country">Country <span class="required">*</span></label>
+              <select id="physical_address_country" name="physical_address_country">
+                <option value="">Select…</option>
+              </select>
+              <span class="field-error" id="err_physical_address_country"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button type="button" class="btn-back" onclick="goToStep(1)">← Back</button>
+        <button type="submit" id="btn-step2">Continue — Products →</button>
+      </div>
+    </form>
+
+    <!-- ── Step 3: Product & Processing ─────────────────────────────────── -->
+    <form id="form-step3" class="step-section" novalidate>
+      <h2>Product &amp; Processing</h2>
+      <p class="step-subtitle">How you sell and deliver your products or services.</p>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="fulfillment_by">Fulfillment Method <span class="required">*</span></label>
+          <select id="fulfillment_by" name="fulfillment_by" required>
+            <option value="">Select…</option>
+            <option value="Direct-By-You">Direct By You</option>
+            <option value="Vendor">Vendor</option>
+            <option value="Others">Others</option>
+          </select>
+          <span class="field-error" id="err_fulfillment_by"></span>
+        </div>
+        <div class="form-group">
+          <label for="customer_service_time">Fulfillment Timeframe <span class="required">*</span></label>
+          <select id="customer_service_time" name="customer_service_time" required>
+            <option value="">Select…</option>
+            <option value="0-7-days">0–7 days</option>
+            <option value="7-30-days">7–30 days</option>
+            <option value="31+days">31+ days</option>
+          </select>
+          <span class="field-error" id="err_customer_service_time"></span>
+        </div>
+      </div>
+
+      <div class="form-group" id="fullfillment_company_group" style="display:none">
+        <label for="fullfillment_company">Fulfillment Vendor Name <span class="required">*</span></label>
+        <input id="fullfillment_company" name="fullfillment_company" type="text" maxlength="300" placeholder="Vendor company name">
+        <span class="field-error" id="err_fullfillment_company"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="refund_policy">Refund Policy <span class="required">*</span></label>
+        <select id="refund_policy" name="refund_policy" required>
+          <option value="">Select…</option>
+          <option value="Full-Refund">Full Refund</option>
+          <option value="No-Refund">No Refund</option>
+          <option value="Exchange-Only">Exchange Only</option>
+          <option value="Partial-Refund">Partial Refund</option>
+        </select>
+        <span class="field-error" id="err_refund_policy"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="shopping_cart">Shopping Cart / CRM <span class="required">*</span></label>
+        <select id="shopping_cart" name="shopping_cart" required>
+          <option value="">Loading…</option>
+        </select>
+        <span class="field-error" id="err_shopping_cart"></span>
+      </div>
+
+      <div class="form-group" id="shopping_cart_other_group" style="display:none">
+        <label for="shopping_cart_other">Other Sales Platform <span class="required">*</span></label>
+        <input id="shopping_cart_other" name="shopping_cart_other" type="text" maxlength="255" placeholder="Instagram DMs, Custom CRM, etc.">
+        <span class="field-error" id="err_shopping_cart_other"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="leave_deposit">Are customers required to pay a deposit? <span class="required">*</span></label>
+        <select id="leave_deposit" name="leave_deposit" required>
+          <option value="">Select…</option>
+          <option value="1">Yes</option>
+          <option value="0">No</option>
+        </select>
+        <span class="field-error" id="err_leave_deposit"></span>
+      </div>
+
+      <div class="form-section">
+        <h3>Transaction Entry Methods <span class="hint" style="text-transform:none;font-size:.8rem;color:#6b7280">(must total 100%)</span></h3>
+        <div class="pct-row">
+          <div class="form-group">
+            <label for="card_swiped">Card Presented (%)</label>
+            <input id="card_swiped" name="card_swiped" type="number" min="0" max="100" value="0" required>
+          </div>
+          <div class="form-group">
+            <label for="customer_entered">Customer Keyed-In (%)</label>
+            <input id="customer_entered" name="customer_entered" type="number" min="0" max="100" value="0" required>
+          </div>
+          <div class="form-group">
+            <label for="staff_entered">Staff Keyed-In (%)</label>
+            <input id="staff_entered" name="staff_entered" type="number" min="0" max="100" value="0" required>
+          </div>
+        </div>
+        <p class="pct-sum-note" id="pct_sum_note">Total: <strong id="pct_total">0</strong>% (must equal 100%)</p>
+        <span class="field-error" id="err_card_swiped"></span>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="average_transaction_amount">Avg. Transaction (USD) <span class="required">*</span></label>
+          <input id="average_transaction_amount" name="average_transaction_amount" type="number" min="1" required placeholder="200">
+          <span class="field-error" id="err_average_transaction_amount"></span>
+        </div>
+        <div class="form-group">
+          <label for="highest_transaction_amount">Highest Transaction (USD) <span class="required">*</span></label>
+          <input id="highest_transaction_amount" name="highest_transaction_amount" type="number" min="1" required placeholder="1000">
+          <span class="field-error" id="err_highest_transaction_amount"></span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="describe_services">Describe Your Products / Services <span class="required">*</span></label>
+        <textarea id="describe_services" name="describe_services" required placeholder="Briefly describe your primary products or services"></textarea>
+        <span class="field-error" id="err_describe_services"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="describe_highest_transaction">Describe Your Highest-Value Transaction <span class="required">*</span></label>
+        <textarea id="describe_highest_transaction" name="describe_highest_transaction" minlength="15" required placeholder="Describe the product or service behind your largest single transaction"></textarea>
+        <span class="field-error" id="err_describe_highest_transaction"></span>
+      </div>
+
+      <div class="btn-row">
+        <button type="button" class="btn-back" onclick="goToStep(2)">← Back</button>
+        <button type="submit" id="btn-step3">Continue — Owners →</button>
+      </div>
+    </form>
+
+    <!-- ── Step 4: Owners ────────────────────────────────────────────────── -->
+    <form id="form-step4" class="step-section" novalidate>
+      <h2>Business Owners</h2>
+      <p class="step-subtitle">Identity information for the primary owner. If the applicant owns &lt;51%, a second owner is required.</p>
+
+      <div class="form-group">
+        <label>Are you the business owner / primary contact? <span class="required">*</span></label>
+        <div class="radio-group">
+          <div class="radio-item"><input type="radio" id="pc_yes" name="primary_contact" value="1" checked><label for="pc_yes">Yes, I am</label></div>
+          <div class="radio-item"><input type="radio" id="pc_no" name="primary_contact" value="0"><label for="pc_no">No — I'm a representative</label></div>
+        </div>
+      </div>
+
+      <div class="form-group" id="primary_contact_job_title_group" style="display:none">
+        <label for="primary_contact_job_title">Your Job Title <span class="required">*</span></label>
+        <input id="primary_contact_job_title" name="primary_contact_job_title" type="text" maxlength="100" placeholder="e.g. Operations Manager">
+        <span class="field-error" id="err_primary_contact_job_title"></span>
+      </div>
+
+      <!-- Owner 1 -->
+      <div class="form-section">
+        <h3>Owner 1</h3>
+
+        <div id="owner1_name_group" style="display:none">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="first_name_1">First Name <span class="required">*</span></label>
+              <input id="first_name_1" name="first_name.1" type="text" maxlength="60">
+              <span class="field-error" id="err_first_name_1"></span>
+            </div>
+            <div class="form-group">
+              <label for="last_name_1">Last Name <span class="required">*</span></label>
+              <input id="last_name_1" name="last_name.1" type="text" maxlength="60">
+              <span class="field-error" id="err_last_name_1"></span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="email_1">Email <span class="required">*</span></label>
+            <input id="email_1" name="email.1" type="email">
+            <span class="field-error" id="err_email_1"></span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="phone_1">Phone <span class="required">*</span></label>
+            <input id="phone_1" name="phone.1" type="tel" maxlength="20" placeholder="+1 202 555 1234">
+            <span class="field-error" id="err_phone_1"></span>
+          </div>
+          <div class="form-group">
+            <label for="title_1">Job Title <span class="required">*</span></label>
+            <select id="title_1" name="title.1" required>
+              <option value="">Select…</option>
+              <option value="ceo">CEO</option>
+              <option value="cfo">CFO</option>
+              <option value="chairman">Chairman</option>
+              <option value="co-owner">Co-owner</option>
+              <option value="controller">Controller</option>
+              <option value="director">Director</option>
+              <option value="general-manager">General Manager</option>
+              <option value="office-manager">Office Manager</option>
+              <option value="owner">Owner</option>
+              <option value="partner">Partner</option>
+              <option value="president">President</option>
+              <option value="treasurer">Treasurer</option>
+              <option value="vice-president">Vice President</option>
+              <option value="other">Other</option>
+            </select>
+            <span class="field-error" id="err_title_1"></span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="ssn_1">SSN / Tax ID <span class="required">*</span></label>
+            <input id="ssn_1" name="ssn.1" type="text" maxlength="20" autocomplete="off" placeholder="XXX-XX-XXXX">
+            <span class="sensitive-note">US/CA: enter 9 digits as XXX-XX-XXXX</span>
+            <span class="field-error" id="err_ssn_1"></span>
+          </div>
+          <div class="form-group">
+            <label for="dob_1">Date of Birth <span class="required">*</span></label>
+            <input id="dob_1" name="dob.1" type="date" required>
+            <span class="sensitive-note">Must be 18–100 years old</span>
+            <span class="field-error" id="err_dob_1"></span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="ownership_percentage_1">Ownership % <span class="required">*</span></label>
+          <input id="ownership_percentage_1" name="ownership_percentage.1" type="number" min="1" max="100" step="1" required placeholder="e.g. 51">
+          <span class="field-error" id="err_ownership_percentage_1"></span>
+        </div>
+
+        <!-- Owner 1 Home Address -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="street_number_1">Street Number <span class="required">*</span></label>
+            <input id="street_number_1" name="street_number.1" type="text" maxlength="10" required>
+            <span class="field-error" id="err_street_number_1"></span>
+          </div>
+          <div class="form-group">
+            <label for="street_address_1">Street Name <span class="required">*</span></label>
+            <input id="street_address_1" name="street_address.1" type="text" maxlength="255" required>
+            <span class="field-error" id="err_street_address_1"></span>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="city_1">City <span class="required">*</span></label>
+            <input id="city_1" name="city.1" type="text" maxlength="100" required>
+          </div>
+          <div class="form-group">
+            <label for="state_1">State / Province <span class="required">*</span></label>
+            <input id="state_1" name="state.1" type="text" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="postal_code_1">Postal Code <span class="required">*</span></label>
+            <input id="postal_code_1" name="postal_code.1" type="text" maxlength="20" required>
+          </div>
+          <div class="form-group">
+            <label for="country_1">Country <span class="required">*</span></label>
+            <select id="country_1" name="country.1" required>
+              <option value="">Select…</option>
+            </select>
+            <span class="field-error" id="err_country_1"></span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="license_1">Driver License # <span class="required">*</span></label>
+            <input id="license_1" name="license.1" type="text" minlength="5" maxlength="25" autocomplete="off" required>
+            <span class="field-error" id="err_license_1"></span>
+          </div>
+          <div class="form-group" id="dl_state_1_group" style="display:none">
+            <label for="driver_license_state_1">License State <span class="required">*</span></label>
+            <select id="driver_license_state_1" name="driver_license_state.1">
+              <option value="">Select…</option>
+            </select>
+            <span class="field-error" id="err_driver_license_state_1"></span>
+          </div>
+        </div>
+
+        <div class="form-group" id="dl_expiry_1_group" style="display:none">
+          <label for="driver_license_expiration_date_1">License Expiration Date <span class="required">*</span></label>
+          <input id="driver_license_expiration_date_1" name="driver_license_expiration_date.1" type="date" autocomplete="off">
+          <span class="sensitive-note">Must be today or a future date</span>
+          <span class="field-error" id="err_driver_license_expiration_date_1"></span>
+        </div>
+
+        <div class="form-group">
+          <label>Has a bankruptcy been filed? <span class="required">*</span></label>
+          <div class="radio-group">
+            <div class="radio-item"><input type="radio" id="bk1_no" name="bankruptcy_filed.1" value="0" checked><label for="bk1_no">No</label></div>
+            <div class="radio-item"><input type="radio" id="bk1_yes" name="bankruptcy_filed.1" value="1"><label for="bk1_yes">Yes</label></div>
+          </div>
+        </div>
+
+        <div id="bankruptcy1_details" style="display:none">
+          <div class="form-group">
+            <label>Was the bankruptcy discharged? <span class="required">*</span></label>
+            <div class="radio-group">
+              <div class="radio-item"><input type="radio" id="bkd1_no" name="bankruptcy_discharged.1" value="0"><label for="bkd1_no">No</label></div>
+              <div class="radio-item"><input type="radio" id="bkd1_yes" name="bankruptcy_discharged.1" value="1"><label for="bkd1_yes">Yes</label></div>
+            </div>
+          </div>
+          <div class="form-group" id="bkd_date_1_group" style="display:none">
+            <label for="bankruptcy_discharged_date_1">Discharge Date <span class="required">*</span></label>
+            <input id="bankruptcy_discharged_date_1" name="bankruptcy_discharged_date.1" type="date">
+            <span class="sensitive-note">Must be today or a past date</span>
+            <span class="field-error" id="err_bankruptcy_discharged_date_1"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Owner 2 (shown when ownership_percentage.1 < 51) -->
+      <div id="owner2_section" style="display:none">
+        <div class="form-section">
+          <h3>Owner 2 <span class="hint" style="text-transform:none;font-size:.8rem">(required when Owner 1 owns less than 51%)</span></h3>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="first_name_2">First Name <span class="required">*</span></label>
+              <input id="first_name_2" name="first_name.2" type="text" maxlength="60">
+              <span class="field-error" id="err_first_name_2"></span>
+            </div>
+            <div class="form-group">
+              <label for="last_name_2">Last Name <span class="required">*</span></label>
+              <input id="last_name_2" name="last_name.2" type="text" maxlength="60">
+              <span class="field-error" id="err_last_name_2"></span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="email_2">Email <span class="required">*</span></label>
+            <input id="email_2" name="email.2" type="email">
+            <span class="field-error" id="err_email_2"></span>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="phone_2">Phone <span class="required">*</span></label>
+              <input id="phone_2" name="phone.2" type="tel" maxlength="20" placeholder="+1 202 555 1234">
+              <span class="field-error" id="err_phone_2"></span>
+            </div>
+            <div class="form-group">
+              <label for="title_2">Job Title <span class="required">*</span></label>
+              <select id="title_2" name="title.2">
+                <option value="">Select…</option>
+                <option value="ceo">CEO</option><option value="cfo">CFO</option>
+                <option value="chairman">Chairman</option><option value="co-owner">Co-owner</option>
+                <option value="controller">Controller</option><option value="director">Director</option>
+                <option value="general-manager">General Manager</option><option value="office-manager">Office Manager</option>
+                <option value="owner">Owner</option><option value="partner">Partner</option>
+                <option value="president">President</option><option value="treasurer">Treasurer</option>
+                <option value="vice-president">Vice President</option><option value="other">Other</option>
+              </select>
+              <span class="field-error" id="err_title_2"></span>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="ssn_2">SSN / Tax ID <span class="required">*</span></label>
+              <input id="ssn_2" name="ssn.2" type="text" maxlength="20" autocomplete="off" placeholder="XXX-XX-XXXX">
+              <span class="field-error" id="err_ssn_2"></span>
+            </div>
+            <div class="form-group">
+              <label for="dob_2">Date of Birth <span class="required">*</span></label>
+              <input id="dob_2" name="dob.2" type="date">
+              <span class="sensitive-note">Must be 18–100 years old</span>
+              <span class="field-error" id="err_dob_2"></span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="ownership_percentage_2">Ownership % <span class="required">*</span></label>
+            <input id="ownership_percentage_2" name="ownership_percentage.2" type="number" min="1" max="100" step="1" placeholder="e.g. 49">
+            <span class="field-error" id="err_ownership_percentage_2"></span>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="street_number_2">Street Number <span class="required">*</span></label>
+              <input id="street_number_2" name="street_number.2" type="text" maxlength="10">
+            </div>
+            <div class="form-group">
+              <label for="street_address_2">Street Name <span class="required">*</span></label>
+              <input id="street_address_2" name="street_address.2" type="text" maxlength="255">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="city_2">City <span class="required">*</span></label>
+              <input id="city_2" name="city.2" type="text" maxlength="100">
+            </div>
+            <div class="form-group">
+              <label for="state_2">State / Province <span class="required">*</span></label>
+              <input id="state_2" name="state.2" type="text">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="postal_code_2">Postal Code <span class="required">*</span></label>
+              <input id="postal_code_2" name="postal_code.2" type="text" maxlength="20">
+            </div>
+            <div class="form-group">
+              <label for="country_2">Country <span class="required">*</span></label>
+              <select id="country_2" name="country.2">
+                <option value="">Select…</option>
+              </select>
+              <span class="field-error" id="err_country_2"></span>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="license_2">Driver License # <span class="required">*</span></label>
+              <input id="license_2" name="license.2" type="text" minlength="5" maxlength="25" autocomplete="off">
+              <span class="field-error" id="err_license_2"></span>
+            </div>
+            <div class="form-group" id="dl_state_2_group" style="display:none">
+              <label for="driver_license_state_2">License State <span class="required">*</span></label>
+              <select id="driver_license_state_2" name="driver_license_state.2">
+                <option value="">Select…</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group" id="dl_expiry_2_group" style="display:none">
+            <label for="driver_license_expiration_date_2">License Expiration Date <span class="required">*</span></label>
+            <input id="driver_license_expiration_date_2" name="driver_license_expiration_date.2" type="date" autocomplete="off">
+            <span class="sensitive-note">Must be today or a future date</span>
+          </div>
+
+          <div class="form-group">
+            <label>Has a bankruptcy been filed? <span class="required">*</span></label>
+            <div class="radio-group">
+              <div class="radio-item"><input type="radio" id="bk2_no" name="bankruptcy_filed.2" value="0" checked><label for="bk2_no">No</label></div>
+              <div class="radio-item"><input type="radio" id="bk2_yes" name="bankruptcy_filed.2" value="1"><label for="bk2_yes">Yes</label></div>
+            </div>
+          </div>
+          <div id="bankruptcy2_details" style="display:none">
+            <div class="form-group">
+              <label>Was the bankruptcy discharged?</label>
+              <div class="radio-group">
+                <div class="radio-item"><input type="radio" id="bkd2_no" name="bankruptcy_discharged.2" value="0"><label for="bkd2_no">No</label></div>
+                <div class="radio-item"><input type="radio" id="bkd2_yes" name="bankruptcy_discharged.2" value="1"><label for="bkd2_yes">Yes</label></div>
+              </div>
+            </div>
+            <div class="form-group" id="bkd_date_2_group" style="display:none">
+              <label for="bankruptcy_discharged_date_2">Discharge Date</label>
+              <input id="bankruptcy_discharged_date_2" name="bankruptcy_discharged_date.2" type="date">
+              <span class="sensitive-note">Must be today or a past date</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button type="button" class="btn-back" onclick="goToStep(3)">← Back</button>
+        <button type="submit" id="btn-step4">Continue — Banking →</button>
+      </div>
+    </form>
+
+    <!-- ── Step 5: Banking ───────────────────────────────────────────────── -->
+    <form id="form-step5" class="step-section" novalidate>
+      <h2>Banking</h2>
+      <p class="step-subtitle">Bank account for deposits and current processor info.</p>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="routing_number">Routing Number <span class="required">*</span></label>
+          <input id="routing_number" name="routing_number" type="text" maxlength="20" autocomplete="off" required placeholder="9-digit routing number">
+          <span class="sensitive-note">US: exactly 9 digits</span>
+          <span class="field-error" id="err_routing_number"></span>
+        </div>
+        <div class="form-group">
+          <label for="account_number">Account Number <span class="required">*</span></label>
+          <input id="account_number" name="account_number" type="text" maxlength="20" autocomplete="off" required>
+          <span class="sensitive-note">US: 8–17 digits</span>
+          <span class="field-error" id="err_account_number"></span>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="bank_name">Bank Name</label>
+          <input id="bank_name" name="bank_name" type="text" maxlength="255" placeholder="e.g. Chase, Wells Fargo">
+        </div>
+        <div class="form-group">
+          <label for="bank_account_type">Account Type</label>
+          <select id="bank_account_type" name="bank_account_type">
+            <option value="">Select…</option>
+            <option value="checking">Checking</option>
+            <option value="savings">Savings</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Canada-specific fields -->
+      <div id="ca_banking_fields" style="display:none">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="institution_number">Institution Number <span class="required">*</span></label>
+            <input id="institution_number" name="institution_number" type="text" maxlength="3" pattern="[0-9]{3}" placeholder="3 digits">
+            <span class="field-error" id="err_institution_number"></span>
+          </div>
+          <div class="form-group">
+            <label for="customer_pay_currency">Customer Pays In <span class="required">*</span></label>
+            <div class="radio-group" style="margin-top:10px">
+              <div class="radio-item"><input type="radio" id="cur_usd" name="customer_pay_currency" value="USD"><label for="cur_usd">USD</label></div>
+              <div class="radio-item"><input type="radio" id="cur_cad" name="customer_pay_currency" value="CAD"><label for="cur_cad">CAD</label></div>
+            </div>
+            <span class="field-error" id="err_customer_pay_currency"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="current_processing">Are you currently processing credit cards? <span class="required">*</span></label>
+        <select id="current_processing" name="current_processing" required>
+          <option value="">Select…</option>
+          <option value="1">Yes</option>
+          <option value="0">No</option>
+        </select>
+        <span class="field-error" id="err_current_processing"></span>
+      </div>
+
+      <div class="form-group" id="processor_name_group" style="display:none">
+        <label for="processor_name">Current Processor Name <span class="required">*</span></label>
+        <input id="processor_name" name="processor_name" type="text" maxlength="255" placeholder="e.g. Stripe, Square">
+        <span class="field-error" id="err_processor_name"></span>
+      </div>
+
+      <div class="btn-row">
+        <button type="button" class="btn-back" onclick="goToStep(4)">← Back</button>
+        <button type="submit" id="btn-step5">Continue — Final Details →</button>
+      </div>
+    </form>
+
+    <!-- ── Step 6: Final Details ──────────────────────────────────────────── -->
+    <form id="form-step6" class="step-section" novalidate>
+      <h2>Final Details</h2>
+      <p class="step-subtitle">Almost done — just a few last questions.</p>
+
+      <div class="form-group">
+        <label for="howdidyouhear">How did you find us? <span class="required">*</span></label>
+        <select id="howdidyouhear" name="howdidyouhear" required>
+          <option value="">Loading…</option>
+        </select>
+        <span class="field-error" id="err_howdidyouhear"></span>
+      </div>
+
+      <div class="form-group" id="hear_other_group" style="display:none">
+        <label for="hear_about_us_other">Tell us more <span class="required">*</span></label>
+        <input id="hear_about_us_other" name="hear_about_us_other" type="text" maxlength="255" placeholder="e.g. Friend's name or referral details">
+        <span class="field-error" id="err_hear_about_us_other"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="multiple_merchant_accounts">Do you need multiple merchant accounts? <span class="required">*</span></label>
+        <select id="multiple_merchant_accounts" name="multiple_merchant_accounts" required>
+          <option value="">Select…</option>
+          <option value="1">Yes</option>
+          <option value="0">No</option>
+        </select>
+        <span class="field-error" id="err_multiple_merchant_accounts"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="transaction_device">Transaction Device</label>
+        <select id="transaction_device" name="transaction_device">
+          <option value="">Select…</option>
+          <option value="Easy-Pay-Direct-Gateway">Easy Pay Direct Gateway</option>
+          <option value="Another-Payment-Gateway">Another Payment Gateway</option>
+          <option value="Need-terminal/POS-system">Need Terminal / POS System</option>
+          <option value="Own-terminal/POS-system">Own Terminal / POS System</option>
+          <option value="iPhone/Android">iPhone / Android</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="bad_experience">Have you had a bad experience with a payment provider? <span class="required">*</span></label>
+        <select id="bad_experience" name="bad_experience" required>
+          <option value="">Select…</option>
+          <option value="0">No</option>
+          <option value="1">Yes</option>
+        </select>
+        <span class="field-error" id="err_bad_experience"></span>
+      </div>
+
+      <div class="form-group" id="bad_exp_detail_group" style="display:none">
+        <label for="bad_experience_happened">Which provider? <span class="required">*</span></label>
+        <input id="bad_experience_happened" name="bad_experience_happened" type="text" maxlength="500" placeholder="Provider name">
+        <span class="field-error" id="err_bad_experience_happened"></span>
+      </div>
+
+      <div class="form-group">
+        <label>What would help your company grow? <span class="hint">(optional)</span></label>
+        <div class="checkbox-group" id="interests_group">
+          <span style="color:#9ca3af;font-size:.85rem">Loading…</span>
+        </div>
+      </div>
+
+      <div class="terms-group">
+        <input type="checkbox" id="terms_agreed" name="terms_and_conditions_agreed" value="1" required>
+        <label for="terms_agreed">
+          I have read and accept the
+          <a href="https://app.easypaydirect.com/terms" target="_blank" rel="noopener">Terms and Conditions</a>
+          <span class="required">*</span>
+        </label>
+      </div>
+      <span class="field-error" id="err_terms" style="display:block;margin-top:-10px;margin-bottom:10px"></span>
+
+      <div class="btn-row">
+        <button type="button" class="btn-back" onclick="goToStep(5)">← Back</button>
+        <button type="submit" id="btn-step6">Submit Application</button>
+      </div>
+    </form>
+
+    <!-- ── Success ──────────────────────────────────────────────────────── -->
+    <div id="success-panel">
+      <div class="icon">✅</div>
+      <h2>Application Submitted!</h2>
+      <p>Your merchant account application is complete. Easy Pay Direct will be in touch soon.</p>
+      <p id="success-uuid" style="color:#6b7280;font-size:.85rem;margin-top:8px"></p>
+    </div>
+
+  </div><!-- .card -->
+
+  <script>
+    /*
+     * This form calls YOUR backend (node-express.js) which proxies each step to EMAP.
+     * Never call EMAP's API directly from this page.
+     *
+     * After step 1 succeeds, the UUID returned by EMAP is stored in localStorage
+     * (survives tab close) and sent with every subsequent step.
+     */
+
+    var currentStep = 1;
+    var appUUID = localStorage.getItem('emap_uuid') || '';
+    var step1Country = localStorage.getItem('emap_country') || '';
+
+    // ── Utility ──────────────────────────────────────────────────────────────
+    function showAlert(type, message) {
+      var el = document.getElementById('form-alert');
+      el.className = 'alert alert-' + type;
+      el.textContent = message;
+      el.style.display = 'block';
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function hideAlert() {
+      document.getElementById('form-alert').style.display = 'none';
+    }
+
+    function setError(id, message) {
+      var el = document.getElementById('err_' + id);
+      var input = document.getElementById(id) ||
+                  document.querySelector('[name="' + id + '"]') ||
+                  document.querySelector('[name="' + id.replace(/_(\d)$/, '.$1') + '"]');
+      if (el) el.textContent = message || '';
+      if (input) {
+        if (message) input.classList.add('error');
+        else input.classList.remove('error');
+      }
+    }
+
+    function clearStepErrors(stepEl) {
+      stepEl.querySelectorAll('.field-error').forEach(function (el) { el.textContent = ''; });
+      stepEl.querySelectorAll('.error').forEach(function (el) { el.classList.remove('error'); });
+    }
+
+    function displayServerErrors(errors) {
+      var fieldMap = { name: 'company_name' };
+      Object.entries(errors).forEach(function (entry) {
+        var field = entry[0];
+        var messages = entry[1];
+        var localField = fieldMap[field] || field.replace(/\./g, '_');
+        var msg = Array.isArray(messages) ? messages[0] : messages;
+        setError(localField, msg);
+      });
+      var first = document.querySelector('.field-error:not(:empty)');
+      if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function updateProgress(step) {
+      document.querySelectorAll('.progress-step').forEach(function (el) {
+        var n = parseInt(el.dataset.step, 10);
+        el.classList.remove('active', 'done');
+        if (n === step) el.classList.add('active');
+        else if (n < step) el.classList.add('done');
+      });
+    }
+
+    function goToStep(step) {
+      document.querySelectorAll('.step-section').forEach(function (el) {
+        el.classList.remove('active');
+      });
+      document.getElementById('form-step' + step).classList.add('active');
+      currentStep = step;
+      updateProgress(step);
+      hideAlert();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ── POST a step to backend ───────────────────────────────────────────────
+    async function submitStep(stepNum, payload, btn, btnLabel) {
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+      hideAlert();
+
+      try {
+        var res = await fetch('/api/step/' + stepNum, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        var data = await res.json();
+
+        if (res.status === 429) {
+          showAlert('error', 'Too many attempts. Please wait a few minutes and try again.');
+          btn.disabled = false; btn.textContent = btnLabel;
+          return null;
+        }
+
+        if (res.status === 422) {
+          showAlert('error', 'Please correct the errors below.');
+          displayServerErrors(data.errors || {});
+          btn.disabled = false; btn.textContent = btnLabel;
+          return null;
+        }
+
+        if (!res.ok) {
+          showAlert('error', data.message || 'Something went wrong. Please try again.');
+          btn.disabled = false; btn.textContent = btnLabel;
+          return null;
+        }
+
+        btn.disabled = false; btn.textContent = btnLabel;
+        return data;
+
+      } catch (_) {
+        showAlert('error', 'A network error occurred. Please check your connection and try again.');
+        btn.disabled = false; btn.textContent = btnLabel;
+        return null;
+      }
+    }
+
+    // ── Load dropdowns ───────────────────────────────────────────────────────
+    var loadedStates = [];
+
+    function populateStates(selectId) {
+      var sel = document.getElementById(selectId);
+      if (!sel) return;
+      sel.innerHTML = '<option value="">Select state…</option>';
+      loadedStates.forEach(function (s) {
+        var o = document.createElement('option');
+        o.value = s.code; o.textContent = s.name;
+        sel.appendChild(o);
+      });
+    }
+
+    function populateCountriesSelect(selectId, countries) {
+      var sel = document.getElementById(selectId);
+      if (!sel) return;
+      var cur = sel.value;
+      sel.innerHTML = '<option value="">Select country…</option>';
+      countries.forEach(function (c) {
+        var o = document.createElement('option');
+        o.value = c.code; o.textContent = c.name;
+        sel.appendChild(o);
+      });
+      if (cur) sel.value = cur;
+    }
+
+    var loadedCountries = [];
+
+    async function loadAllDropdowns() {
+      // Countries
+      try {
+        var r = await fetch('/api/countries');
+        var j = await r.json();
+        loadedCountries = j.data || [];
+      } catch (_) {
+        loadedCountries = [
+          { code: 'US', name: 'United States' },
+          { code: 'CA', name: 'Canada' },
+          { code: 'GB', name: 'United Kingdom' },
+          { code: 'AU', name: 'Australia' },
+        ];
+      }
+      ['country', 'address_country', 'physical_address_country',
+       'country_1', 'country_2'].forEach(function (id) {
+        populateCountriesSelect(id, loadedCountries);
+      });
+
+      // States
+      try {
+        var r = await fetch('/api/states');
+        var j = await r.json();
+        loadedStates = j.data || [];
+      } catch (_) {
+        loadedStates = [];
+      }
+      populateStates('business_state');
+      populateStates('driver_license_state_1');
+      populateStates('driver_license_state_2');
+
+      // Industry types
+      try {
+        var r = await fetch('/api/industry-types');
+        var j = await r.json();
+        var sel = document.getElementById('industry_type');
+        sel.innerHTML = '<option value="">Select industry…</option>';
+        (j.data || []).forEach(function (t) {
+          var o = document.createElement('option');
+          o.value = t.slug; o.textContent = t.name;
+          sel.appendChild(o);
+        });
+      } catch (_) {
+        document.getElementById('industry_type').innerHTML =
+          '<option value="">Unable to load — please refresh</option>';
+      }
+
+      // Shopping carts
+      try {
+        var r = await fetch('/api/shopping-carts');
+        var j = await r.json();
+        var sel = document.getElementById('shopping_cart');
+        sel.innerHTML = '<option value="">Select…</option>';
+        (j.data || []).forEach(function (c) {
+          var o = document.createElement('option');
+          o.value = c.slug; o.textContent = c.name;
+          sel.appendChild(o);
+        });
+      } catch (_) {
+        document.getElementById('shopping_cart').innerHTML =
+          '<option value="">Unable to load — please refresh</option>';
+      }
+
+      // Referral sources
+      try {
+        var r = await fetch('/api/referral-sources');
+        var j = await r.json();
+        var sel = document.getElementById('howdidyouhear');
+        sel.innerHTML = '<option value="">Select…</option>';
+        (j.data || []).forEach(function (s) {
+          var o = document.createElement('option');
+          o.value = s.slug; o.textContent = s.name;
+          sel.appendChild(o);
+        });
+      } catch (_) {
+        document.getElementById('howdidyouhear').innerHTML =
+          '<option value="">Unable to load — please refresh</option>';
+      }
+
+      // Interest details (grouped)
+      try {
+        var r = await fetch('/api/interest-details');
+        var j = await r.json();
+        var container = document.getElementById('interests_group');
+        container.innerHTML = '';
+        (j.data || []).forEach(function (group) {
+          var heading = document.createElement('strong');
+          heading.textContent = group.group_name;
+          heading.style.cssText = 'display:block;margin-top:10px;margin-bottom:6px;font-size:.82rem;color:#374151';
+          container.appendChild(heading);
+          (group.interests || []).forEach(function (interest) {
+            var item = document.createElement('div');
+            item.className = 'checkbox-item';
+            item.innerHTML =
+              '<input type="checkbox" id="interest_' + interest.id + '" ' +
+              'name="other_interests_capital[]" value="' + interest.id + '">' +
+              '<label for="interest_' + interest.id + '">' + interest.name + '</label>';
+            container.appendChild(item);
+          });
+        });
+        if (!j.data || j.data.length === 0) container.innerHTML = '<span style="color:#9ca3af;font-size:.85rem">None available</span>';
+      } catch (_) {
+        document.getElementById('interests_group').innerHTML =
+          '<span style="color:#9ca3af;font-size:.85rem">Unable to load</span>';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadAllDropdowns);
+
+    // ── Conditional field logic ──────────────────────────────────────────────
+    // Step 1: country → state
+    document.getElementById('country').addEventListener('change', function () {
+      var isUS = this.value === 'US';
+      var grp = document.getElementById('state_group');
+      var sel = document.getElementById('business_state');
+      grp.style.display = isUS ? 'block' : 'none';
+      sel.required = isUS;
+      if (!isUS) sel.value = '';
+      step1Country = this.value;
+      localStorage.setItem('emap_country', step1Country);
+      // CA banking fields
+      var caFields = document.getElementById('ca_banking_fields');
+      if (caFields) {
+        var isCA = this.value === 'CA';
+        caFields.style.display = isCA ? 'block' : 'none';
+      }
+    });
+
+    // Step 1: industry_type → other
+    document.getElementById('industry_type').addEventListener('change', function () {
+      var grp = document.getElementById('industry_type_other_group');
+      var inp = document.getElementById('industry_type_other');
+      var isOther = this.value === 'other';
+      grp.style.display = isOther ? 'block' : 'none';
+      inp.required = isOther;
+      if (!isOther) inp.value = '';
+    });
+
+    // Step 2: business_organized → show/hide federal_tax_id and business_register_number
+    document.getElementById('business_organized').addEventListener('change', function () {
+      updateFederalTaxVisibility();
+    });
+    document.getElementById('address_country').addEventListener('change', function () {
+      updateFederalTaxVisibility();
+    });
+
+    function updateFederalTaxVisibility() {
+      var org = document.getElementById('business_organized').value;
+      var country = document.getElementById('address_country').value || step1Country;
+      var isCA = country === 'CA';
+      var isSoleProp = org === 'Sole-Proprietorship';
+      var taxGrp = document.getElementById('federal_tax_id_group');
+      var regGrp = document.getElementById('business_register_number_group');
+      // Hide EIN for CA sole props; show BRN for non-US
+      taxGrp.style.display = (isCA && isSoleProp) ? 'none' : 'block';
+      regGrp.style.display = (country && country !== 'US') ? 'block' : 'none';
+    }
+
+    // Step 2: marketing model → subscription_frequency
+    document.querySelectorAll('[name="marketingModel[]"]').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        var hasRecurring = document.getElementById('mm2').checked || document.getElementById('mm3').checked;
+        var freqGrp = document.getElementById('subscription_frequency_group');
+        freqGrp.style.display = hasRecurring ? 'block' : 'none';
+        if (!hasRecurring) {
+          document.getElementById('subscription_frequency').value = '';
+          document.getElementById('subscription_frequency_other_group').style.display = 'none';
+        }
+      });
+    });
+
+    document.getElementById('subscription_frequency').addEventListener('change', function () {
+      var otherGrp = document.getElementById('subscription_frequency_other_group');
+      var isOther = this.value === '3';
+      otherGrp.style.display = isOther ? 'block' : 'none';
+      document.getElementById('subscription_frequency_other').required = isOther;
+    });
+
+    // Step 2: physical address toggle
+    document.querySelectorAll('[name="is_physical_address_same_as_legal_address"]').forEach(function (r) {
+      r.addEventListener('change', function () {
+        var isDiff = this.value === '0';
+        document.getElementById('physical_address_section').style.display = isDiff ? 'block' : 'none';
+      });
+    });
+
+    // Step 3: fulfillment_by → fullfillment_company (double-l intentional)
+    document.getElementById('fulfillment_by').addEventListener('change', function () {
+      var grp = document.getElementById('fullfillment_company_group');
+      var inp = document.getElementById('fullfillment_company');
+      var show = this.value === 'Vendor' || this.value === 'Others';
+      grp.style.display = show ? 'block' : 'none';
+      inp.required = show;
+      if (!show) inp.value = '';
+    });
+
+    // Step 3: shopping_cart → shopping_cart_other
+    document.getElementById('shopping_cart').addEventListener('change', function () {
+      var txt = this.options[this.selectedIndex] ? this.options[this.selectedIndex].textContent : '';
+      var slug = this.value;
+      var isCustom = slug === 'api' || slug === 'other' ||
+                     txt.toLowerCase().includes('api') || txt.toLowerCase().includes('other');
+      var grp = document.getElementById('shopping_cart_other_group');
+      var inp = document.getElementById('shopping_cart_other');
+      grp.style.display = isCustom ? 'block' : 'none';
+      inp.required = isCustom;
+      if (!isCustom) inp.value = '';
+    });
+
+    // Step 3: card percentage sum display
+    ['card_swiped', 'customer_entered', 'staff_entered'].forEach(function (id) {
+      document.getElementById(id).addEventListener('input', updatePctSum);
+    });
+
+    function updatePctSum() {
+      var total = ['card_swiped', 'customer_entered', 'staff_entered']
+        .reduce(function (sum, id) { return sum + (parseInt(document.getElementById(id).value, 10) || 0); }, 0);
+      document.getElementById('pct_total').textContent = total;
+      var note = document.getElementById('pct_sum_note');
+      note.classList.toggle('error', total !== 100);
+    }
+
+    // Step 4: primary_contact
+    document.querySelectorAll('[name="primary_contact"]').forEach(function (r) {
+      r.addEventListener('change', function () {
+        var isRep = this.value === '0';
+        var jobGrp = document.getElementById('primary_contact_job_title_group');
+        var nameGrp = document.getElementById('owner1_name_group');
+        jobGrp.style.display = isRep ? 'block' : 'none';
+        document.getElementById('primary_contact_job_title').required = isRep;
+        nameGrp.style.display = isRep ? 'block' : 'none';
+      });
+    });
+
+    // Step 4: owner 1 ownership → show owner 2
+    document.getElementById('ownership_percentage_1').addEventListener('input', function () {
+      var pct = parseInt(this.value, 10) || 0;
+      var show = pct > 0 && pct < 51;
+      document.getElementById('owner2_section').style.display = show ? 'block' : 'none';
+    });
+
+    // Step 4: owner 1 country → DL state/expiry
+    document.getElementById('country_1').addEventListener('change', function () {
+      var isUS = this.value === 'US';
+      document.getElementById('dl_state_1_group').style.display = isUS ? 'block' : 'none';
+      document.getElementById('dl_expiry_1_group').style.display = isUS ? 'block' : 'none';
+    });
+
+    // Step 4: owner 2 country → DL state/expiry
+    document.getElementById('country_2').addEventListener('change', function () {
+      var isUS = this.value === 'US';
+      document.getElementById('dl_state_2_group').style.display = isUS ? 'block' : 'none';
+      document.getElementById('dl_expiry_2_group').style.display = isUS ? 'block' : 'none';
+    });
+
+    // Step 4: bankruptcy owner 1
+    document.querySelectorAll('[name="bankruptcy_filed.1"]').forEach(function (r) {
+      r.addEventListener('change', function () {
+        var filed = this.value === '1';
+        document.getElementById('bankruptcy1_details').style.display = filed ? 'block' : 'none';
+      });
+    });
+    document.querySelectorAll('[name="bankruptcy_discharged.1"]').forEach(function (r) {
+      r.addEventListener('change', function () {
+        var discharged = this.value === '1';
+        document.getElementById('bkd_date_1_group').style.display = discharged ? 'block' : 'none';
+      });
+    });
+    // Step 4: bankruptcy owner 2
+    document.querySelectorAll('[name="bankruptcy_filed.2"]').forEach(function (r) {
+      r.addEventListener('change', function () {
+        document.getElementById('bankruptcy2_details').style.display = this.value === '1' ? 'block' : 'none';
+      });
+    });
+    document.querySelectorAll('[name="bankruptcy_discharged.2"]').forEach(function (r) {
+      r.addEventListener('change', function () {
+        document.getElementById('bkd_date_2_group').style.display = this.value === '1' ? 'block' : 'none';
+      });
+    });
+
+    // Step 5: current_processing → processor_name
+    document.getElementById('current_processing').addEventListener('change', function () {
+      var grp = document.getElementById('processor_name_group');
+      var inp = document.getElementById('processor_name');
+      var show = this.value === '1';
+      grp.style.display = show ? 'block' : 'none';
+      inp.required = show;
+      if (!show) inp.value = '';
+    });
+
+    // Step 6: bad_experience → bad_experience_happened
+    document.getElementById('bad_experience').addEventListener('change', function () {
+      var grp = document.getElementById('bad_exp_detail_group');
+      var inp = document.getElementById('bad_experience_happened');
+      var show = this.value === '1';
+      grp.style.display = show ? 'block' : 'none';
+      inp.required = show;
+    });
+
+    // Step 6: howdidyouhear → hear_about_us_other
+    document.getElementById('howdidyouhear').addEventListener('change', function () {
+      var txt = this.options[this.selectedIndex] ? this.options[this.selectedIndex].textContent.toLowerCase() : '';
+      var needsDetail = txt.includes('other') || txt.includes('friend') || txt.includes('referral');
+      var grp = document.getElementById('hear_other_group');
+      var inp = document.getElementById('hear_about_us_other');
+      grp.style.display = needsDetail ? 'block' : 'none';
+      inp.required = needsDetail;
+      if (!needsDetail) inp.value = '';
+    });
+
+    // ── DOB validation helper ────────────────────────────────────────────────
+    function validateDOB(value) {
+      if (!value) return 'Date of birth is required';
+      var dob = new Date(value);
+      var now = new Date();
+      var age = (now - dob) / (365.25 * 24 * 60 * 60 * 1000);
+      if (age < 18) return 'Owner must be at least 18 years old';
+      if (age > 100) return 'Please enter a valid date of birth';
+      return '';
+    }
+
+    // ── Step form submissions ────────────────────────────────────────────────
+
+    // STEP 1
+    document.getElementById('form-step1').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      if (document.querySelector('[name="_hp"]').value) return;
+      clearStepErrors(this);
+      var fd = new FormData(this);
+      var d = {};
+      for (var pair of fd.entries()) { if (pair[0] !== '_hp') d[pair[0]] = pair[1].trim(); }
+
+      var errs = {};
+      if (!d.first_name)         errs.first_name   = 'First name is required';
+      if (!d.last_name)          errs.last_name    = 'Last name is required';
+      if (!d.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email))
+                                 errs.email        = 'A valid email address is required';
+      if (!d.phone)              errs.phone        = 'Phone is required';
+      if (!d.company_name)       errs.company_name = 'Company name is required';
+      if (!d.website)            errs.website      = 'Website is required';
+      if (!d.country)            errs.country      = 'Country is required';
+      if (!d.annual_sales || isNaN(Number(d.annual_sales)) || Number(d.annual_sales) < 1)
+                                 errs.annual_sales = 'Annual sales must be at least 1';
+      if (d.country === 'US' && !d.business_state)
+                                 errs.business_state = 'State is required for US businesses';
+      if (!d.industry_type)      errs.industry_type = 'Industry type is required';
+      if (d.industry_type === 'other' && !d.industry_type_other)
+                                 errs.industry_type_other = 'Please describe your industry';
+
+      if (Object.keys(errs).length) {
+        Object.entries(errs).forEach(function (e) { setError(e[0], e[1]); });
+        return;
+      }
+
+      var btn = document.getElementById('btn-step1');
+      var payload = {
+        first_name: d.first_name, last_name: d.last_name,
+        email: d.email, phone: d.phone,
+        name: d.company_name, website: d.website,
+        country: d.country, annual_sales: Number(d.annual_sales),
+      };
+      if (d.business_state)        payload.business_state        = d.business_state;
+      if (d.industry_type)         payload.industry_type         = d.industry_type;
+      if (d.industry_type_other)   payload.industry_type_other   = d.industry_type_other;
+      if (d.promo_code)            payload.promo_code            = d.promo_code;
+
+      var result = await submitStep(1, payload, btn, 'Continue — Company Info →');
+      if (!result) return;
+
+      // Existing user
+      if (result.verificationLink === true) {
+        showAlert('warning', 'You already have an account. Check your email for a verification link.');
+        if (result.url) {
+          var a = document.createElement('a');
+          a.href = result.url;
+          a.textContent = 'Continue my application →';
+          a.style.cssText = 'display:block;margin-top:8px;color:#3b82f6;font-weight:600';
+          document.getElementById('form-alert').after(a);
+        }
+        return;
+      }
+
+      if (result.status === false && result.message === 'Company already exists') {
+        showAlert('warning', 'A company with this name already exists. Please check your email.');
+        return;
+      }
+
+      if (result.status === true && result.uuid) {
+        appUUID = result.uuid;
+        step1Country = d.country;
+        localStorage.setItem('emap_uuid', appUUID);
+        localStorage.setItem('emap_country', step1Country);
+        goToStep(2);
+        updateFederalTaxVisibility();
+        // Show CA banking if needed
+        document.getElementById('ca_banking_fields').style.display = step1Country === 'CA' ? 'block' : 'none';
+      }
+    });
+
+    // STEP 2
+    document.getElementById('form-step2').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      clearStepErrors(this);
+
+      var fd = new FormData(this);
+      var payload = { uuid: appUUID, step_count: 2 };
+      for (var pair of fd.entries()) {
+        if (pair[0] === 'marketingModel[]') {
+          if (!payload['marketingModel[]']) payload['marketingModel[]'] = [];
+          payload['marketingModel[]'].push(pair[1]);
+        } else {
+          payload[pair[0]] = pair[1];
+        }
+      }
+      // marketingModel must be an array
+      if (payload['marketingModel[]']) {
+        payload.marketingModel = payload['marketingModel[]'];
+        delete payload['marketingModel[]'];
+      }
+
+      var btn = document.getElementById('btn-step2');
+      var result = await submitStep(2, payload, btn, 'Continue — Products →');
+      if (result && result.status !== false) goToStep(3);
+    });
+
+    // STEP 3
+    document.getElementById('form-step3').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      clearStepErrors(this);
+
+      var total = ['card_swiped','customer_entered','staff_entered']
+        .reduce(function (s, id) { return s + (parseInt(document.getElementById(id).value, 10) || 0); }, 0);
+      if (total !== 100) {
+        setError('card_swiped', 'Card, customer, and staff percentages must total 100%');
+        document.getElementById('pct_sum_note').classList.add('error');
+        return;
+      }
+
+      var fd = new FormData(this);
+      var payload = { uuid: appUUID, step_count: 3 };
+      for (var pair of fd.entries()) payload[pair[0]] = pair[1];
+
+      var btn = document.getElementById('btn-step3');
+      var result = await submitStep(3, payload, btn, 'Continue — Owners →');
+      if (result && result.status !== false) goToStep(4);
+    });
+
+    // STEP 4
+    document.getElementById('form-step4').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      clearStepErrors(this);
+
+      var fd = new FormData(this);
+      var payload = { uuid: appUUID };
+      for (var pair of fd.entries()) payload[pair[0]] = pair[1];
+
+      // DOB validation
+      var dobErr1 = validateDOB(payload['dob.1']);
+      if (dobErr1) { setError('dob_1', dobErr1); return; }
+      var pct1 = parseInt(payload['ownership_percentage.1'], 10) || 0;
+      if (pct1 < 51 && payload['dob.2']) {
+        var dobErr2 = validateDOB(payload['dob.2']);
+        if (dobErr2) { setError('dob_2', dobErr2); return; }
+      }
+
+      var btn = document.getElementById('btn-step4');
+      var result = await submitStep(4, payload, btn, 'Continue — Banking →');
+      if (result && result.status !== false) goToStep(5);
+    });
+
+    // STEP 5
+    document.getElementById('form-step5').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      clearStepErrors(this);
+
+      var fd = new FormData(this);
+      var payload = { uuid: appUUID, step_count: 5 };
+      for (var pair of fd.entries()) payload[pair[0]] = pair[1];
+
+      var btn = document.getElementById('btn-step5');
+      var result = await submitStep(5, payload, btn, 'Continue — Final Details →');
+      if (result && result.status !== false) goToStep(6);
+    });
+
+    // STEP 6
+    document.getElementById('form-step6').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      clearStepErrors(this);
+
+      if (!document.getElementById('terms_agreed').checked) {
+        setError('terms', 'You must accept the Terms and Conditions');
+        return;
+      }
+
+      var fd = new FormData(this);
+      var payload = { uuid: appUUID, step_count: 6 };
+      for (var pair of fd.entries()) {
+        if (pair[0] === 'other_interests_capital[]') {
+          if (!payload.other_interests_capital) payload.other_interests_capital = [];
+          payload.other_interests_capital.push(Number(pair[1]));
+        } else {
+          payload[pair[0]] = pair[1];
+        }
+      }
+
+      var btn = document.getElementById('btn-step6');
+      var result = await submitStep(6, payload, btn, 'Submit Application');
+      if (!result) return;
+
+      if (result.status === true || result.uuid) {
+        localStorage.removeItem('emap_uuid');
+        localStorage.removeItem('emap_country');
+        document.getElementById('form-step6').style.display = 'none';
+        document.getElementById('progress-bar').style.display = 'none';
+        document.getElementById('success-panel').style.display = 'block';
+        if (result.uuid) {
+          document.getElementById('success-uuid').textContent = 'Reference: ' + result.uuid;
+        }
+      }
+    });
+  </script>
+</body>
+</html>

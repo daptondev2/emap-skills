@@ -1,0 +1,1848 @@
+{
+  "_comment": "EMAP Partner Signup Form - Stepwise Field Schema v1.0. All field keys match the API request parameter names. Slugs match the values accepted by the EMAP backend. Generated from SignupAPIController, ApplicationStepRequest, HandleOwnershipRequest, and variantA Blade views.",
+  "version": "1.0",
+  "baseUrl": "{EMAP_BASE_URL}",
+  "apiPrefix": "/api/v1",
+  "dropdownApiPrefix": "/api/partner",
+
+  "dynamicDropdownEndpoints": {
+    "countries": {
+      "method": "GET",
+      "url": "/api/partner/countries",
+      "responseShape": { "data": [{ "name": "string", "code": "string" }] },
+      "sendField": "code",
+      "displayField": "name"
+    },
+    "states": {
+      "method": "GET",
+      "url": "/api/partner/states",
+      "note": "US states only — shown only when country = US",
+      "responseShape": { "data": [{ "name": "string", "code": "string" }] },
+      "sendField": "code",
+      "displayField": "name"
+    },
+    "industry_types": {
+      "method": "GET",
+      "url": "/api/partner/industry-types",
+      "responseShape": { "data": [{ "name": "string", "slug": "string" }] },
+      "sendField": "slug",
+      "displayField": "name"
+    },
+    "shopping_carts": {
+      "method": "GET",
+      "url": "/api/partner/shopping-carts",
+      "responseShape": { "data": [{ "name": "string", "slug": "string" }] },
+      "sendField": "slug",
+      "displayField": "name"
+    },
+    "referral_sources": {
+      "method": "GET",
+      "url": "/api/partner/referral-sources",
+      "responseShape": { "data": [{ "name": "string", "slug": "string" }] },
+      "sendField": "slug",
+      "displayField": "name"
+    },
+    "interest_details": {
+      "method": "GET",
+      "url": "/api/partner/interest-details",
+      "responseShape": {
+        "data": [
+          {
+            "group_name": "string",
+            "interests": [{ "id": "integer", "name": "string" }]
+          }
+        ]
+      },
+      "sendField": "id",
+      "displayField": "name",
+      "isGrouped": true
+    }
+  },
+
+  "_staticDropdownsNote": "Options with a 'slug' key: send the slug value as the API param. Options with a 'value' key: send the integer or non-slug value as the API param.",
+  "staticDropdowns": {
+    "business_organized": [
+      { "label": "Corporation", "slug": "Corporation" },
+      { "label": "LLC", "slug": "LLC" },
+      { "label": "Partnership", "slug": "Partnership" },
+      { "label": "Government", "slug": "Government" },
+      { "label": "Sole Proprietorship", "slug": "Sole-Proprietorship" },
+      { "label": "Non-Profit", "slug": "Non-Profit" },
+      { "label": "Other", "slug": "Other" }
+    ],
+    "business_location": [
+      { "label": "Home Based", "slug": "Home-Based" },
+      { "label": "Co-Working", "slug": "Co-Working" },
+      { "label": "Corporate Office", "slug": "Corporate-Office" },
+      { "label": "Storefront", "slug": "Storefront" },
+      { "label": "Others", "slug": "Others" }
+    ],
+    "refund_policy": [
+      { "label": "Full Refund", "slug": "Full-Refund" },
+      { "label": "No Refund", "slug": "No-Refund" },
+      { "label": "Exchange Only", "slug": "Exchange-Only" },
+      { "label": "Partial Refund", "slug": "Partial-Refund" }
+    ],
+    "fulfillment_by": [
+      { "label": "Direct By You", "slug": "Direct-By-You" },
+      { "label": "Vendor", "slug": "Vendor" },
+      { "label": "Others", "slug": "Others" }
+    ],
+    "customer_service_time": [
+      { "label": "0–7 days", "slug": "0-7-days" },
+      { "label": "7–30 days", "slug": "7-30-days" },
+      { "label": "31+ days", "slug": "31+days" }
+    ],
+    "marketing_model": [
+      { "label": "One Time Purchase", "value": 1 },
+      { "label": "Recurring/Continuity/Subscription", "value": 2 },
+      { "label": "Trial Offer + Subscription", "value": 3 }
+    ],
+    "subscription_frequency": [
+      { "label": "Monthly", "value": "1" },
+      { "label": "Yearly", "value": "2" },
+      { "label": "Other", "value": "3" }
+    ],
+    "transaction_device": [
+      { "label": "Easy Pay Direct Gateway", "slug": "Easy-Pay-Direct-Gateway" },
+      { "label": "Another Payment Gateway", "slug": "Another-Payment-Gateway" },
+      { "label": "Need Terminal / POS System", "slug": "Need-terminal/POS-system" },
+      { "label": "Own Terminal / POS System", "slug": "Own-terminal/POS-system" },
+      { "label": "iPhone / Android", "slug": "iPhone/Android" },
+      { "label": "Other", "slug": "Other" }
+    ],
+    "owner_job_title": [
+      { "label": "CEO", "slug": "ceo" },
+      { "label": "CFO", "slug": "cfo" },
+      { "label": "Chairman", "slug": "chairman" },
+      { "label": "Co-owner", "slug": "co-owner" },
+      { "label": "Controller", "slug": "controller" },
+      { "label": "Director", "slug": "director" },
+      { "label": "General Manager", "slug": "general-manager" },
+      { "label": "Office Manager", "slug": "office-manager" },
+      { "label": "Owner", "slug": "owner" },
+      { "label": "Partner", "slug": "partner" },
+      { "label": "President", "slug": "president" },
+      { "label": "Treasurer", "slug": "treasurer" },
+      { "label": "Vice President", "slug": "vice-president" },
+      { "label": "Other", "slug": "other" }
+    ],
+    "bank_account_type": [
+      { "label": "Checking", "value": "checking" },
+      { "label": "Savings", "value": "savings" }
+    ],
+    "customer_pay_currency": [
+      { "label": "USD", "value": "USD" },
+      { "label": "CAD", "value": "CAD" }
+    ],
+    "yesNo": [
+      { "label": "Yes", "value": "1" },
+      { "label": "No", "value": "0" }
+    ]
+  },
+
+  "steps": [
+    {
+      "step": 1,
+      "title": "Contact & Business Basics",
+      "description": "Collects the applicant's personal info and basic company details. Creates the user, company, and application record on submit.",
+      "api": {
+        "method": "POST",
+        "url": "/api/v1/signup",
+        "controller": "App\\Http\\Controllers\\API\\SignupAPIController@externalSignup",
+        "request": "App\\Http\\Requests\\API\\ExternalSignupRequest",
+        "successResponse": {
+          "status": true,
+          "message": "Success",
+          "uuid": "string — store this UUID; all subsequent step calls require it"
+        },
+        "existingUserResponse": {
+          "message": "success",
+          "verificationLink": true,
+          "url": "string — redirect the applicant here to verify email and continue"
+        }
+      },
+      "fields": [
+        {
+          "key": "first_name",
+          "label": "First Name",
+          "type": "text",
+          "required": true,
+          "maxLength": 255,
+          "placeholder": "First Name"
+        },
+        {
+          "key": "last_name",
+          "label": "Last Name",
+          "type": "text",
+          "required": true,
+          "maxLength": 255,
+          "placeholder": "Last Name"
+        },
+        {
+          "key": "email",
+          "label": "Email",
+          "type": "email",
+          "required": true,
+          "format": "email",
+          "placeholder": "you@example.com",
+          "note": "Must be unique across all users"
+        },
+        {
+          "key": "phone",
+          "label": "Phone",
+          "type": "tel",
+          "required": true,
+          "maxLength": 20,
+          "pattern": "^[0-9\\-\\+\\(\\) ]+$",
+          "placeholder": "+1 555 000 0000"
+        },
+        {
+          "key": "name",
+          "label": "Company Name",
+          "type": "text",
+          "required": true,
+          "maxLength": 255,
+          "placeholder": "Acme Corp"
+        },
+        {
+          "key": "website",
+          "label": "Company Website",
+          "type": "url",
+          "required": true,
+          "pattern": "^(?:(?:https?):\/\/)?(?:[\\w-]+\\.)+[a-z]{2,63}+\\/?$",
+          "placeholder": "https://yoursite.com",
+          "hint": "If unavailable, link to your social media profile"
+        },
+        {
+          "key": "country",
+          "label": "Formation Country",
+          "type": "select",
+          "required": true,
+          "optionsSource": "dynamicDropdownEndpoints.countries",
+          "sendField": "code",
+          "hint": "Country where your company is legally registered"
+        },
+        {
+          "key": "business_state",
+          "label": "Formation State",
+          "type": "select",
+          "required": false,
+          "optionsSource": "dynamicDropdownEndpoints.states",
+          "sendField": "code",
+          "dependsOn": {
+            "field": "country",
+            "operator": "equals",
+            "value": "US",
+            "effect": "required"
+          },
+          "visibleIf": {
+            "field": "country",
+            "operator": "equals",
+            "value": "US"
+          }
+        },
+        {
+          "key": "annual_sales",
+          "label": "Estimated Annual Sales (USD)",
+          "type": "number",
+          "required": true,
+          "min": 1,
+          "max": 999999999999,
+          "maxLength": 16,
+          "inputmode": "numeric",
+          "placeholder": "1000000"
+        },
+        {
+          "key": "industry_type",
+          "label": "Industry Type",
+          "type": "select",
+          "required": true,
+          "optionsSource": "dynamicDropdownEndpoints.industry_types",
+          "sendField": "slug"
+        },
+        {
+          "key": "industry_type_other",
+          "label": "Industry Type (Other)",
+          "type": "text",
+          "required": false,
+          "maxLength": 255,
+          "placeholder": "Describe your industry",
+          "dependsOn": {
+            "field": "industry_type",
+            "operator": "equals",
+            "value": "other",
+            "effect": "required"
+          },
+          "visibleIf": {
+            "field": "industry_type",
+            "operator": "equals",
+            "value": "other"
+          }
+        },
+        {
+          "key": "promo_code",
+          "label": "Referral Code",
+          "type": "text",
+          "required": false,
+          "maxLength": 255,
+          "placeholder": "Optional referral code"
+        },
+        {
+          "key": "partner_key",
+          "label": "Partner Key",
+          "type": "hidden",
+          "required": false,
+          "note": "Never send this from the browser. Send from server-side only. Optional partner attribution."
+        }
+      ]
+    },
+
+    {
+      "step": 2,
+      "title": "Company Information",
+      "description": "Legal structure, address, revenue model, and tax details for the business.",
+      "api": {
+        "method": "POST",
+        "url": "/api/v1/application/step",
+        "controller": "App\\Http\\Controllers\\API\\SignupAPIController@submitApplicationStep",
+        "request": "App\\Http\\Requests\\API\\ApplicationStepRequest",
+        "requiredBodyFields": ["uuid", "step_count"],
+        "step_count": 2,
+        "successResponse": {
+          "status": true,
+          "message": "Step 2 submitted successfully",
+          "step": 2,
+          "uuid": "string"
+        }
+      },
+      "fields": [
+        {
+          "key": "uuid",
+          "label": null,
+          "type": "hidden",
+          "required": true,
+          "note": "UUID returned from Step 1 response"
+        },
+        {
+          "key": "step_count",
+          "label": null,
+          "type": "hidden",
+          "required": true,
+          "value": 2
+        },
+        {
+          "key": "legal_name",
+          "label": "Legal Company Name",
+          "type": "text",
+          "required": true,
+          "maxLength": 255,
+          "placeholder": "Acme Corporation Inc."
+        },
+        {
+          "key": "name",
+          "label": "Company Name (DBA)",
+          "type": "text",
+          "required": true,
+          "maxLength": 255,
+          "placeholder": "Acme"
+        },
+        {
+          "key": "customer_service_telephone_number",
+          "label": "Customer Service Phone Number",
+          "type": "tel",
+          "required": true,
+          "maxLength": 20,
+          "pattern": "^[0-9\\-\\+\\(\\) ]+$",
+          "placeholder": "+1 555 000 0000"
+        },
+        {
+          "key": "business_location",
+          "label": "Type of Company Location",
+          "type": "select",
+          "required": true,
+          "optionsSource": "staticDropdowns.business_location",
+          "sendField": "slug"
+        },
+        {
+          "key": "business_formed",
+          "label": "Company Formation Date",
+          "type": "date",
+          "required": true,
+          "format": "YYYY-MM-DD",
+          "placeholder": "YYYY-MM-DD",
+          "hint": "Date the company was legally formed"
+        },
+        {
+          "key": "business_organized",
+          "label": "Company Legal Structure",
+          "type": "select",
+          "required": true,
+          "optionsSource": "staticDropdowns.business_organized",
+          "sendField": "slug"
+        },
+        {
+          "key": "federal_tax_id",
+          "label": "Federal Tax ID",
+          "type": "text",
+          "required": false,
+          "maxLength": 20,
+          "pattern": "^[0-9A-Za-z\\-]+$",
+          "placeholder": "XX-XXXXXXX",
+          "hint": "Required unless country is Canada OR business is Sole Proprietorship",
+          "dependsOn": {
+            "logic": "NOT (country == 'CA' OR business_organized == 'Sole-Proprietorship')",
+            "effect": "required"
+          },
+          "visibleIf": {
+            "logic": "NOT (country_from_step1 == 'CA' AND business_organized == 'Sole-Proprietorship')"
+          }
+        },
+        {
+          "key": "business_register_number",
+          "label": "Business Registration Number",
+          "type": "text",
+          "required": false,
+          "maxLength": 20,
+          "placeholder": "Business Registration Number",
+          "dependsOn": {
+            "field": "country_from_step1",
+            "operator": "notEquals",
+            "value": "US",
+            "effect": "required"
+          },
+          "visibleIf": {
+            "field": "country_from_step1",
+            "operator": "notEquals",
+            "value": "US"
+          },
+          "countryVariants": {
+            "CA": { "maxLength": 11 },
+            "default": { "maxLength": 20 }
+          }
+        },
+        {
+          "key": "industry_type",
+          "label": "Industry Type",
+          "type": "select",
+          "required": false,
+          "optionsSource": "dynamicDropdownEndpoints.industry_types",
+          "sendField": "slug",
+          "note": "Only shown in this step if from_lander=1 (auto-submitted Step 1). For normal flow, industry_type is captured in Step 1."
+        },
+        {
+          "key": "industry_type_other",
+          "label": "Industry Type (Other)",
+          "type": "text",
+          "required": false,
+          "maxLength": 255,
+          "dependsOn": {
+            "field": "industry_type",
+            "operator": "equals",
+            "value": "other",
+            "effect": "required"
+          },
+          "visibleIf": {
+            "field": "industry_type",
+            "operator": "equals",
+            "value": "other"
+          }
+        },
+        {
+          "key": "marketingModel",
+          "label": "Revenue Model",
+          "type": "checkbox-group",
+          "required": true,
+          "optionsSource": "staticDropdowns.marketing_model",
+          "sendField": "value",
+          "note": "Send as array: marketingModel[] or marketingModel. Integer IDs (1, 2, 3)."
+        },
+        {
+          "key": "subscription_frequency",
+          "label": "Subscription Frequency",
+          "type": "select",
+          "required": false,
+          "optionsSource": "staticDropdowns.subscription_frequency",
+          "sendField": "value",
+          "dependsOn": {
+            "field": "marketingModel",
+            "operator": "includes",
+            "value": 2,
+            "effect": "required"
+          },
+          "visibleIf": {
+            "field": "marketingModel",
+            "operator": "includes",
+            "value": 2
+          }
+        },
+        {
+          "key": "subscription_frequency_other",
+          "label": "Subscription Frequency (Other)",
+          "type": "text",
+          "required": false,
+          "minLength": 5,
+          "maxLength": 255,
+          "placeholder": "Describe frequency",
+          "dependsOn": {
+            "field": "subscription_frequency",
+            "operator": "equals",
+            "value": "3",
+            "effect": "required"
+          },
+          "visibleIf": {
+            "field": "subscription_frequency",
+            "operator": "equals",
+            "value": "3"
+          }
+        },
+        {
+          "key": "street_number",
+          "label": "Street Number",
+          "section": "Legal Address",
+          "type": "text",
+          "required": true,
+          "maxLength": 10,
+          "placeholder": "123"
+        },
+        {
+          "key": "street_address",
+          "label": "Street Address",
+          "section": "Legal Address",
+          "type": "text",
+          "required": true,
+          "maxLength": 255,
+          "placeholder": "Main St"
+        },
+        {
+          "key": "city",
+          "label": "City",
+          "section": "Legal Address",
+          "type": "text",
+          "required": true,
+          "maxLength": 100,
+          "placeholder": "New York"
+        },
+        {
+          "key": "state",
+          "label": "State / Province",
+          "section": "Legal Address",
+          "type": "text",
+          "required": true,
+          "placeholder": "NY"
+        },
+        {
+          "key": "postal_code",
+          "label": "Postal Code",
+          "section": "Legal Address",
+          "type": "text",
+          "required": true,
+          "maxLength": 20,
+          "placeholder": "10001"
+        },
+        {
+          "key": "address_country",
+          "label": "Country",
+          "section": "Legal Address",
+          "type": "select",
+          "required": true,
+          "optionsSource": "dynamicDropdownEndpoints.countries",
+          "sendField": "code"
+        },
+        {
+          "key": "is_physical_address_same_as_legal_address",
+          "label": "Is physical address the same as legal address?",
+          "type": "radio",
+          "required": true,
+          "options": [
+            { "label": "Yes", "value": "1" },
+            { "label": "No", "value": "0" }
+          ]
+        },
+        {
+          "key": "physical_address_street_number",
+          "label": "Physical Street Number",
+          "section": "Physical Address",
+          "type": "text",
+          "required": false,
+          "maxLength": 10,
+          "dependsOn": {
+            "field": "is_physical_address_same_as_legal_address",
+            "operator": "equals",
+            "value": "0",
+            "effect": "required"
+          },
+          "visibleIf": {
+            "field": "is_physical_address_same_as_legal_address",
+            "operator": "equals",
+            "value": "0"
+          }
+        },
+        {
+          "key": "physical_address_street_address",
+          "label": "Physical Street Address",
+          "section": "Physical Address",
+          "type": "text",
+          "required": false,
+          "maxLength": 255,
+          "dependsOn": {
+            "field": "is_physical_address_same_as_legal_address",
+            "operator": "equals",
+            "value": "0",
+            "effect": "required"
+          },
+          "visibleIf": {
+            "field": "is_physical_address_same_as_legal_address",
+            "operator": "equals",
+            "value": "0"
+          }
+        },
+        {
+          "key": "physical_address_city",
+          "label": "Physical City",
+          "section": "Physical Address",
+          "type": "text",
+          "required": false,
+          "maxLength": 100,
+          "dependsOn": {
+            "field": "is_physical_address_same_as_legal_address",
+            "operator": "equals",
+            "value": "0",
+            "effect": "required"
+          },
+          "visibleIf": {
+            "field": "is_physical_address_same_as_legal_address",
+            "operator": "equals",
+            "value": "0"
+          }
+        },
+        {
+          "key": "physical_address_state",
+          "label": "Physical State / Province",
+          "section": "Physical Address",
+          "type": "text",
+          "required": false,
+          "dependsOn": {
+            "field": "is_physical_address_same_as_legal_address",
+            "operator": "equals",
+            "value": "0",
+            "effect": "required"
+          },
+          "visibleIf": {
+            "field": "is_physical_address_same_as_legal_address",
+            "operator": "equals",
+            "value": "0"
+          }
+        },
+        {
+          "key": "physical_address_postal_code",
+          "label": "Physical Postal Code",
+          "section": "Physical Address",
+          "type": "text",
+          "required": false,
+          "maxLength": 20,
+          "dependsOn": {
+            "field": "is_physical_address_same_as_legal_address",
+            "operator": "equals",
+            "value": "0",
+            "effect": "required"
+          },
+          "visibleIf": {
+            "field": "is_physical_address_same_as_legal_address",
+            "operator": "equals",
+            "value": "0"
+          }
+        },
+        {
+          "key": "physical_address_country",
+          "label": "Physical Country",
+          "section": "Physical Address",
+          "type": "select",
+          "required": false,
+          "optionsSource": "dynamicDropdownEndpoints.countries",
+          "sendField": "code",
+          "dependsOn": {
+            "field": "is_physical_address_same_as_legal_address",
+            "operator": "equals",
+            "value": "0",
+            "effect": "required"
+          },
+          "visibleIf": {
+            "field": "is_physical_address_same_as_legal_address",
+            "operator": "equals",
+            "value": "0"
+          }
+        }
+      ]
+    },
+
+    {
+      "step": 3,
+      "title": "Product & Processing",
+      "description": "Transaction entry methods, fulfillment, shopping cart, and product description.",
+      "api": {
+        "method": "POST",
+        "url": "/api/v1/application/step",
+        "controller": "App\\Http\\Controllers\\API\\SignupAPIController@submitApplicationStep",
+        "request": "App\\Http\\Requests\\API\\ApplicationStepRequest",
+        "step_count": 3,
+        "successResponse": {
+          "status": true,
+          "message": "Step 3 submitted successfully",
+          "step": 3,
+          "uuid": "string"
+        }
+      },
+      "crossFieldValidations": [
+        {
+          "fields": ["card_swiped", "customer_entered", "staff_entered"],
+          "rule": "sum == 100",
+          "message": "card_swiped + customer_entered + staff_entered must equal 100"
+        }
+      ],
+      "fields": [
+        {
+          "key": "uuid",
+          "label": null,
+          "type": "hidden",
+          "required": true
+        },
+        {
+          "key": "step_count",
+          "label": null,
+          "type": "hidden",
+          "required": true,
+          "value": 3
+        },
+        {
+          "key": "customer_service_time",
+          "label": "Fulfillment Timeframe",
+          "type": "select",
+          "required": true,
+          "optionsSource": "staticDropdowns.customer_service_time",
+          "sendField": "slug",
+          "hint": "Time between customer payment and delivery of product or service"
+        },
+        {
+          "key": "refund_policy",
+          "label": "Refund Policy",
+          "type": "select",
+          "required": true,
+          "optionsSource": "staticDropdowns.refund_policy",
+          "sendField": "slug"
+        },
+        {
+          "key": "fulfillment_by",
+          "label": "Fulfillment Method",
+          "type": "select",
+          "required": true,
+          "optionsSource": "staticDropdowns.fulfillment_by",
+          "sendField": "slug",
+          "hint": "Who delivers your product or service to the customer?"
+        },
+        {
+          "key": "fullfillment_company",
+          "label": "Fulfillment Vendor Name",
+          "type": "text",
+          "required": false,
+          "maxLength": 300,
+          "placeholder": "Fulfillment Vendor Name",
+          "note": "Note: double-l spelling ('fullfillment_company') is intentional — matches the database column name",
+          "dependsOn": {
+            "field": "fulfillment_by",
+            "operator": "in",
+            "value": ["Vendor", "Others"],
+            "effect": "required"
+          },
+          "visibleIf": {
+            "field": "fulfillment_by",
+            "operator": "in",
+            "value": ["Vendor", "Others"]
+          }
+        },
+        {
+          "key": "shopping_cart",
+          "label": "Shopping Cart / CRM",
+          "type": "select",
+          "required": true,
+          "optionsSource": "dynamicDropdownEndpoints.shopping_carts",
+          "sendField": "slug",
+          "hint": "Shopping cart or CRM system you use"
+        },
+        {
+          "key": "shopping_cart_other",
+          "label": "Other Sales Platform",
+          "type": "text",
+          "required": false,
+          "placeholder": "Instagram DMs, Custom CRM, etc.",
+          "note": "Required when shopping_cart slug is 'api' or a custom/other option. The API validates via the backend; show this field when the selected shopping cart name contains 'API' or 'Other'.",
+          "dependsOn": {
+            "field": "shopping_cart",
+            "operator": "isApiOrCustom",
+            "note": "Show and require when the selected shopping_cart option is API-based or Other (check the name or slug returned from /api/partner/shopping-carts)",
+            "effect": "required"
+          }
+        },
+        {
+          "key": "leave_deposit",
+          "label": "Required Deposits",
+          "type": "select",
+          "required": true,
+          "options": [
+            { "label": "Yes", "value": "1" },
+            { "label": "No", "value": "0" }
+          ],
+          "hint": "Are customers required to leave deposits?"
+        },
+        {
+          "key": "card_swiped",
+          "label": "Customer presents card at point of sale (%)",
+          "type": "number",
+          "required": true,
+          "min": 0,
+          "max": 100,
+          "multipleOf": 5,
+          "crossField": "entry_method_pct_sum"
+        },
+        {
+          "key": "customer_entered",
+          "label": "Customer enters card details online (%)",
+          "type": "number",
+          "required": true,
+          "min": 0,
+          "max": 100,
+          "multipleOf": 5,
+          "crossField": "entry_method_pct_sum"
+        },
+        {
+          "key": "staff_entered",
+          "label": "Card details are manually entered (%)",
+          "type": "number",
+          "required": true,
+          "min": 0,
+          "max": 100,
+          "multipleOf": 5,
+          "crossField": "entry_method_pct_sum"
+        },
+        {
+          "key": "average_transaction_amount",
+          "label": "Average Transaction Amount (USD)",
+          "type": "number",
+          "required": true,
+          "min": 1,
+          "max": 999999999999,
+          "maxLength": 16,
+          "inputmode": "numeric",
+          "placeholder": "200"
+        },
+        {
+          "key": "highest_transaction_amount",
+          "label": "Highest Transaction Amount (USD)",
+          "type": "number",
+          "required": true,
+          "min": 1,
+          "max": 999999999999,
+          "maxLength": 16,
+          "inputmode": "numeric",
+          "placeholder": "1000"
+        },
+        {
+          "key": "describe_services",
+          "label": "Products or Services Description",
+          "type": "textarea",
+          "required": true,
+          "placeholder": "Briefly describe your primary products or services"
+        },
+        {
+          "key": "describe_highest_transaction",
+          "label": "Highest Transaction Description",
+          "type": "textarea",
+          "required": true,
+          "minLength": 15,
+          "placeholder": "Briefly describe your highest-priced product or service"
+        }
+      ]
+    },
+
+    {
+      "step": 4,
+      "title": "Owners",
+      "description": "Primary contact selection and owner identity information (SSN, DOB, driver's license, bankruptcy, home address). Supports up to 2 owners.",
+      "api": {
+        "method": "POST",
+        "url": "/api/v1/ownership",
+        "controller": "App\\Http\\Controllers\\API\\SignupAPIController@handleOwnership",
+        "request": "App\\Http\\Requests\\API\\HandleOwnershipRequest",
+        "requiredBodyFields": ["uuid", "primary_contact"],
+        "successResponse": {
+          "status": true,
+          "message": "Owners created successfully",
+          "uuid": "string"
+        },
+        "fieldNameConvention": "Array notation with dot notation: first_name.1, last_name.1, ssn.1 for Owner 1; first_name.2, last_name.2 for Owner 2. Send as form fields or JSON."
+      },
+      "crossFieldValidations": [
+        {
+          "fields": ["ownership_percentage.1", "ownership_percentage.2"],
+          "rule": "sum <= 100",
+          "message": "Combined ownership percentage cannot exceed 100%"
+        }
+      ],
+      "fields": [
+        {
+          "key": "uuid",
+          "label": null,
+          "type": "hidden",
+          "required": true
+        },
+        {
+          "key": "step_count",
+          "label": null,
+          "type": "hidden",
+          "required": false,
+          "value": 4
+        },
+        {
+          "key": "primary_contact",
+          "label": "Are you the business owner / primary contact?",
+          "type": "radio",
+          "required": true,
+          "options": [
+            { "label": "Yes, I am the primary contact / owner", "value": "1" },
+            { "label": "No, I am not the primary contact / owner", "value": "0" }
+          ],
+          "note": "If 1: do NOT send first_name.1, last_name.1, email.1 — backend uses Step 1 user data. If 0: all three are required."
+        },
+        {
+          "key": "primary_contact_job_title",
+          "label": "Your Job Title",
+          "type": "text",
+          "required": false,
+          "maxLength": 100,
+          "placeholder": "e.g. Operations Manager",
+          "dependsOn": {
+            "field": "primary_contact",
+            "operator": "equals",
+            "value": "0",
+            "effect": "required"
+          },
+          "visibleIf": {
+            "field": "primary_contact",
+            "operator": "equals",
+            "value": "0"
+          }
+        },
+        {
+          "section": "Owner 1",
+          "fields": [
+            {
+              "key": "first_name.1",
+              "label": "Owner 1 First Name",
+              "type": "text",
+              "required": false,
+              "maxLength": 60,
+              "dependsOn": {
+                "field": "primary_contact",
+                "operator": "equals",
+                "value": "0",
+                "effect": "required"
+              },
+              "visibleIf": {
+                "field": "primary_contact",
+                "operator": "equals",
+                "value": "0"
+              },
+              "note": "Do NOT send when primary_contact=1 — backend uses Step 1 data"
+            },
+            {
+              "key": "last_name.1",
+              "label": "Owner 1 Last Name",
+              "type": "text",
+              "required": false,
+              "maxLength": 60,
+              "dependsOn": {
+                "field": "primary_contact",
+                "operator": "equals",
+                "value": "0",
+                "effect": "required"
+              },
+              "visibleIf": {
+                "field": "primary_contact",
+                "operator": "equals",
+                "value": "0"
+              }
+            },
+            {
+              "key": "email.1",
+              "label": "Owner 1 Email",
+              "type": "email",
+              "required": false,
+              "dependsOn": {
+                "field": "primary_contact",
+                "operator": "equals",
+                "value": "0",
+                "effect": "required"
+              },
+              "visibleIf": {
+                "field": "primary_contact",
+                "operator": "equals",
+                "value": "0"
+              }
+            },
+            {
+              "key": "phone.1",
+              "label": "Owner 1 Phone",
+              "type": "tel",
+              "required": true,
+              "inputMethod": "intl-tel-input",
+              "validationNote": "Use intl-tel-input library. Validates E.164 international format. Call isValidNumber() before submit."
+            },
+            {
+              "key": "title.1",
+              "label": "Owner 1 Job Title",
+              "type": "select",
+              "required": true,
+              "optionsSource": "staticDropdowns.owner_job_title",
+              "sendField": "slug"
+            },
+            {
+              "key": "ssn.1",
+              "label": "Owner 1 SSN / Tax ID",
+              "type": "text",
+              "required": true,
+              "sensitive": true,
+              "autocomplete": "off",
+              "countryDependent": true,
+              "countryVariants": {
+                "US": {
+                  "label": "Owner 1 Social Security Number (SSN)",
+                  "placeholder": "XXX-XX-XXXX",
+                  "inputMask": {
+                    "library": "Cleave.js",
+                    "numericOnly": true,
+                    "blocks": [3, 2, 4],
+                    "delimiters": ["-", "-"]
+                  },
+                  "pattern": "^\\d{3}-\\d{2}-\\d{4}$",
+                  "minLength": 11,
+                  "maxLength": 11,
+                  "validationNote": "9-digit SSN in XXX-XX-XXXX format. Cleave.js applies mask automatically. Validate: ssn.replace(/-/g, '').length >= 9 (displays as 11 chars with dashes). Error: 'Please enter at least 9 digits'."
+                },
+                "CA": {
+                  "label": "Owner 1 Social Insurance Number (SIN)",
+                  "placeholder": "XXX-XX-XXXX",
+                  "inputMask": {
+                    "library": "Cleave.js",
+                    "numericOnly": true,
+                    "blocks": [3, 2, 4],
+                    "delimiters": ["-", "-"]
+                  },
+                  "pattern": "^\\d{3}-\\d{2}-\\d{4}$",
+                  "minLength": 11,
+                  "maxLength": 11,
+                  "validationNote": "9-digit Canadian SIN in XXX-XX-XXXX format. Same mask as US SSN."
+                },
+                "default": {
+                  "label": "Owner 1 Personal Tax ID / Government ID Number",
+                  "placeholder": "Personal Tax ID",
+                  "validationNote": "For countries other than US/CA: accept plain-text tax identification or government ID number. No mask applied."
+                }
+              },
+              "note": "Never store or log this value. Send over HTTPS only. For US and CA: 9 digits masked as XXX-XX-XXXX via Cleave.js (blocks [3,2,4]). The backend receives the masked value with dashes."
+            },
+            {
+              "key": "dob.1",
+              "label": "Owner 1 Date of Birth",
+              "type": "date",
+              "required": true,
+              "sensitive": true,
+              "format": "YYYY-MM-DD",
+              "placeholder": "YYYY-MM-DD",
+              "minAge": 18,
+              "maxAge": 100,
+              "maxDate": "today - 18 years (moment().subtract(18, 'years'))",
+              "minDate": "today - 100 years (new Date().getFullYear() - 100)",
+              "validationNote": "Owner must be at least 18 years old. Max date = today minus 18 years. Min year = current year minus 100. Must be a valid calendar date in YYYY-MM-DD format."
+            },
+            {
+              "key": "ownership_percentage.1",
+              "label": "Owner 1 Ownership %",
+              "type": "number",
+              "required": true,
+              "min": 1,
+              "max": 100,
+              "integer": true,
+              "step": 1,
+              "validationNote": "Must be a whole number — no decimals allowed. Enforced client-side via custom validPercentage jQuery validator. Decimals are rejected.",
+              "crossField": "ownership_pct_sum",
+              "note": "If < 51%, Owner 2 fields become required"
+            },
+            {
+              "key": "street_number.1",
+              "label": "Owner 1 Street Number",
+              "section": "Owner 1 Home Address",
+              "type": "text",
+              "required": true,
+              "maxLength": 10
+            },
+            {
+              "key": "street_address.1",
+              "label": "Owner 1 Street Address",
+              "section": "Owner 1 Home Address",
+              "type": "text",
+              "required": true,
+              "maxLength": 255
+            },
+            {
+              "key": "city.1",
+              "label": "Owner 1 City",
+              "section": "Owner 1 Home Address",
+              "type": "text",
+              "required": true,
+              "maxLength": 100
+            },
+            {
+              "key": "state.1",
+              "label": "Owner 1 State / Province",
+              "section": "Owner 1 Home Address",
+              "type": "text",
+              "required": true
+            },
+            {
+              "key": "postal_code.1",
+              "label": "Owner 1 Postal Code",
+              "section": "Owner 1 Home Address",
+              "type": "text",
+              "required": true,
+              "maxLength": 20
+            },
+            {
+              "key": "country.1",
+              "label": "Owner 1 Country",
+              "section": "Owner 1 Home Address",
+              "type": "select",
+              "required": true,
+              "optionsSource": "dynamicDropdownEndpoints.countries",
+              "sendField": "code"
+            },
+            {
+              "key": "license.1",
+              "label": "Owner 1 Driver License Number",
+              "type": "text",
+              "required": true,
+              "sensitive": true,
+              "minLength": 5,
+              "maxLength": 25
+            },
+            {
+              "key": "driver_license_state.1",
+              "label": "Owner 1 Driver License State",
+              "type": "select",
+              "required": false,
+              "optionsSource": "dynamicDropdownEndpoints.states",
+              "sendField": "code",
+              "dependsOn": {
+                "field": "country.1",
+                "operator": "equals",
+                "value": "US",
+                "effect": "required"
+              },
+              "visibleIf": {
+                "field": "country.1",
+                "operator": "equals",
+                "value": "US"
+              }
+            },
+            {
+              "key": "driver_license_expiration_date.1",
+              "label": "Owner 1 License Expiration Date",
+              "type": "date",
+              "required": false,
+              "sensitive": true,
+              "format": "YYYY-MM-DD",
+              "minDate": "today",
+              "validationNote": "Must be today or in the future (Laravel: after_or_equal:today). Reject past dates.",
+              "dependsOn": {
+                "field": "country.1",
+                "operator": "equals",
+                "value": "US",
+                "effect": "required"
+              },
+              "visibleIf": {
+                "field": "country.1",
+                "operator": "equals",
+                "value": "US"
+              }
+            },
+            {
+              "key": "bankruptcy_filed.1",
+              "label": "Owner 1: Has a bankruptcy been filed?",
+              "type": "radio",
+              "required": true,
+              "options": [
+                { "label": "Yes", "value": "1" },
+                { "label": "No", "value": "0" }
+              ]
+            },
+            {
+              "key": "bankruptcy_discharged.1",
+              "label": "Owner 1: Was the bankruptcy discharged?",
+              "type": "radio",
+              "required": false,
+              "options": [
+                { "label": "Yes", "value": "1" },
+                { "label": "No", "value": "0" }
+              ],
+              "dependsOn": {
+                "field": "bankruptcy_filed.1",
+                "operator": "equals",
+                "value": "1",
+                "effect": "required"
+              },
+              "visibleIf": {
+                "field": "bankruptcy_filed.1",
+                "operator": "equals",
+                "value": "1"
+              }
+            },
+            {
+              "key": "bankruptcy_discharged_date.1",
+              "label": "Owner 1: Bankruptcy Discharge Date",
+              "type": "date",
+              "required": false,
+              "format": "YYYY-MM-DD",
+              "maxDate": "today",
+              "validationNote": "Must be today or in the past (Laravel: before_or_equal:today). Future dates are rejected.",
+              "dependsOn": {
+                "field": "bankruptcy_discharged.1",
+                "operator": "equals",
+                "value": "1",
+                "effect": "required"
+              },
+              "visibleIf": {
+                "field": "bankruptcy_discharged.1",
+                "operator": "equals",
+                "value": "1"
+              }
+            }
+          ]
+        },
+        {
+          "section": "Owner 2",
+          "visibleIf": {
+            "field": "ownership_percentage.1",
+            "operator": "lessThan",
+            "value": 51
+          },
+          "note": "ALL Owner 2 fields are required when ownership_percentage.1 < 51",
+          "fields": [
+            {
+              "key": "first_name.2",
+              "label": "Owner 2 First Name",
+              "type": "text",
+              "required": false,
+              "maxLength": 60,
+              "conditionalRequired": {
+                "field": "ownership_percentage.1",
+                "operator": "lessThan",
+                "value": 51
+              }
+            },
+            {
+              "key": "last_name.2",
+              "label": "Owner 2 Last Name",
+              "type": "text",
+              "required": false,
+              "maxLength": 60,
+              "conditionalRequired": {
+                "field": "ownership_percentage.1",
+                "operator": "lessThan",
+                "value": 51
+              }
+            },
+            {
+              "key": "email.2",
+              "label": "Owner 2 Email",
+              "type": "email",
+              "required": false,
+              "conditionalRequired": {
+                "field": "ownership_percentage.1",
+                "operator": "lessThan",
+                "value": 51
+              }
+            },
+            {
+              "key": "phone.2",
+              "label": "Owner 2 Phone",
+              "type": "tel",
+              "required": false,
+              "inputMethod": "intl-tel-input",
+              "validationNote": "Use intl-tel-input library. Validates E.164 international format. Call isValidNumber() before submit.",
+              "conditionalRequired": {
+                "field": "ownership_percentage.1",
+                "operator": "lessThan",
+                "value": 51
+              }
+            },
+            {
+              "key": "title.2",
+              "label": "Owner 2 Job Title",
+              "type": "select",
+              "required": false,
+              "optionsSource": "staticDropdowns.owner_job_title",
+              "sendField": "slug",
+              "conditionalRequired": {
+                "field": "ownership_percentage.1",
+                "operator": "lessThan",
+                "value": 51
+              }
+            },
+            {
+              "key": "ssn.2",
+              "label": "Owner 2 SSN / Tax ID",
+              "type": "text",
+              "required": false,
+              "sensitive": true,
+              "autocomplete": "off",
+              "countryDependent": true,
+              "countryVariants": {
+                "US": {
+                  "label": "Owner 2 Social Security Number (SSN)",
+                  "placeholder": "XXX-XX-XXXX",
+                  "inputMask": {
+                    "library": "Cleave.js",
+                    "numericOnly": true,
+                    "blocks": [3, 2, 4],
+                    "delimiters": ["-", "-"]
+                  },
+                  "pattern": "^\\d{3}-\\d{2}-\\d{4}$",
+                  "minLength": 11,
+                  "maxLength": 11,
+                  "validationNote": "9-digit SSN in XXX-XX-XXXX format. Validate: ssn.replace(/-/g, '').length >= 9."
+                },
+                "CA": {
+                  "label": "Owner 2 Social Insurance Number (SIN)",
+                  "placeholder": "XXX-XX-XXXX",
+                  "inputMask": {
+                    "library": "Cleave.js",
+                    "numericOnly": true,
+                    "blocks": [3, 2, 4],
+                    "delimiters": ["-", "-"]
+                  },
+                  "pattern": "^\\d{3}-\\d{2}-\\d{4}$",
+                  "minLength": 11,
+                  "maxLength": 11,
+                  "validationNote": "9-digit Canadian SIN in XXX-XX-XXXX format. Same mask as US SSN."
+                },
+                "default": {
+                  "label": "Owner 2 Personal Tax ID / Government ID Number",
+                  "placeholder": "Personal Tax ID",
+                  "validationNote": "For countries other than US/CA: accept plain-text tax identification or government ID number."
+                }
+              },
+              "note": "Never store or log. Send over HTTPS only. For US/CA: 9 digits masked as XXX-XX-XXXX via Cleave.js.",
+              "conditionalRequired": {
+                "field": "ownership_percentage.1",
+                "operator": "lessThan",
+                "value": 51
+              }
+            },
+            {
+              "key": "dob.2",
+              "label": "Owner 2 Date of Birth",
+              "type": "date",
+              "required": false,
+              "sensitive": true,
+              "format": "YYYY-MM-DD",
+              "placeholder": "YYYY-MM-DD",
+              "minAge": 18,
+              "maxAge": 100,
+              "maxDate": "today - 18 years (moment().subtract(18, 'years'))",
+              "minDate": "today - 100 years (new Date().getFullYear() - 100)",
+              "validationNote": "Owner must be at least 18 years old. Max date = today minus 18 years. Min year = current year minus 100.",
+              "conditionalRequired": {
+                "field": "ownership_percentage.1",
+                "operator": "lessThan",
+                "value": 51
+              }
+            },
+            {
+              "key": "ownership_percentage.2",
+              "label": "Owner 2 Ownership %",
+              "type": "number",
+              "required": false,
+              "min": 1,
+              "max": 100,
+              "integer": true,
+              "step": 1,
+              "validationNote": "Must be a whole number — no decimals allowed. Combined ownership_percentage.1 + ownership_percentage.2 must not exceed 100.",
+              "conditionalRequired": {
+                "field": "ownership_percentage.1",
+                "operator": "lessThan",
+                "value": 51
+              },
+              "crossField": "ownership_pct_sum"
+            },
+            {
+              "key": "street_number.2",
+              "label": "Owner 2 Street Number",
+              "type": "text",
+              "required": false,
+              "maxLength": 10,
+              "conditionalRequired": {
+                "field": "ownership_percentage.1",
+                "operator": "lessThan",
+                "value": 51
+              }
+            },
+            {
+              "key": "street_address.2",
+              "label": "Owner 2 Street Address",
+              "type": "text",
+              "required": false,
+              "maxLength": 255,
+              "conditionalRequired": {
+                "field": "ownership_percentage.1",
+                "operator": "lessThan",
+                "value": 51
+              }
+            },
+            {
+              "key": "city.2",
+              "label": "Owner 2 City",
+              "type": "text",
+              "required": false,
+              "maxLength": 100,
+              "conditionalRequired": {
+                "field": "ownership_percentage.1",
+                "operator": "lessThan",
+                "value": 51
+              }
+            },
+            {
+              "key": "state.2",
+              "label": "Owner 2 State / Province",
+              "type": "text",
+              "required": false,
+              "conditionalRequired": {
+                "field": "ownership_percentage.1",
+                "operator": "lessThan",
+                "value": 51
+              }
+            },
+            {
+              "key": "postal_code.2",
+              "label": "Owner 2 Postal Code",
+              "type": "text",
+              "required": false,
+              "maxLength": 20,
+              "conditionalRequired": {
+                "field": "ownership_percentage.1",
+                "operator": "lessThan",
+                "value": 51
+              }
+            },
+            {
+              "key": "country.2",
+              "label": "Owner 2 Country",
+              "type": "select",
+              "required": false,
+              "optionsSource": "dynamicDropdownEndpoints.countries",
+              "sendField": "code",
+              "conditionalRequired": {
+                "field": "ownership_percentage.1",
+                "operator": "lessThan",
+                "value": 51
+              }
+            },
+            {
+              "key": "license.2",
+              "label": "Owner 2 Driver License Number",
+              "type": "text",
+              "required": false,
+              "sensitive": true,
+              "minLength": 5,
+              "maxLength": 25,
+              "conditionalRequired": {
+                "field": "ownership_percentage.1",
+                "operator": "lessThan",
+                "value": 51
+              }
+            },
+            {
+              "key": "driver_license_state.2",
+              "label": "Owner 2 Driver License State",
+              "type": "select",
+              "required": false,
+              "optionsSource": "dynamicDropdownEndpoints.states",
+              "sendField": "code",
+              "conditionalRequired": {
+                "logic": "ownership_percentage.1 < 51 AND country.2 == 'US'"
+              },
+              "visibleIf": {
+                "logic": "ownership_percentage.1 < 51 AND country.2 == 'US'"
+              }
+            },
+            {
+              "key": "driver_license_expiration_date.2",
+              "label": "Owner 2 License Expiration Date",
+              "type": "date",
+              "required": false,
+              "sensitive": true,
+              "format": "YYYY-MM-DD",
+              "minDate": "today",
+              "validationNote": "Must be today or in the future (Laravel: after_or_equal:today). Reject past dates.",
+              "conditionalRequired": {
+                "logic": "ownership_percentage.1 < 51 AND country.2 == 'US'"
+              },
+              "visibleIf": {
+                "logic": "ownership_percentage.1 < 51 AND country.2 == 'US'"
+              }
+            },
+            {
+              "key": "bankruptcy_filed.2",
+              "label": "Owner 2: Has a bankruptcy been filed?",
+              "type": "radio",
+              "required": false,
+              "options": [
+                { "label": "Yes", "value": "1" },
+                { "label": "No", "value": "0" }
+              ],
+              "conditionalRequired": {
+                "field": "ownership_percentage.1",
+                "operator": "lessThan",
+                "value": 51
+              }
+            },
+            {
+              "key": "bankruptcy_discharged.2",
+              "label": "Owner 2: Was the bankruptcy discharged?",
+              "type": "radio",
+              "required": false,
+              "options": [
+                { "label": "Yes", "value": "1" },
+                { "label": "No", "value": "0" }
+              ],
+              "visibleIf": {
+                "field": "bankruptcy_filed.2",
+                "operator": "equals",
+                "value": "1"
+              },
+              "conditionalRequired": {
+                "field": "bankruptcy_filed.2",
+                "operator": "equals",
+                "value": "1"
+              }
+            },
+            {
+              "key": "bankruptcy_discharged_date.2",
+              "label": "Owner 2: Bankruptcy Discharge Date",
+              "type": "date",
+              "required": false,
+              "format": "YYYY-MM-DD",
+              "maxDate": "today",
+              "validationNote": "Must be today or in the past (Laravel: before_or_equal:today). Future dates are rejected.",
+              "visibleIf": {
+                "field": "bankruptcy_discharged.2",
+                "operator": "equals",
+                "value": "1"
+              },
+              "conditionalRequired": {
+                "field": "bankruptcy_discharged.2",
+                "operator": "equals",
+                "value": "1"
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "step": 5,
+      "title": "Banking",
+      "description": "Bank account details and current processor information.",
+      "api": {
+        "method": "POST",
+        "url": "/api/v1/application/step",
+        "controller": "App\\Http\\Controllers\\API\\SignupAPIController@submitApplicationStep",
+        "request": "App\\Http\\Requests\\API\\ApplicationStepRequest",
+        "step_count": 5,
+        "successResponse": {
+          "status": true,
+          "message": "Step 5 submitted successfully",
+          "step": 5,
+          "uuid": "string"
+        }
+      },
+      "fields": [
+        {
+          "key": "uuid",
+          "label": null,
+          "type": "hidden",
+          "required": true
+        },
+        {
+          "key": "step_count",
+          "label": null,
+          "type": "hidden",
+          "required": true,
+          "value": 5
+        },
+        {
+          "key": "routing_number",
+          "label": "Routing Number",
+          "type": "text",
+          "required": true,
+          "sensitive": true,
+          "autocomplete": "off",
+          "pattern": "^[0-9A-Za-z]+$",
+          "maxLength": 20,
+          "placeholder": "Routing Number",
+          "countryVariants": {
+            "US": { "label": "Routing Number", "exactLength": 9, "pattern": "^[0-9]{9}$" },
+            "CA": { "label": "Transit Number / Routing Number" },
+            "AU": { "label": "BSB Code" },
+            "GB": { "label": "Sort Code" },
+            "default": { "label": "BIC Code / SWIFT Code / Routing Number" }
+          }
+        },
+        {
+          "key": "account_number",
+          "label": "Account Number",
+          "type": "text",
+          "required": true,
+          "sensitive": true,
+          "autocomplete": "off",
+          "pattern": "^[0-9A-Za-z]+$",
+          "maxLength": 20,
+          "placeholder": "Account Number",
+          "countryVariants": {
+            "US": { "minLength": 8, "maxLength": 17 },
+            "default": { "label": "IBAN / Account Number" }
+          }
+        },
+        {
+          "key": "bank_name",
+          "label": "Bank Name",
+          "type": "text",
+          "required": false,
+          "placeholder": "Bank Name"
+        },
+        {
+          "key": "bank_account_type",
+          "label": "Bank Account Type",
+          "type": "select",
+          "required": false,
+          "optionsSource": "staticDropdowns.bank_account_type",
+          "sendField": "value"
+        },
+        {
+          "key": "institution_number",
+          "label": "Institution Number",
+          "type": "text",
+          "required": false,
+          "maxLength": 3,
+          "pattern": "^[0-9]{3}$",
+          "placeholder": "Institution Number",
+          "dependsOn": {
+            "field": "country_from_step1",
+            "operator": "equals",
+            "value": "CA",
+            "effect": "required"
+          },
+          "visibleIf": {
+            "field": "country_from_step1",
+            "operator": "equals",
+            "value": "CA"
+          }
+        },
+        {
+          "key": "customer_pay_currency",
+          "label": "Currency your customers will pay in",
+          "type": "radio",
+          "required": false,
+          "optionsSource": "staticDropdowns.customer_pay_currency",
+          "sendField": "value",
+          "dependsOn": {
+            "field": "country_from_step1",
+            "operator": "equals",
+            "value": "CA",
+            "effect": "required"
+          },
+          "visibleIf": {
+            "field": "country_from_step1",
+            "operator": "equals",
+            "value": "CA"
+          }
+        },
+        {
+          "key": "current_processing",
+          "label": "Are you currently processing credit cards?",
+          "type": "select",
+          "required": true,
+          "options": [
+            { "label": "Yes", "value": "1" },
+            { "label": "No", "value": "0" }
+          ]
+        },
+        {
+          "key": "processor_name",
+          "label": "Current Processor Name",
+          "type": "text",
+          "required": false,
+          "placeholder": "Current Processor Name",
+          "dependsOn": {
+            "field": "current_processing",
+            "operator": "equals",
+            "value": "1",
+            "effect": "required"
+          },
+          "visibleIf": {
+            "field": "current_processing",
+            "operator": "equals",
+            "value": "1"
+          }
+        }
+      ]
+    },
+
+    {
+      "step": 6,
+      "title": "Final Details",
+      "description": "Referral source, account preferences, interests, and terms & conditions acceptance.",
+      "api": {
+        "method": "POST",
+        "url": "/api/v1/application/step",
+        "controller": "App\\Http\\Controllers\\API\\SignupAPIController@submitApplicationStep",
+        "request": "App\\Http\\Requests\\API\\ApplicationStepRequest",
+        "step_count": 6,
+        "successResponse": {
+          "status": true,
+          "message": "Step 6 submitted successfully",
+          "step": 6,
+          "uuid": "string"
+        }
+      },
+      "fields": [
+        {
+          "key": "uuid",
+          "label": null,
+          "type": "hidden",
+          "required": true
+        },
+        {
+          "key": "step_count",
+          "label": null,
+          "type": "hidden",
+          "required": true,
+          "value": 6
+        },
+        {
+          "key": "howdidyouhear",
+          "label": "How did you find us?",
+          "type": "select",
+          "required": true,
+          "optionsSource": "dynamicDropdownEndpoints.referral_sources",
+          "sendField": "slug"
+        },
+        {
+          "key": "hear_about_us_other",
+          "label": "Additional Information",
+          "type": "text",
+          "required": false,
+          "maxLength": 255,
+          "placeholder": "Other / Friend",
+          "note": "Shown and required when the selected referral source requires additional detail (e.g. 'Other', 'Referral', or 'Friend'). The backend clears this field automatically when the selected source ID is not in [50, 14, 8].",
+          "visibleIf": {
+            "note": "Show when howdidyouhear is a source that needs more detail — check against the referral source list returned by /api/partner/referral-sources and show for slugs that represent 'Other', 'Friend', or 'Referral' type sources."
+          }
+        },
+        {
+          "key": "multiple_merchant_accounts",
+          "label": "Do you need multiple merchant accounts?",
+          "type": "select",
+          "required": true,
+          "options": [
+            { "label": "Yes", "value": "1" },
+            { "label": "No", "value": "0" }
+          ]
+        },
+        {
+          "key": "transaction_device",
+          "label": "What device will you use to process transactions?",
+          "type": "select",
+          "required": false,
+          "optionsSource": "staticDropdowns.transaction_device",
+          "sendField": "slug"
+        },
+        {
+          "key": "bad_experience",
+          "label": "Have you had a bad experience with a provider?",
+          "type": "select",
+          "required": true,
+          "options": [
+            { "label": "Yes", "value": "1" },
+            { "label": "No", "value": "0" }
+          ]
+        },
+        {
+          "key": "bad_experience_happened",
+          "label": "What provider did you have a bad experience with?",
+          "type": "text",
+          "required": false,
+          "maxLength": 500,
+          "placeholder": "Provider name",
+          "dependsOn": {
+            "field": "bad_experience",
+            "operator": "equals",
+            "value": "1",
+            "effect": "required"
+          },
+          "visibleIf": {
+            "field": "bad_experience",
+            "operator": "equals",
+            "value": "1"
+          }
+        },
+        {
+          "key": "other_interests_capital",
+          "label": "What would help your company grow?",
+          "type": "checkbox-group",
+          "required": false,
+          "optionsSource": "dynamicDropdownEndpoints.interest_details",
+          "sendField": "id",
+          "isGrouped": true,
+          "note": "Send as array: other_interests_capital[] with integer IDs. Optional."
+        },
+        {
+          "key": "terms_and_conditions_agreed",
+          "label": "I have read and accept the terms and conditions",
+          "type": "checkbox",
+          "required": true,
+          "sendValue": "1",
+          "note": "Must be checked / send value 1"
+        }
+      ]
+    }
+  ],
+
+  "excludedFromSkill": [
+    {
+      "field": "my_range",
+      "reason": "UI slider only — actual values are captured via card_swiped, customer_entered, staff_entered hidden inputs"
+    },
+    {
+      "feature": "HelloSign e-signature (Step 7)",
+      "reason": "Out of scope for skill — handled on EMAP after submission"
+    },
+    {
+      "feature": "Dynamic processor fields modal",
+      "reason": "Out of scope — complex EMAP-specific dynamic fields popup; not implemented in skill"
+    },
+    {
+      "feature": "Document uploads",
+      "reason": "Out of scope per D3 — merchants upload documents on EMAP after submission"
+    }
+  ]
+}

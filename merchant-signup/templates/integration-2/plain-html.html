@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apply for a Merchant Account</title>
+  <!--
+    Referrer-Policy: no-referrer prevents the EMAP URL (which contains PII in query params)
+    from being sent as the Referer header to any third-party scripts on the EMAP page.
+    Also set this in your HTTP response headers — the meta tag is a fallback only.
+  -->
+  <meta name="referrer" content="no-referrer">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f7fa;
+      color: #1a1a2e;
+      margin: 0;
+      padding: 40px 16px;
+    }
+
+    .card {
+      max-width: 560px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.08);
+      padding: 40px 36px;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      margin: 0 0 6px;
+      color: #0f172a;
+    }
+
+    .subtitle {
+      color: #64748b;
+      margin: 0 0 28px;
+      font-size: .95rem;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      font-size: .85rem;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 5px;
+    }
+
+    label .required {
+      color: #ef4444;
+      margin-left: 2px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px 13px;
+      border: 1.5px solid #d1d5db;
+      border-radius: 7px;
+      font-size: .95rem;
+      color: #1f2937;
+      background: #fff;
+      transition: border-color .15s;
+      appearance: none;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,.15);
+    }
+
+    input.error, select.error {
+      border-color: #ef4444;
+    }
+
+    .field-error {
+      display: block;
+      color: #ef4444;
+      font-size: .8rem;
+      margin-top: 4px;
+    }
+
+    .terms-group {
+      margin: 20px 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .terms-group input[type="checkbox"] {
+      width: 17px;
+      height: 17px;
+      flex-shrink: 0;
+      margin-top: 2px;
+      cursor: pointer;
+    }
+
+    .terms-group label {
+      font-size: .88rem;
+      font-weight: 400;
+      color: #4b5563;
+      cursor: pointer;
+    }
+
+    .terms-group a { color: #3b82f6; }
+
+    button[type="submit"] {
+      width: 100%;
+      padding: 13px;
+      background: #3b82f6;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s, opacity .15s;
+    }
+
+    button[type="submit"]:hover:not(:disabled) { background: #2563eb; }
+    button[type="submit"]:disabled { opacity: .65; cursor: not-allowed; }
+
+    .alert {
+      padding: 12px 16px;
+      border-radius: 7px;
+      margin-bottom: 20px;
+      font-size: .9rem;
+    }
+    .alert-error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+
+    /* Hide honeypot from real users */
+    .hp-field { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Apply for a Merchant Account</h1>
+    <p class="subtitle">Fill in your business details below. You'll complete the rest on Easy Pay Direct's secure platform.</p>
+
+    <div id="form-error" class="alert alert-error" style="display:none"></div>
+
+    <form id="signup-form" novalidate>
+
+      <!-- Honeypot: never shown to humans; bots often fill this in -->
+      <input class="hp-field" name="_hp" tabindex="-1" autocomplete="off">
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="first_name">First Name <span class="required">*</span></label>
+          <input id="first_name" name="first_name" type="text" maxlength="255" autocomplete="given-name" required>
+          <span class="field-error" id="err_first_name"></span>
+        </div>
+        <div class="form-group">
+          <label for="last_name">Last Name <span class="required">*</span></label>
+          <input id="last_name" name="last_name" type="text" maxlength="255" autocomplete="family-name" required>
+          <span class="field-error" id="err_last_name"></span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email Address <span class="required">*</span></label>
+        <input id="email" name="email" type="email" maxlength="255" autocomplete="email" required>
+        <span class="field-error" id="err_email"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="phone">Phone Number <span class="required">*</span></label>
+        <input id="phone" name="phone" type="tel" maxlength="20" autocomplete="tel" placeholder="+1 202 555 1234" required>
+        <span class="field-error" id="err_phone"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="company_name">Company Name <span class="required">*</span></label>
+        <input id="company_name" name="company_name" type="text" maxlength="255" autocomplete="organization" required>
+        <span class="field-error" id="err_company_name"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="website">Company Website <span class="required">*</span></label>
+        <input id="website" name="website" type="url" maxlength="255" autocomplete="url" placeholder="https://yourcompany.com" required>
+        <span class="field-error" id="err_website"></span>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="country">Country <span class="required">*</span></label>
+          <select id="country" name="country" required>
+            <option value="">Loading countries…</option>
+          </select>
+          <span class="field-error" id="err_country"></span>
+        </div>
+        <div class="form-group" id="state_group" style="display:none">
+          <label for="business_state">State <span class="required">*</span></label>
+          <select id="business_state" name="business_state">
+            <option value="">Loading states…</option>
+          </select>
+          <span class="field-error" id="err_business_state"></span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="annual_sales">Annual Sales (USD) <span class="required">*</span></label>
+        <input id="annual_sales" name="annual_sales" type="number" min="1" required placeholder="e.g. 500000">
+        <span class="field-error" id="err_annual_sales"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="industry_type">Industry Type <span class="required">*</span></label>
+        <select id="industry_type" name="industry_type" required>
+          <option value="">Loading industries…</option>
+        </select>
+        <span class="field-error" id="err_industry_type"></span>
+      </div>
+
+      <div class="form-group" id="industry_type_other_group" style="display:none">
+        <label for="industry_type_other">Describe your industry <span class="required">*</span></label>
+        <input id="industry_type_other" name="industry_type_other" type="text" maxlength="255" placeholder="Briefly describe your industry">
+        <span class="field-error" id="err_industry_type_other"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="promo_code">Referral / Promo Code</label>
+        <input id="promo_code" name="promo_code" type="text" maxlength="255" autocomplete="off">
+      </div>
+
+      <div class="terms-group">
+        <input type="checkbox" id="terms_agreed" name="terms_agreed" required>
+        <label for="terms_agreed">
+          I agree to the
+          <a href="https://app.easypaydirect.com/terms" target="_blank" rel="noopener">Terms and Conditions</a>
+        </label>
+      </div>
+      <span class="field-error" id="err_terms" style="display:block;margin-top:-10px;margin-bottom:10px"></span>
+
+      <button type="submit" id="submit-btn">Continue to Easy Pay Direct →</button>
+    </form>
+  </div>
+
+  <script>
+    // Set EMAP_BASE_URL to your EMAP environment.
+    // Production:  'https://app.easypaydirect.com'
+    // Staging:     get this URL from Easy Pay Direct
+    const EMAP_BASE_URL = '';
+
+    // Optional: your partner secretKey for attribution.
+    // Prefer setting this server-side if you have a backend.
+    // If using client-side only, store this value in your CMS/config — never hardcode a secret.
+    const EMAP_PARTNER_SECRET_KEY = '';
+
+    if (!EMAP_BASE_URL) {
+      console.error('[EMAP] EMAP_BASE_URL is not set. Set it in this script before deploying.');
+    }
+
+    // ── Load dynamic dropdowns from EMAP API ─────────────────────────────────
+    const FALLBACK_COUNTRIES = [
+      { code: 'US', name: 'United States' }, { code: 'CA', name: 'Canada' },
+      { code: 'GB', name: 'United Kingdom' }, { code: 'AU', name: 'Australia' },
+    ];
+
+    async function loadDropdowns() {
+      if (!EMAP_BASE_URL) return;
+
+      // Countries
+      try {
+        const res = await fetch(EMAP_BASE_URL + '/api/partner/countries');
+        const json = await res.json();
+        const list = json.data || [];
+        const sel = document.getElementById('country');
+        sel.innerHTML = '<option value="">Select country…</option>';
+        list.forEach(function (c) {
+          const o = document.createElement('option');
+          o.value = c.code; o.textContent = c.name;
+          sel.appendChild(o);
+        });
+      } catch (_) {
+        const sel = document.getElementById('country');
+        sel.innerHTML = '<option value="">Select country…</option>';
+        FALLBACK_COUNTRIES.forEach(function (c) {
+          const o = document.createElement('option');
+          o.value = c.code; o.textContent = c.name;
+          sel.appendChild(o);
+        });
+      }
+
+      // States
+      try {
+        const res = await fetch(EMAP_BASE_URL + '/api/partner/states');
+        const json = await res.json();
+        const list = json.data || [];
+        const sel = document.getElementById('business_state');
+        sel.innerHTML = '<option value="">Select state…</option>';
+        list.forEach(function (s) {
+          const o = document.createElement('option');
+          o.value = s.code; o.textContent = s.name;
+          sel.appendChild(o);
+        });
+      } catch (_) {
+        document.getElementById('business_state').innerHTML =
+          '<option value="">Unable to load — please refresh</option>';
+      }
+
+      // Industry types
+      try {
+        const res = await fetch(EMAP_BASE_URL + '/api/partner/industry-types');
+        const json = await res.json();
+        const list = json.data || [];
+        const sel = document.getElementById('industry_type');
+        sel.innerHTML = '<option value="">Select industry…</option>';
+        list.forEach(function (t) {
+          const o = document.createElement('option');
+          o.value = t.slug; o.textContent = t.name;
+          sel.appendChild(o);
+        });
+      } catch (_) {
+        document.getElementById('industry_type').innerHTML =
+          '<option value="">Unable to load — please refresh</option>';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadDropdowns);
+
+    // Show/hide industry_type_other
+    document.addEventListener('DOMContentLoaded', function () {
+      document.getElementById('industry_type').addEventListener('change', function () {
+        const grp = document.getElementById('industry_type_other_group');
+        const inp = document.getElementById('industry_type_other');
+        const isOther = this.value === 'other';
+        grp.style.display = isOther ? 'block' : 'none';
+        inp.required = isOther;
+        if (!isOther) inp.value = '';
+        setError('industry_type_other', '');
+      });
+    });
+
+    // Show/hide state field based on country selection
+    document.getElementById('country').addEventListener('change', function () {
+      const stateGroup = document.getElementById('state_group');
+      const stateSelect = document.getElementById('business_state');
+      const isUS = this.value === 'US';
+      stateGroup.style.display = isUS ? 'block' : 'none';
+      stateSelect.required = isUS;
+      if (!isUS) stateSelect.value = '';
+    });
+
+    // Collect UTM params and Google click IDs from the current page URL for pass-through
+    function getTrackingParams() {
+      const current = new URLSearchParams(window.location.search);
+      const tracking = {};
+      ['utm_campaign', 'utm_source', 'utm_medium', 'utm_term', 'utm_content',
+       'gclid', 'gbraid', 'wbraid'].forEach(function (k) {
+        if (current.has(k)) tracking[k] = current.get(k);
+      });
+      return tracking;
+    }
+
+    function setError(fieldId, message) {
+      const el = document.getElementById('err_' + fieldId);
+      const input = document.getElementById(fieldId) || document.querySelector('[name="' + fieldId + '"]');
+      if (el) el.textContent = message || '';
+      if (input && message) input.classList.add('error');
+      else if (input) input.classList.remove('error');
+    }
+
+    function clearErrors() {
+      document.querySelectorAll('.field-error').forEach(function (el) { el.textContent = ''; });
+      document.querySelectorAll('.error').forEach(function (el) { el.classList.remove('error'); });
+      document.getElementById('form-error').style.display = 'none';
+    }
+
+    const PHONE_RE   = /^[0-9+\-()\s]+$/;
+    const WEBSITE_RE = /^(https?:\/\/)?[a-zA-Z0-9]([a-zA-Z0-9\-]*\.)+[a-zA-Z]{2,}(\/[^\s]*)?$/;
+    const EMAIL_RE   = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    const VALID_US_STATES = new Set([
+      'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA',
+      'KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ',
+      'NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT',
+      'VA','WA','WV','WI','WY','DC',
+    ]);
+
+    function validateForm(data) {
+      const errors = {};
+
+      if (!data.first_name)                   errors.first_name   = 'First name is required';
+      else if (data.first_name.length > 60)   errors.first_name   = 'First name must be 60 characters or fewer';
+
+      if (!data.last_name)                    errors.last_name    = 'Last name is required';
+      else if (data.last_name.length > 60)    errors.last_name    = 'Last name must be 60 characters or fewer';
+
+      if (!data.email)                        errors.email        = 'Email is required';
+      else if (!EMAIL_RE.test(data.email))    errors.email        = 'A valid email address is required';
+
+      if (!data.phone)                        errors.phone        = 'Phone number is required';
+      else if (data.phone.length > 20)        errors.phone        = 'Phone must be 20 characters or fewer';
+      else if (!PHONE_RE.test(data.phone))    errors.phone        = 'Phone may only contain digits, +, -, (, ), and spaces';
+
+      if (!data.company_name)                 errors.company_name = 'Company name is required';
+      else if (data.company_name.length > 60) errors.company_name = 'Company name must be 60 characters or fewer';
+
+      if (!data.website)                      errors.website      = 'Website is required';
+      else if (!WEBSITE_RE.test(data.website)) errors.website     = 'Website must be a valid URL (e.g. https://yourcompany.com)';
+
+      if (!data.country)                      errors.country      = 'Country is required';
+
+      if (!data.industry_type)                errors.industry_type = 'Industry type is required';
+      if (data.industry_type === 'other' && !data.industry_type_other)
+                                              errors.industry_type_other = 'Please describe your industry';
+
+      const sales = Number(data.annual_sales);
+      if (!data.annual_sales || isNaN(sales) || sales < 1)
+                                              errors.annual_sales = 'Annual sales must be at least 1';
+      else if (sales > 999999999999)          errors.annual_sales = 'Annual sales value is too large';
+
+      if (data.country === 'US') {
+        if (!data.business_state)                            errors.business_state = 'State is required for US businesses';
+        else if (!VALID_US_STATES.has(data.business_state)) errors.business_state = 'Must be a valid US state code';
+      }
+
+      return errors;
+    }
+
+    document.getElementById('signup-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      clearErrors();
+
+      // Honeypot check — silent rejection
+      if (document.querySelector('[name="_hp"]').value) return;
+
+      if (!document.getElementById('terms_agreed').checked) {
+        setError('terms', 'You must agree to the Terms and Conditions');
+        return;
+      }
+
+      const formData = new FormData(this);
+      const data = {};
+      for (const [key, value] of formData.entries()) {
+        if (key !== '_hp' && key !== 'terms_agreed') data[key] = value.trim();
+      }
+
+      const errors = validateForm(data);
+      if (Object.keys(errors).length > 0) {
+        Object.entries(errors).forEach(function ([field, msg]) { setError(field, msg); });
+        const firstError = document.querySelector('.field-error:not(:empty)');
+        if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Redirecting…';
+
+      const params = new URLSearchParams();
+
+      // Core fields
+      ['first_name', 'last_name', 'email', 'phone', 'company_name', 'website',
+       'country', 'annual_sales', 'business_state', 'industry_type',
+       'industry_type_other', 'promo_code'].forEach(function (k) {
+        if (data[k]) params.set(k, data[k]);
+      });
+
+      // Pass through tracking params from current page
+      Object.entries(getTrackingParams()).forEach(function ([k, v]) { params.set(k, v); });
+
+      // Partner attribution from constant (prefer server-side)
+      if (EMAP_PARTNER_SECRET_KEY) params.set('secretKey', EMAP_PARTNER_SECRET_KEY);
+
+      const redirectUrl = EMAP_BASE_URL + '/signup?' + params.toString();
+      window.location.href = redirectUrl;
+    });
+  </script>
+</body>
+</html>

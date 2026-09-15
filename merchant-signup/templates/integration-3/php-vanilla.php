@@ -84,31 +84,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    // ── Validation constants ──────────────────────────────────────────────────
+    $phoneRegex   = '/^[0-9+\-()\s]+$/';
+    $websiteRegex = '/^(https?:\/\/)?[a-zA-Z0-9]([a-zA-Z0-9\-]*\.)+[a-zA-Z]{2,}(\/[^\s]*)?$/i';
+    $validUsStates = [
+        'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA',
+        'KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ',
+        'NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT',
+        'VA','WA','WV','WI','WY','DC',
+    ];
+
     // Validate required fields
     $errors = [];
-    $firstName = trim((string)($input['first_name'] ?? ''));
-    $lastName  = trim((string)($input['last_name'] ?? ''));
-    $email     = trim((string)($input['email'] ?? ''));
-    $phone     = trim((string)($input['phone'] ?? ''));
-    $name      = trim((string)($input['name'] ?? $input['company_name'] ?? ''));
-    $website   = trim((string)($input['website'] ?? ''));
-    $country   = strtoupper(trim((string)($input['country'] ?? '')));
-    $annualSales = (int)($input['annual_sales'] ?? 0);
+    $firstName     = trim((string)($input['first_name'] ?? ''));
+    $lastName      = trim((string)($input['last_name'] ?? ''));
+    $email         = trim((string)($input['email'] ?? ''));
+    $phone         = trim((string)($input['phone'] ?? ''));
+    $name          = trim((string)($input['name'] ?? $input['company_name'] ?? ''));
+    $website       = trim((string)($input['website'] ?? ''));
+    $country       = strtoupper(trim((string)($input['country'] ?? '')));
+    $annualSales   = (float)($input['annual_sales'] ?? 0);
     $businessState = strtoupper(trim((string)($input['business_state'] ?? '')));
-    $promoCode = trim((string)($input['promo_code'] ?? ''));
+    $promoCode     = trim((string)($input['promo_code'] ?? ''));
 
-    if (!$firstName)      $errors['first_name']   = ['First name is required'];
-    if (!$lastName)       $errors['last_name']    = ['Last name is required'];
-    if (!$email)          $errors['email']        = ['Email is required'];
+    if (!$firstName)              $errors['first_name']   = ['First name is required'];
+    elseif (strlen($firstName) > 60) $errors['first_name'] = ['First name must be 60 characters or fewer'];
+
+    if (!$lastName)               $errors['last_name']    = ['Last name is required'];
+    elseif (strlen($lastName) > 60)  $errors['last_name'] = ['Last name must be 60 characters or fewer'];
+
+    if (!$email)                  $errors['email']        = ['Email is required'];
     elseif (!filter_var($email, FILTER_VALIDATE_EMAIL))
-                          $errors['email']        = ['A valid email address is required'];
-    if (!$phone)          $errors['phone']        = ['Phone is required'];
-    if (!$name)           $errors['name']         = ['Company name is required'];
-    if (!$website)        $errors['website']      = ['Website is required'];
-    if (!$country)        $errors['country']      = ['Country is required'];
-    if ($annualSales < 1) $errors['annual_sales'] = ['Annual sales must be at least 1'];
-    if ($country === 'US' && !$businessState)
-                          $errors['business_state'] = ['State is required for US businesses'];
+                                  $errors['email']        = ['A valid email address is required'];
+
+    if (!$phone)                  $errors['phone']        = ['Phone is required'];
+    elseif (strlen($phone) > 20)  $errors['phone']        = ['Phone must be 20 characters or fewer'];
+    elseif (!preg_match($phoneRegex, $phone))
+                                  $errors['phone']        = ['Phone may only contain digits, +, -, (, ), and spaces'];
+
+    if (!$name)                   $errors['name']         = ['Company name is required'];
+    elseif (strlen($name) > 60)   $errors['name']         = ['Company name must be 60 characters or fewer'];
+
+    if (!$website)                $errors['website']      = ['Website is required'];
+    elseif (!preg_match($websiteRegex, $website))
+                                  $errors['website']      = ['Website must be a valid URL (e.g. https://yourcompany.com)'];
+
+    if (!$country)                $errors['country']      = ['Country is required'];
+    elseif (strlen($country) !== 2) $errors['country']    = ['Country must be a 2-character ISO code (e.g. US, CA)'];
+
+    if ($annualSales < 1)         $errors['annual_sales'] = ['Annual sales must be at least 1'];
+    elseif ($annualSales > 999999999999) $errors['annual_sales'] = ['Annual sales value is too large'];
+
+    if ($country === 'US') {
+        if (!$businessState)                        $errors['business_state'] = ['State is required for US businesses'];
+        elseif (!in_array($businessState, $validUsStates, true))
+                                                    $errors['business_state'] = ['Must be a valid 2-character US state code (e.g. CA, TX)'];
+    }
 
     if (!empty($errors)) {
         http_response_code(422);

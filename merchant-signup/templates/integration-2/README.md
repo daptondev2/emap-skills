@@ -31,6 +31,30 @@ PORT=3000
 ```
 Run: `node node-express.js`
 
+### `nextjs-route.ts`
+A Next.js App Router route handler at `app/api/build-redirect/route.ts`. Validates the
+form fields server-side, builds the EMAP redirect URL, and returns it as JSON. The browser
+then follows the URL.
+
+**Setup:** Add to `.env.local`:
+```
+EMAP_BASE_URL=https://app.easypaydirect.com
+EMAP_PARTNER_SECRET_KEY=your_key_here
+```
+
+### `php-vanilla.php`
+A single PHP file that renders the form (GET) and builds the redirect URL (POST), returning
+`{ "status": true, "redirectUrl": "..." }` as JSON. Includes CSRF protection, honeypot,
+country/state/industry dropdowns loaded from EMAP API, and client-side redirect on success.
+
+**Requirements:** PHP 7.4+
+
+**Setup:** Set in your server environment:
+```
+EMAP_BASE_URL=https://app.easypaydirect.com
+EMAP_PARTNER_SECRET_KEY=your_key_here
+```
+
 ---
 
 ## Customisation
@@ -40,9 +64,6 @@ Run: `node node-express.js`
    `phone`, `company_name`, `website`, `country`, `annual_sales`) must stay.
 3. **Auto-submit:** To trigger EMAP's auto-submit, include all the optional fields listed in
    [`../../references/field-catalog.md`](../../references/field-catalog.md) under "Auto-submit fields".
-4. **Country list:** Expand the country dropdown to include all countries EMAP supports.
-   EMAP resolves country names to IDs server-side.
-5. **State list:** Expand the US states dropdown to include all 50 states + DC.
 
 ---
 
