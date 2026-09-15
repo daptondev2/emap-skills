@@ -1,0 +1,131 @@
+# API Error Reference (Integration 3)
+
+Complete error handling guide for `POST /api/v1/signup` and `POST /api/v1/signup/resume-link`.
+
+---
+
+## Signup endpoint errors
+
+| HTTP | Condition | Response body | Recommended action |
+|---|---|---|---|
+| 200 | New user created | `{"status":true,"message":"Success","uuid":"..."}` | Show "Application submitted! Check your inbox." Store `uuid` if needed. |
+| 200 | Existing user | `{"message":"success","verificationLink":true,"url":"..."}` | Show "You already have an account. Check your email or click here." Optionally redirect to `url`. |
+| 200 | Company exists | `{"status":false,"message":"Company already exists","data":{...}}` | Show "A company with this name already exists in our system. Please check your email." |
+| 400 | Application creation failed | `{"status":false,"message":"Error while creating application","data":"Something went wrong."}` | Show generic "Something went wrong. Please try again." Re-enable the submit button. |
+| 403 | IP geofenced (PK) | `{"status":false,"message":"Unauthorised access."}` | Show "This service is not available in your region." |
+| 422 | Validation error | `{"status":false,"message":"Validation failed","errors":{"field":["message",...]}}` | Display per-field errors from `errors`. See field mapping below. |
+| 429 | Rate limited | Standard 429 HTML/JSON | Show "Too many attempts. Please wait a few minutes and try again." |
+| 5xx | EMAP server error | varies | Show "EMAP is temporarily unavailable. Please try again in a few minutes." |
+
+> **Important:** EMAP returns HTTP 200 for business-logic rejections (company exists, existing user).
+> Always check the response body, not just the status code.
+
+---
+
+## Detecting the success shape vs existing-user shape
+
+```javascript
+async function handleEmapResponse(response) {
+  const data = await response.json();
+
+  if (response.status === 422) {
+    // Field validation errors
+    return { type: 'validation', errors: data.errors };
+  }
+
+  if (response.status === 429) {
+    return { type: 'rate_limit' };
+  }
+
+  if (response.status >= 400) {
+    return { type: 'server_error' };
+  }
+
+  // HTTP 200 — check body shape
+  if (data.verificationLink === true) {
+    return { type: 'existing_user', url: data.url };
+  }
+
+  if (data.status === true && data.uuid) {
+    return { type: 'success', uuid: data.uuid };
+  }
+
+  if (data.status === false && data.message === 'Company already exists') {
+    return { type: 'company_exists' };
+  }
+
+  // Unexpected shape — treat as server error
+  return { type: 'server_error' };
+}
+```
+
+---
+
+## Mapping 422 field names to form field IDs
+
+The `errors` object uses the API field names. Map them to your form inputs:
+
+| API field name | Your form input (suggested) | Common error message |
+|---|---|---|
+| `first_name` | `#first_name` or `input[name="first_name"]` | "First name is required" |
+| `last_name` | `#last_name` | "Last name is required" |
+| `email` | `#email` | "This email address is already registered" / "Email must be a valid email address" |
+| `phone` | `#phone` | "Phone is required" / "Phone must contain only numbers, hyphens, plus signs, and parentheses" |
+| `name` | `#company_name` (note: your form may use a different id) | "Company name is required" |
+| `website` | `#website` | "Website must be a valid URL" |
+| `country` | `#country` | "Country is required" |
+| `annual_sales` | `#annual_sales` | "Annual sales is required" / "Annual sales must be at least 1" |
+| `business_state` | `#business_state` | "Business state is required for US-based companies" |
+| `partner_key` | — (backend field, never in form) | "Partner key is not valid" — log this, don't show to merchant |
+
+---
+
+## Rendering field errors
+
+```javascript
+function displayFieldErrors(errors) {
+  // Clear previous errors
+  document.querySelectorAll('.field-error').forEach(el => el.remove());
+  document.querySelectorAll('.error-border').forEach(el => el.classList.remove('error-border'));
+
+  // Map API field names to your HTML form field IDs
+  const fieldMap = {
+    first_name: 'first_name',
+    last_name: 'last_name',
+    email: 'email',
+    phone: 'phone',
+    name: 'company_name',        // API uses 'name'; your form may use 'company_name'
+    website: 'website',
+    country: 'country',
+    annual_sales: 'annual_sales',
+    business_state: 'business_state',
+  };
+
+  for (const [apiField, messages] of Object.entries(errors)) {
+    const formField = fieldMap[apiField] || apiField;
+    const input = document.querySelector(`[name="${formField}"]`);
+    if (!input) continue;
+
+    input.classList.add('error-border');
+
+    const errorEl = document.createElement('span');
+    errorEl.className = 'field-error';
+    errorEl.textContent = Array.isArray(messages) ? messages[0] : messages;
+    input.parentNode.insertBefore(errorEl, input.nextSibling);
+  }
+}
+```
+
+---
+
+## Resume link endpoint errors
+
+| HTTP | Condition | Response body | Recommended action |
+|---|---|---|---|
+| 200 | Sent (or no account) | `{"status":true,"message":"Resume link sent"}` | Show "If an account exists, we sent a link. Check your inbox." |
+| 422 | Invalid email format | `{"status":false,"message":"The email field must be a valid email address."}` | Show email validation error on the field |
+| 429 | Rate limited (5/5min/IP) | `{"status":false,"message":"Too many attempts. Please try again later."}` | Show "Too many attempts. Please wait 5 minutes." |
+| 400 | Internal error | `{"status":false,"message":"Error","data":"Could not send the link. Please try again."}` | Show "Could not send the link. Please try again." |
+
+> The 200 response is always the same whether or not the email address has an EMAP account.
+> This is intentional — it prevents attackers from enumerating valid email addresses.
