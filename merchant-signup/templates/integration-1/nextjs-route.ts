@@ -243,6 +243,15 @@ export async function POST_step2(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ status: false, message: 'uuid is required' }, { status: 422, headers: NO_STORE });
   }
 
+  // EIN format — only present when the EIN group is visible
+  const ein = String(body.federal_tax_id ?? '').trim();
+  if (ein && !/^\d{2}-\d{7}$/.test(ein)) {
+    return NextResponse.json(
+      { status: false, message: 'Validation failed', errors: { federal_tax_id: ['EIN must be in the format XX-XXXXXXX (e.g. 12-3456789)'] } },
+      { status: 422, headers: NO_STORE }
+    );
+  }
+
   return proxyPost('/api/v1/application/step', { ...body, step_count: 2 });
 }
 
@@ -276,6 +285,29 @@ export async function POST_step4(request: NextRequest): Promise<NextResponse> {
 
   if (!body.uuid) {
     return NextResponse.json({ status: false, message: 'uuid is required' }, { status: 422, headers: NO_STORE });
+  }
+
+  // SSN format — nested as { ssn: { '1': '...', '2': '...' } } from the client toNestedDot helper
+  const SSN_RE = /^\d{3}-\d{2}-\d{4}$/;
+  const ssnObj = (body.ssn && typeof body.ssn === 'object' ? body.ssn : {}) as Record<string, unknown>;
+  const errors: Record<string, string[]> = {};
+
+  for (const n of ['1', '2'] as const) {
+    if (ssnObj[n] !== undefined) {
+      const val = String(ssnObj[n]).trim();
+      if (!val) {
+        errors[`ssn.${n}`] = ['SSN / Tax ID is required'];
+      } else if (!SSN_RE.test(val)) {
+        errors[`ssn.${n}`] = ['SSN must be in the format XXX-XX-XXXX (e.g. 123-45-6789)'];
+      }
+    }
+  }
+
+  if (Object.keys(errors).length > 0) {
+    return NextResponse.json(
+      { status: false, message: 'Validation failed', errors },
+      { status: 422, headers: NO_STORE }
+    );
   }
 
   return proxyPost('/api/v1/ownership', body);

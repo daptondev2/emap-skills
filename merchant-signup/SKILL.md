@@ -5,10 +5,10 @@ description: >-
   website. Covers Integration 1 (full form — all 6 signup steps hosted on the
   partner site, each step proxied to EMAP's API), Integration 2 (redirect
   handoff — browser redirects to EMAP with step-1 data in URL params, EMAP
-  prefills and auto-submits the form), and Integration 3 (API submission —
+  prefills and auto-submits the form), and Integration 3 (email-based signup —
   partner backend POSTs step-1 data to EMAP's REST API, EMAP creates the record
-  and emails the merchant a continuation link). Provides field references, code
-  templates, and a security checklist.
+  and emails the merchant a secure link to complete their full application).
+  Provides field references, code templates, and a security checklist.
 ---
 
 # Merchant Signup Integration
@@ -19,16 +19,52 @@ EMAP handles all subsequent steps (company details, banking, e-signature) — or
 with Integration 1, the partner hosts all 6 steps themselves.
 
 **Contents**
+- [Before you start — Required questions](#before-you-start--required-questions) ← **start here, always**
 - [Reference files](#reference-files) — load only when implementing that feature
 - [Step 0: Detect project setup](#step-0-detect-project-setup)
 - [Step 1: Partner attribution (optional)](#step-1-partner-attribution-optional)
 - [Step 2: Choose integration mode](#step-2-choose-integration-mode)
 - [Build Integration 1: Full form](#build-integration-1-full-form)
 - [Build Integration 2: Redirect handoff](#build-integration-2-redirect-handoff)
-- [Build Integration 3: API submission](#build-integration-3-api-submission)
+- [Build Integration 3: Email-based signup](#build-integration-3-email-based-signup)
 - [Integration 3: Resume link](#integration-3-resume-link)
 - [Verify: security and coverage](#verify-security-and-coverage)
 - [Guardrails](#guardrails)
+
+---
+
+## Before you start — Required questions
+
+> **STOP. Do not read any reference files, do not open any templates, and do not generate any code until BOTH questions below have been asked and answered by the developer.**
+
+### Question 1 — Which integration variant?
+
+Use AskUserQuestion with exactly these 3 options (no other options, no sequence numbers in labels):
+
+- **Redirect handoff (Integration 2)** — The merchant fills out a single step-1 form on your site. On submit, they are redirected straight into EMAP's onboarding signup flow to complete the remaining steps. No backend required.
+- **Full form (Integration 1)** — You host the entire 6-step merchant signup experience on your site. The merchant completes all steps (1–6) without ever leaving your platform. Each step is proxied to EMAP's API. Requires a backend.
+- **Email-based signup (Integration 3)** — The merchant fills out a single step-1 form on your site. Your backend submits it to EMAP, which creates their account and sends them a secure resume link by email. The merchant clicks the link and continues the full onboarding flow from their inbox. Requires a backend.
+
+Do not proceed until the developer has chosen one of the three variants.
+
+### Question 2 — Partner key
+
+After the developer has chosen their variant, use AskUserQuestion with exactly these 3 options. The description for each option must include the retrieval instructions exactly as written below — this is what the developer reads to know where to find or get their key:
+
+- **Yes, I have a partner key** — description: "Log in to the partner portal → Integration → API Integration → copy the API key shown there → paste it here."
+- **No, I don't have a partner key** — description: "Sign up as a partner at https://emap.easypaydirect.com/signup/partner. Once registered, go to Integration → API Integration → copy the partner key → come back and paste it here."
+- **Skip (proceed without a key)** — description: "Signups will still work, but they won't be attributed to your partner account."
+
+**If the developer selects "Yes, I have a partner key":**
+Ask them to paste the key now. Store it mentally as `EMAP_PARTNER_KEY`. Proceed to Step 0.
+
+**If the developer selects "No, I don't have a partner key":**
+Tell them to follow the sign-up link in the option description above, then come back and paste their key in the chat when ready. Proceed to Step 0 without a key for now — if they paste it later, use it as `EMAP_PARTNER_KEY`.
+
+**If the developer selects "Skip (proceed without a key)":**
+Proceed to Step 0 without a partner key.
+
+> **Only after both questions are answered** should you continue to [Step 0](#step-0-detect-project-setup) and begin reading reference files or generating code.
 
 ---
 
@@ -41,7 +77,7 @@ Load a reference only when implementing that feature — do not read all upfront
 | [`references/field-catalog.md`](references/field-catalog.md) | building the form — complete field list, types, constraints, and which fields trigger auto-submit |
 | [`references/mode-1-fullform.md`](references/mode-1-fullform.md) | implementing Integration 1 — all 6-step API contracts, field rules, UUID lifecycle, conditional logic |
 | [`references/mode-2-redirect.md`](references/mode-2-redirect.md) | implementing Integration 2 — URL construction, auto-submit logic, partner attribution, UTM pass-through |
-| [`references/mode-3-api.md`](references/mode-3-api.md) | implementing Integration 3 — API contract, request/response shapes, resume link, error handling |
+| [`references/mode-3-api.md`](references/mode-3-api.md) | implementing Integration 3 — email-based signup API contract, request/response shapes, resume link, error handling |
 | [`references/api-errors.md`](references/api-errors.md) | handling errors — all HTTP status codes, response shapes, and recommended developer actions |
 | [`references/security-checklist.md`](references/security-checklist.md) | before going live — all security requirements that must pass |
 
@@ -77,20 +113,21 @@ It is optional — signups work without it, but the partner will not get credit.
 - **Integration 3 (API):** Pass `partner_key` in the JSON request body from your backend.
   Store it as `EMAP_PARTNER_KEY` in your environment. **Never send it to the browser or log it.**
 
-If the developer does not yet have a partner key, direct them to contact Easy Pay Direct to set up
-a partner account. Integration works without a key; signups will simply not be attributed.
+If the developer does not yet have a partner key, refer them back to the instructions in
+[Before you start — Required questions](#before-you-start--required-questions).
+Integration works without a key; signups will simply not be attributed.
 
 ---
 
 ## Step 2: Choose integration mode
 
-| | Integration 1 — Full form | Integration 2 — Redirect handoff | Integration 3 — API submission |
+| | Integration 1 — Full form | Integration 2 — Redirect handoff | Integration 3 — Email-based signup |
 |---|---|---|---|
-| **How it works** | Partner hosts all 6 steps; backend proxies each step to EMAP API | Browser redirects to EMAP `/signup` with step-1 fields in URL params | Partner backend POSTs step-1 fields to EMAP REST API |
+| **How it works** | Partner hosts all 6 steps; backend proxies each step to EMAP API | Partner hosts a single-step form (same fields as Int-1 Step 1); on submit, all fields are appended as URL params and browser redirects to EMAP `/signup?params` | Partner hosts a single-step form; backend POSTs step-1 fields to EMAP REST API; EMAP emails the merchant a secure link to complete their application |
 | **Where merchant continues** | Partner's site — all 6 steps | EMAP, from step 2 onward (immediately after redirect) | EMAP, from step 2 onward (after clicking email link) |
 | **Backend required?** | Yes — proxies all 6 EMAP API calls | No — redirect is client-side | Yes — `partner_key` must stay server-side |
 | **Auto-submit on EMAP?** | N/A — merchant never visits EMAP | Yes, when all non-excluded step-1 fields are provided | N/A — EMAP processes the record server-to-server |
-| **Best for** | Full branding control across all 6 steps, enterprise integrations | Simple embed, static sites, fastest integration | More control over UX, need a clean API response for step 1 only |
+| **Best for** | Full branding control across all 6 steps, enterprise integrations | Simple embed, static sites, fastest integration | Clean partner-side UX for step 1; merchant completes the rest on EMAP after clicking their email link |
 
 Ask the developer which mode they want, or recommend based on their setup from Step 0.
 
@@ -161,26 +198,68 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
 
 Read [`references/mode-2-redirect.md`](references/mode-2-redirect.md) before proceeding.
 
+### Overview
+
+Integration 2 is a **single-step form** — it collects exactly the same fields as Integration 1
+Step 1 (basic merchant info). There is **no Terms and Conditions checkbox**. On submit, all form
+fields are serialized as URL query parameters and the browser redirects to
+`{EMAP_BASE_URL}/signup?{params}`. EMAP reads the params, prefills its form, and either shows
+the form to the merchant or auto-submits it (if all auto-submit fields are present), landing the
+merchant directly on step 2.
+
+### Fields collected (same as Integration 1 Step 1)
+
+| Field | Type | Notes |
+|---|---|---|
+| `first_name` | text | Required |
+| `last_name` | text | Required |
+| `email` | email | Required |
+| `phone` | tel | Required |
+| `company_name` | text | Required |
+| `website` | url | Required |
+| `country` | select | Required — pass **full country name** (e.g. `United States`), not a 2-char code |
+| `business_state` | select | Required only when `country = United States` |
+| `annual_sales` | number | Required |
+| `industry_type` | select | Optional — loaded from EMAP API; triggers auto-submit when present |
+| `industry_type_other` | text | Conditional — shown when `industry_type = Other` |
+| `promo_code` | text | Optional |
+
+**No T&C checkbox.** Do not add one — the merchant agrees to terms on EMAP after step 6.
+
 ### Steps
 
-1. **Create the form.** Use the field list in [`references/field-catalog.md`](references/field-catalog.md)
-   (Integration 2 columns). All fields marked Required must be present. Including all non-excluded
-   optional fields enables EMAP's auto-submit so the merchant goes straight to step 2.
-
-2. **Use the template** from `templates/integration-2/` matching the project stack.
+1. **Use the template** from `templates/integration-2/` matching the project stack.
    - No backend: use `plain-html.html` — client-side form that builds and follows the redirect URL.
    - Has backend: use `node-express.js` — server builds the URL and returns it to the client,
      keeping `EMAP_PARTNER_SECRET_KEY` out of the browser.
 
-3. **Configure environment variables:**
+2. **On submit — build redirect URL:**
+   ```javascript
+   const params = new URLSearchParams();
+   params.set('first_name', formData.get('first_name'));
+   params.set('last_name',  formData.get('last_name'));
+   params.set('email',      formData.get('email'));
+   params.set('phone',      formData.get('phone'));
+   params.set('company_name', formData.get('company_name'));
+   params.set('website',    formData.get('website'));
+   params.set('country',    formData.get('country'));       // full name
+   if (formData.get('business_state')) params.set('business_state', formData.get('business_state'));
+   params.set('annual_sales', formData.get('annual_sales'));
+   if (formData.get('industry_type')) params.set('industry_type', formData.get('industry_type'));
+   if (formData.get('promo_code'))    params.set('promo_code', formData.get('promo_code'));
+   // UTM pass-through (see step 3)
+   window.location.href = EMAP_BASE_URL + '/signup?' + params.toString();
+   ```
+
+3. **Pass UTM params through.** Read `utm_campaign`, `utm_source`, `utm_medium`, `utm_term`,
+   `utm_content`, `gclid`, `gbraid`, `wbraid` from the current page URL and append them to the
+   redirect URL. The templates do this automatically.
+
+4. **Configure environment variables:**
    ```
    EMAP_BASE_URL=https://emap.epd.dev
    EMAP_PARTNER_SECRET_KEY=your_key_here   # optional; enables partner attribution
    ```
-
-4. **Pass UTM params through.** Read `utm_campaign`, `utm_source`, `utm_medium`, `utm_term`,
-   `utm_content`, `gclid`, `gbraid`, `wbraid` from the current page URL and append them to the
-   redirect URL. The templates do this automatically.
 
 5. **Set `Referrer-Policy: no-referrer`** on your form page. This prevents the EMAP URL
    (which contains PII in the query string) from leaking into the `Referer` header sent to
@@ -194,7 +273,7 @@ Read [`references/mode-2-redirect.md`](references/mode-2-redirect.md) before pro
 
 ---
 
-## Build Integration 3: API submission
+## Build Integration 3: Email-based signup
 
 Read [`references/mode-3-api.md`](references/mode-3-api.md) before proceeding.
 

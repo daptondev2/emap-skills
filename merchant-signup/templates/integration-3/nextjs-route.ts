@@ -1,5 +1,10 @@
 /**
- * EMAP Partner Integration 3 — API Submission (Next.js App Router)
+ * EMAP Partner Integration 3 — Email-Based Signup (Next.js App Router)
+ *
+ * The partner fills in the merchant's step-1 details and submits.
+ * This route proxies the data to EMAP /api/v1/signup, which creates the account
+ * and emails the merchant a secure link to complete their full application on
+ * Easy Pay Direct's platform.
  *
  * File location: app/api/signup/route.ts
  *
@@ -24,6 +29,8 @@ interface SignupPayload {
   country: string;        // 2-char ISO code, e.g. 'US', 'CA'
   annual_sales: number;
   business_state?: string;
+  industry_type?: string;
+  industry_type_other?: string;
   promo_code?: string;
   partner_key?: string;   // injected server-side from env; never from the client
 }
@@ -110,6 +117,22 @@ function validatePayload(body: Record<string, unknown>): ValidationErrors {
   return errors;
 }
 
+// ── GET /api/industry-types ───────────────────────────────────────────────────
+// Place this export in: app/api/industry-types/route.ts (rename export to GET)
+
+export async function GET_industryTypes(): Promise<NextResponse> {
+  try {
+    const response = await fetch(`${emapOrigin}/api/partner/industry-types`, {
+      headers: { 'Accept': 'application/json' },
+      next: { revalidate: 3600 },
+    });
+    const data = await response.json();
+    return NextResponse.json(data, { headers: { 'Cache-Control': 'public, max-age=3600' } });
+  } catch {
+    return NextResponse.json({ data: [] }, { status: 502 });
+  }
+}
+
 // ── POST /api/signup ──────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -145,8 +168,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     annual_sales: Number(body.annual_sales),
   };
 
-  if (body.business_state) payload.business_state = String(body.business_state).trim().toUpperCase();
-  if (body.promo_code)     payload.promo_code = String(body.promo_code).trim();
+  if (body.business_state)      payload.business_state      = String(body.business_state).trim().toUpperCase();
+  if (body.industry_type)       payload.industry_type       = String(body.industry_type).trim();
+  if (body.industry_type_other) payload.industry_type_other = String(body.industry_type_other).trim();
+  if (body.promo_code)          payload.promo_code          = String(body.promo_code).trim();
 
   // Partner key comes from env — never from the incoming request
   if (EMAP_PARTNER_KEY) {

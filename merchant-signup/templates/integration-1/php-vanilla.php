@@ -188,6 +188,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode(['status' => false, 'message' => 'uuid is required']);
             exit;
         }
+
+        // Step 2: EIN format validation (only when field is present — hidden for CA sole props)
+        if ($step === 2) {
+            $ein = trim((string)($input['federal_tax_id'] ?? ''));
+            if ($ein !== '' && !preg_match('/^\d{2}-\d{7}$/', $ein)) {
+                http_response_code(422);
+                echo json_encode([
+                    'status'  => false,
+                    'message' => 'Validation failed',
+                    'errors'  => ['federal_tax_id' => ['EIN must be in the format XX-XXXXXXX (e.g. 12-3456789)']],
+                ]);
+                exit;
+            }
+        }
+
         $input['step_count'] = $step;
         $result = emapPost($emapOrigin . '/api/v1/application/step', $input);
         http_response_code($result['status_code']);
@@ -203,6 +218,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode(['status' => false, 'message' => 'uuid is required']);
             exit;
         }
+
+        // SSN format validation — nested as ssn[1], ssn[2]
+        $ssnErrors = [];
+        $ssnFields = $input['ssn'] ?? [];
+        if (is_array($ssnFields)) {
+            foreach (['1', '2'] as $n) {
+                if (isset($ssnFields[$n])) {
+                    $val = trim((string)$ssnFields[$n]);
+                    if ($val === '') {
+                        $ssnErrors['ssn.' . $n] = ['SSN / Tax ID is required'];
+                    } elseif (!preg_match('/^\d{3}-\d{2}-\d{4}$/', $val)) {
+                        $ssnErrors['ssn.' . $n] = ['SSN must be in the format XXX-XX-XXXX (e.g. 123-45-6789)'];
+                    }
+                }
+            }
+        }
+        if (!empty($ssnErrors)) {
+            http_response_code(422);
+            echo json_encode(['status' => false, 'message' => 'Validation failed', 'errors' => $ssnErrors]);
+            exit;
+        }
+
         $result = emapPost($emapOrigin . '/api/v1/ownership', $input);
         http_response_code($result['status_code']);
         echo json_encode($result['body']);

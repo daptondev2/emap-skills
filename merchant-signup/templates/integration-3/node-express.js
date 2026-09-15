@@ -1,5 +1,10 @@
 /**
- * EMAP Partner Integration 3 — API Submission (Express.js)
+ * EMAP Partner Integration 3 — Email-Based Signup (Express.js)
+ *
+ * The partner fills in the merchant's step-1 details and submits.
+ * This server proxies the data to EMAP /api/v1/signup, which creates the account
+ * and emails the merchant a secure link to complete their full application on
+ * Easy Pay Direct's platform.
  *
  * Install:  npm install express dotenv node-fetch@2
  *
@@ -11,8 +16,8 @@
  * Run: node node-express.js
  *
  * Endpoints:
- *   POST /api/signup              — proxy to EMAP /api/v1/signup
- *   POST /api/signup/resume-link  — proxy to EMAP /api/v1/signup/resume-link
+ *   POST /api/signup              — proxy to EMAP /api/v1/signup; EMAP emails merchant a signup link
+ *   POST /api/signup/resume-link  — resend the signup link to a merchant email
  */
 
 'use strict';
@@ -120,6 +125,21 @@ app.get('/api/countries', async function (req, res) {
   }
 });
 
+// ── GET /api/industry-types ───────────────────────────────────────────────────
+// Proxy EMAP's industry type list — safe to cache; no auth required.
+app.get('/api/industry-types', async function (req, res) {
+  try {
+    const response = await fetch(`${emapOrigin}/api/partner/industry-types`, {
+      headers: { 'Accept': 'application/json' },
+    });
+    const data = await response.json();
+    res.set('Cache-Control', 'public, max-age=3600');
+    return res.json(data);
+  } catch (_) {
+    return res.status(502).json({ data: [] });
+  }
+});
+
 // ── POST /api/signup ──────────────────────────────────────────────────────────
 // Proxy to EMAP's external signup API.
 app.post('/api/signup', async function (req, res) {
@@ -138,7 +158,7 @@ app.post('/api/signup', async function (req, res) {
     first_name, last_name, email, phone,
     name,           // company name — EMAP expects 'name', not 'company_name'
     company_name,   // HTML form may send 'company_name'; map it to 'name' below
-    website, country, annual_sales, business_state, promo_code,
+    website, country, annual_sales, business_state, industry_type, industry_type_other, promo_code,
   } = req.body;
 
   const payload = {
@@ -152,8 +172,10 @@ app.post('/api/signup', async function (req, res) {
     annual_sales: Number(annual_sales),
   };
 
-  if (business_state) payload.business_state = business_state.trim().toUpperCase();
-  if (promo_code)     payload.promo_code = promo_code.trim();
+  if (business_state)      payload.business_state      = business_state.trim().toUpperCase();
+  if (industry_type)       payload.industry_type       = industry_type.trim();
+  if (industry_type_other) payload.industry_type_other = industry_type_other.trim();
+  if (promo_code)          payload.promo_code          = promo_code.trim();
 
   // Add partner key from env — never from the request body
   if (process.env.EMAP_PARTNER_KEY) {

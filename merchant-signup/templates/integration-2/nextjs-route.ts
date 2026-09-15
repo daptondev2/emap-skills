@@ -33,11 +33,12 @@ try {
 
 // ── Whitelists ─────────────────────────────────────────────────────────────────
 
+// Same field set as Integration 1 Step 1 — basic merchant info only.
+// Do NOT add step-3/5 fields here; Integration 2 only collects step-1 data.
 const ALLOWED_FORM_FIELDS = [
   'first_name', 'last_name', 'email', 'phone', 'company_name', 'website',
-  'country', 'annual_sales', 'business_state', 'promo_code',
-  'highest_transaction_amount', 'industry_type', 'card_swiped',
-  'customer_entered', 'staff_entered', 'current_processing', 'expected_monthly_volume',
+  'country', 'annual_sales', 'business_state', 'industry_type',
+  'industry_type_other', 'promo_code',
 ] as const;
 
 const TRACKING_FIELDS = [
@@ -90,45 +91,19 @@ function validateFields(body: Record<string, unknown>): ValidationErrors {
   if (!website)                       errors.website = 'Website is required';
   else if (!WEBSITE_RE.test(website)) errors.website = 'Website must be a valid URL (e.g. https://yourcompany.com)';
 
-  const country = typeof body.country === 'string' ? body.country.trim().toUpperCase() : '';
+  // country is a full name (e.g. "United States") — not a 2-char code
+  const country = typeof body.country === 'string' ? body.country.trim() : '';
   if (!country)                    errors.country = 'Country is required';
-  else if (country.length !== 2)   errors.country = 'Country must be a 2-character ISO code (e.g. US, CA)';
 
   const sales = Number(body.annual_sales);
   if (!body.annual_sales || isNaN(sales) || sales < 1)
                                    errors.annual_sales = 'Annual sales must be at least 1';
   else if (sales > 999_999_999_999) errors.annual_sales = 'Annual sales value is too large';
 
-  if (country === 'US') {
+  // Validate business_state format if provided (client already enforces US-only display)
+  if (body.business_state) {
     const state = typeof body.business_state === 'string' ? body.business_state.trim().toUpperCase() : '';
-    if (!state)                          errors.business_state = 'State is required for US businesses';
-    else if (!VALID_US_STATES.has(state)) errors.business_state = 'Must be a valid 2-character US state code (e.g. CA, TX)';
-  }
-
-  if (body.highest_transaction_amount !== undefined && body.highest_transaction_amount !== '') {
-    const hta = Number(body.highest_transaction_amount);
-    if (isNaN(hta) || hta < 0)    errors.highest_transaction_amount = 'Must be a positive number';
-    else if (String(body.highest_transaction_amount).length > 16)
-                                   errors.highest_transaction_amount = 'Must be 16 characters or fewer';
-  }
-
-  if (body.current_processing !== undefined && body.current_processing !== '') {
-    const cp = String(body.current_processing);
-    if (cp !== '0' && cp !== '1') errors.current_processing = 'Must be 0 or 1';
-  }
-
-  const hasCardFields = body.card_swiped !== undefined || body.customer_entered !== undefined || body.staff_entered !== undefined;
-  if (hasCardFields) {
-    const swiped    = Number(body.card_swiped      ?? 0);
-    const custEntr  = Number(body.customer_entered ?? 0);
-    const staffEntr = Number(body.staff_entered    ?? 0);
-    if (isNaN(swiped)    || swiped    < 0 || swiped    > 100) errors.card_swiped      = 'Must be 0–100';
-    if (isNaN(custEntr)  || custEntr  < 0 || custEntr  > 100) errors.customer_entered = 'Must be 0–100';
-    if (isNaN(staffEntr) || staffEntr < 0 || staffEntr > 100) errors.staff_entered    = 'Must be 0–100';
-    if (!errors.card_swiped && !errors.customer_entered && !errors.staff_entered) {
-      if (swiped + custEntr + staffEntr !== 100)
-        errors.card_swiped = 'Card swiped, customer entered, and staff entered must sum to 100';
-    }
+    if (!VALID_US_STATES.has(state)) errors.business_state = 'Must be a valid 2-character US state code (e.g. CA, TX)';
   }
 
   return errors;
@@ -156,15 +131,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const value = body[field];
     if (value != null && String(value).trim() !== '') {
       params.set(field, String(value).trim());
-    }
-  }
-
-  // marketing_model[] — checkbox array
-  const mm = body['marketing_model[]'] ?? body['marketing_model'];
-  if (mm) {
-    const models = Array.isArray(mm) ? mm : [mm];
-    for (const v of models) {
-      if (v) params.append('marketing_model[]', String(v));
     }
   }
 

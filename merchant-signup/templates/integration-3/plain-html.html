@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Apply for a Merchant Account</title>
+  <title>Register a Merchant</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
 
@@ -81,25 +81,139 @@
 
     .hp-field { display: none !important; }
 
-    #success-panel { display: none; text-align: center; padding: 20px 0; }
-    #success-panel .icon { font-size: 3rem; margin-bottom: 12px; }
-    #success-panel h2 { color: #166534; margin: 0 0 8px; }
-    #success-panel p { color: #4b5563; }
+    /* ── Success / confirmation panel ──────────────────────────────────────── */
+    #success-panel { display: none; }
+
+    .success-header { text-align: center; padding: 8px 0 24px; }
+    .success-header .icon { font-size: 3rem; display: block; margin-bottom: 12px; }
+    .success-header h2 { color: #166534; margin: 0 0 8px; font-size: 1.5rem; }
+    .success-header .lead {
+      color: #4b5563; font-size: .95rem; margin: 0;
+      max-width: 380px; margin: 0 auto;
+    }
+
+    .summary-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 20px 22px;
+      margin: 24px 0;
+    }
+    .summary-card .summary-title {
+      font-size: .75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #64748b;
+      margin: 0 0 14px;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      padding: 7px 0;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: .9rem;
+    }
+    .summary-row:last-child { border-bottom: none; }
+    .summary-key { color: #64748b; flex-shrink: 0; }
+    .summary-val { color: #0f172a; font-weight: 600; text-align: right; word-break: break-all; }
+
+    .email-sent-box {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin-bottom: 20px;
+    }
+    .email-sent-box .envelope { font-size: 1.6rem; flex-shrink: 0; line-height: 1; }
+    .email-sent-box .email-text strong { color: #166534; font-size: .95rem; display: block; margin-bottom: 4px; }
+    .email-sent-box .email-text p { margin: 0; color: #4b5563; font-size: .87rem; }
+
+    .reference-note {
+      text-align: center;
+      color: #94a3b8;
+      font-size: .8rem;
+      margin: 12px 0 20px;
+    }
+
+    .btn-register-another {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      background: #f1f5f9;
+      color: #374151;
+      border: 1.5px solid #d1d5db;
+      border-radius: 8px;
+      font-size: .95rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: background .15s;
+    }
+    .btn-register-another:hover { background: #e2e8f0; }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>Apply for a Merchant Account</h1>
-    <p class="subtitle">Fill in your business details to get started. You'll complete the application on Easy Pay Direct's secure platform.</p>
+    <h1>Register a Merchant</h1>
+    <p class="subtitle">Enter the merchant's details below. They'll receive an email with a secure link to complete their Easy Pay Direct account application.</p>
 
     <div id="form-alert" class="alert" style="display:none"></div>
 
-    <!-- Success state — shown after successful submission -->
+    <!-- ── Confirmation page shown after successful signup email is sent ─── -->
     <div id="success-panel">
-      <div class="icon">✅</div>
-      <h2>Application Submitted!</h2>
-      <p>Check your inbox for an email from Easy Pay Direct with next steps.</p>
-      <p id="success-uuid" style="color:#6b7280;font-size:.85rem"></p>
+
+      <div class="success-header">
+        <span class="icon">&#x2705;</span>
+        <h2>Merchant Registered</h2>
+        <p class="lead">The merchant's details have been saved and Easy Pay Direct has emailed them a secure link to complete their account application.</p>
+      </div>
+
+      <!-- Submitted merchant details summary -->
+      <div class="summary-card">
+        <p class="summary-title">Details Saved</p>
+        <div class="summary-row">
+          <span class="summary-key">Name</span>
+          <span id="sum-name" class="summary-val"></span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-key">Email</span>
+          <span id="sum-email" class="summary-val"></span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-key">Company</span>
+          <span id="sum-company" class="summary-val"></span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-key">Phone</span>
+          <span id="sum-phone" class="summary-val"></span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-key">Website</span>
+          <span id="sum-website" class="summary-val"></span>
+        </div>
+      </div>
+
+      <!-- Email sent confirmation -->
+      <div class="email-sent-box">
+        <span class="envelope">&#x2709;&#xFE0F;</span>
+        <div class="email-text">
+          <strong>Signup email sent to <span id="sum-email-confirm"></span></strong>
+          <p>The merchant will receive a link to complete their merchant account on Easy Pay Direct's platform. This typically arrives within a few minutes.</p>
+        </div>
+      </div>
+
+      <p class="reference-note" id="success-uuid"></p>
+
+      <button type="button" class="btn-register-another" id="btn-register-another">
+        Register Another Merchant
+      </button>
+
     </div>
 
     <form id="signup-form" novalidate>
@@ -198,20 +312,39 @@
       </div>
 
       <div class="form-group">
+        <label for="industry_type">Industry Type <span class="required">*</span></label>
+        <select id="industry_type" name="industry_type" required>
+          <option value="">Loading industries…</option>
+        </select>
+        <span class="field-error" id="err_industry_type"></span>
+      </div>
+
+      <div class="form-group" id="industry_type_other_group" style="display:none">
+        <label for="industry_type_other">Describe your industry <span class="required">*</span></label>
+        <input id="industry_type_other" name="industry_type_other" type="text" maxlength="255" placeholder="Briefly describe your industry">
+        <span class="field-error" id="err_industry_type_other"></span>
+      </div>
+
+      <div class="form-group">
         <label for="promo_code">Referral / Promo Code</label>
         <input id="promo_code" name="promo_code" type="text" maxlength="255" autocomplete="off">
       </div>
 
-      <button type="submit" id="submit-btn">Submit Application</button>
+      <button type="submit" id="submit-btn">Send Signup Link</button>
     </form>
   </div>
 
   <script>
     /*
-     * IMPORTANT: This form POSTs to /api/signup on YOUR backend.
-     * Your backend (see node-express.js / php-vanilla.php / nextjs-route.ts)
-     * then calls EMAP's API with your partner key from the environment.
-     * Never call EMAP's API directly from this file.
+     * Integration 3 — Email-Based Signup
+     *
+     * The partner fills in the merchant's step-1 details and submits.
+     * Your backend (node-express.js / php-vanilla.php / nextjs-route.ts) proxies
+     * the data to EMAP /api/v1/signup with your partner key.
+     * EMAP creates the account and emails the merchant a secure link so they can
+     * complete their full application on Easy Pay Direct's platform.
+     *
+     * Never call EMAP's API directly from this file — keep your partner key server-side.
      */
 
     // ── Load countries from backend proxy ────────────────────────────────────
@@ -242,6 +375,35 @@
         });
       }
     })();
+
+    // ── Load industry types from backend proxy ───────────────────────────────
+    (async function loadIndustryTypes() {
+      try {
+        const res = await fetch('/api/industry-types');
+        const json = await res.json();
+        const sel = document.getElementById('industry_type');
+        sel.innerHTML = '<option value="">Select industry…</option>';
+        (json.data || []).forEach(function (t) {
+          const o = document.createElement('option');
+          o.value = t.slug; o.textContent = t.name;
+          sel.appendChild(o);
+        });
+      } catch (_) {
+        document.getElementById('industry_type').innerHTML =
+          '<option value="">Unable to load — please refresh</option>';
+      }
+    })();
+
+    // Show/hide "other" industry description
+    document.getElementById('industry_type').addEventListener('change', function () {
+      const grp = document.getElementById('industry_type_other_group');
+      const inp = document.getElementById('industry_type_other');
+      const isOther = this.value === 'other';
+      grp.style.display = isOther ? 'block' : 'none';
+      inp.required = isOther;
+      if (!isOther) inp.value = '';
+      clearError('industry_type_other');
+    });
 
     // Show/hide state field
     document.getElementById('country').addEventListener('change', function () {
@@ -295,6 +457,9 @@
                               errors.annual_sales = 'Annual sales must be a positive number';
       if (data.country === 'US' && !data.business_state)
                               errors.business_state = 'State is required for US businesses';
+      if (!data.industry_type) errors.industry_type = 'Industry type is required';
+      if (data.industry_type === 'other' && !data.industry_type_other)
+                              errors.industry_type_other = 'Please describe your industry';
       return errors;
     }
 
@@ -334,7 +499,7 @@
 
       const btn = document.getElementById('submit-btn');
       btn.disabled = true;
-      btn.textContent = 'Submitting…';
+      btn.textContent = 'Sending…';
 
       try {
         const response = await fetch('/api/signup', {
@@ -348,7 +513,7 @@
         if (response.status === 429) {
           showAlert('error', 'Too many attempts. Please wait a few minutes and try again.');
           btn.disabled = false;
-          btn.textContent = 'Submit Application';
+          btn.textContent = 'Send Signup Link';
           return;
         }
 
@@ -356,31 +521,20 @@
           showAlert('error', 'Please correct the errors below.');
           displayServerErrors(result.errors || {});
           btn.disabled = false;
-          btn.textContent = 'Submit Application';
+          btn.textContent = 'Send Signup Link';
           return;
         }
 
         if (!response.ok) {
           showAlert('error', 'Something went wrong. Please try again in a few moments.');
           btn.disabled = false;
-          btn.textContent = 'Submit Application';
+          btn.textContent = 'Send Signup Link';
           return;
         }
 
-        // Existing user — has a verification link
+        // Existing user — EMAP resent the verification link; treat as success
         if (result.verificationLink === true) {
-          document.getElementById('signup-form').style.display = 'none';
-          showAlert('warning',
-            'You already have an Easy Pay Direct account. Check your email for a verification link, ' +
-            'or click the button below to continue.'
-          );
-          if (result.url) {
-            const continueBtn = document.createElement('a');
-            continueBtn.href = result.url;
-            continueBtn.textContent = 'Continue my application →';
-            continueBtn.style.cssText = 'display:block;margin-top:12px;color:#3b82f6;font-weight:600';
-            document.getElementById('form-alert').after(continueBtn);
-          }
+          showSuccessPanel(data, result.uuid || '', true);
           return;
         }
 
@@ -388,34 +542,70 @@
         if (result.status === false && result.message === 'Company already exists') {
           showAlert('warning',
             'A company with this name already exists in our system. ' +
-            'Please check your email for your existing application.'
+            'The merchant may already have an active account.'
           );
           btn.disabled = false;
-          btn.textContent = 'Submit Application';
+          btn.textContent = 'Send Signup Link';
           return;
         }
 
-        // Success — new user created
+        // Success — account created, EMAP emailed the merchant a signup link
         if (result.status === true && result.uuid) {
-          document.getElementById('signup-form').style.display = 'none';
-          document.getElementById('success-panel').style.display = 'block';
-          if (result.uuid) {
-            document.getElementById('success-uuid').textContent =
-              'Application reference: ' + result.uuid;
-          }
+          showSuccessPanel(data, result.uuid, false);
           return;
         }
 
         // Unexpected response shape
         showAlert('error', 'An unexpected error occurred. Please try again.');
         btn.disabled = false;
-        btn.textContent = 'Submit Application';
+        btn.textContent = 'Send Signup Link';
 
       } catch (err) {
         showAlert('error', 'A network error occurred. Please check your connection and try again.');
         btn.disabled = false;
-        btn.textContent = 'Submit Application';
+        btn.textContent = 'Send Signup Link';
       }
+    });
+
+    function showSuccessPanel(data, uuid, isExistingUser) {
+      document.getElementById('signup-form').style.display = 'none';
+      document.getElementById('form-alert').style.display = 'none';
+
+      // Populate merchant summary
+      const fullName = [data.first_name, data.last_name].filter(Boolean).join(' ');
+      document.getElementById('sum-name').textContent    = fullName || '—';
+      document.getElementById('sum-email').textContent   = data.email || '—';
+      document.getElementById('sum-company').textContent = data.company_name || '—';
+      document.getElementById('sum-phone').textContent   = data.phone || '—';
+      document.getElementById('sum-website').textContent = data.website || '—';
+
+      // Email confirmation line
+      document.getElementById('sum-email-confirm').textContent = data.email || 'the merchant';
+
+      // Reference number or existing-user note
+      const uuidEl = document.getElementById('success-uuid');
+      if (isExistingUser) {
+        uuidEl.textContent = 'This merchant already has an account — a new signup link has been resent.';
+      } else if (uuid) {
+        uuidEl.textContent = 'Application reference: ' + uuid;
+      }
+
+      document.getElementById('success-panel').style.display = 'block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // "Register Another Merchant" — reset the form and show it again
+    document.getElementById('btn-register-another').addEventListener('click', function () {
+      document.getElementById('success-panel').style.display = 'none';
+      const form = document.getElementById('signup-form');
+      form.reset();
+      // Reset conditional fields
+      document.getElementById('state_group').style.display = 'none';
+      document.getElementById('business_state').required = false;
+      document.getElementById('industry_type_other_group').style.display = 'none';
+      document.getElementById('industry_type_other').required = false;
+      form.style.display = 'block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   </script>
 </body>

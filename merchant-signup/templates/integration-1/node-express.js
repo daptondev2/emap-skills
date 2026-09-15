@@ -166,6 +166,15 @@ app.post('/api/step/2', async function (req, res) {
   const { uuid } = req.body;
   if (!uuid) return res.status(422).json({ status: false, message: 'uuid is required' });
 
+  // EIN format — only present when the EIN group is visible (non-CA-sole-prop businesses)
+  const ein = String(req.body.federal_tax_id || '').trim();
+  if (ein && !/^\d{2}-\d{7}$/.test(ein)) {
+    return res.status(422).json({
+      status: false, message: 'Validation failed',
+      errors: { federal_tax_id: ['EIN must be in the format XX-XXXXXXX (e.g. 12-3456789)'] },
+    });
+  }
+
   const payload = Object.assign({}, req.body, { step_count: 2 });
   return proxyStep('/api/v1/application/step', payload, res);
 });
@@ -183,6 +192,26 @@ app.post('/api/step/3', async function (req, res) {
 app.post('/api/step/4', async function (req, res) {
   const { uuid } = req.body;
   if (!uuid) return res.status(422).json({ status: false, message: 'uuid is required' });
+
+  // SSN format — nested as { ssn: { '1': '...', '2': '...' } } from the client toNestedDot helper
+  const SSN_RE = /^\d{3}-\d{2}-\d{4}$/;
+  const ssnObj = req.body.ssn || {};
+  const errors = {};
+
+  ['1', '2'].forEach(function (n) {
+    if (ssnObj[n] !== undefined) {
+      const val = String(ssnObj[n]).trim();
+      if (!val) {
+        errors['ssn.' + n] = ['SSN / Tax ID is required'];
+      } else if (!SSN_RE.test(val)) {
+        errors['ssn.' + n] = ['SSN must be in the format XXX-XX-XXXX (e.g. 123-45-6789)'];
+      }
+    }
+  });
+
+  if (Object.keys(errors).length > 0) {
+    return res.status(422).json({ status: false, message: 'Validation failed', errors });
+  }
 
   return proxyStep('/api/v1/ownership', req.body, res);
 });

@@ -280,7 +280,7 @@
           '<option value="">Unable to load — please refresh</option>';
       }
 
-      // Industry types
+      // Industry types — value = name (sent as URL param to EMAP), data-slug = slug (for "other" detection)
       try {
         const res = await fetch(EMAP_BASE_URL + '/api/partner/industry-types');
         const json = await res.json();
@@ -289,7 +289,7 @@
         sel.innerHTML = '<option value="">Select industry…</option>';
         list.forEach(function (t) {
           const o = document.createElement('option');
-          o.value = t.slug; o.textContent = t.name;
+          o.value = t.name; o.dataset.slug = t.slug; o.textContent = t.name;
           sel.appendChild(o);
         });
       } catch (_) {
@@ -300,12 +300,12 @@
 
     document.addEventListener('DOMContentLoaded', loadDropdowns);
 
-    // Show/hide industry_type_other
+    // Show/hide industry_type_other — check data-slug, not value, since value is now the name
     document.addEventListener('DOMContentLoaded', function () {
       document.getElementById('industry_type').addEventListener('change', function () {
         const grp = document.getElementById('industry_type_other_group');
         const inp = document.getElementById('industry_type_other');
-        const isOther = this.value === 'other';
+        const isOther = this.options[this.selectedIndex]?.dataset.slug === 'other';
         grp.style.display = isOther ? 'block' : 'none';
         inp.required = isOther;
         if (!isOther) inp.value = '';

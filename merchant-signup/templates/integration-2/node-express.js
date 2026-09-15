@@ -43,12 +43,13 @@ if (!EMAP_BASE_URL) {
   throw new Error('EMAP_BASE_URL environment variable is required');
 }
 
-// Allowed URL params — whitelist to prevent open redirect injection
+// Allowed URL params — same field set as Integration 1 Step 1 (basic merchant info only).
+// Do NOT add step-3/5 fields (card_swiped, marketing_model, current_processing, etc.) here —
+// Integration 2 only collects step-1 data; EMAP handles all remaining steps.
 const ALLOWED_FORM_FIELDS = [
   'first_name', 'last_name', 'email', 'phone', 'company_name', 'website',
-  'country', 'annual_sales', 'business_state', 'promo_code',
-  'highest_transaction_amount', 'industry_type', 'card_swiped', 'customer_entered',
-  'staff_entered', 'current_processing', 'expected_monthly_volume',
+  'country', 'annual_sales', 'business_state', 'industry_type',
+  'industry_type_other', 'promo_code',
 ];
 
 const TRACKING_FIELDS = [
@@ -111,42 +112,6 @@ function validateSignupFields(body) {
     if (!VALID_US_STATES.has(state))    errors.business_state = 'Must be a valid 2-character US state code (e.g. CA, TX)';
   }
 
-  // Optional auto-submit fields — validate format when provided
-  if (body.highest_transaction_amount !== undefined && body.highest_transaction_amount !== '') {
-    const hta = Number(body.highest_transaction_amount);
-    if (isNaN(hta) || hta < 0)         errors.highest_transaction_amount = 'Highest transaction amount must be a positive number';
-    else if (String(body.highest_transaction_amount).length > 16)
-                                        errors.highest_transaction_amount = 'Highest transaction amount must be 16 characters or fewer';
-  }
-
-  if (body.current_processing !== undefined && body.current_processing !== '') {
-    const cp = String(body.current_processing);
-    if (cp !== '0' && cp !== '1')       errors.current_processing = 'Currently processing must be 0 or 1';
-  }
-
-  if (body.expected_monthly_volume !== undefined && body.expected_monthly_volume !== '') {
-    const emv = Number(body.expected_monthly_volume);
-    if (isNaN(emv) || emv < 0)         errors.expected_monthly_volume = 'Expected monthly volume must be a positive number';
-  }
-
-  // Card entry percentages: each must be 0–100 and they must sum to 100 when all three are present
-  const hasCardFields = body.card_swiped !== undefined || body.customer_entered !== undefined || body.staff_entered !== undefined;
-  if (hasCardFields) {
-    const swiped   = Number(body.card_swiped   ?? 0);
-    const custEntr = Number(body.customer_entered ?? 0);
-    const staffEntr = Number(body.staff_entered  ?? 0);
-
-    if (isNaN(swiped)   || swiped   < 0 || swiped   > 100) errors.card_swiped       = 'Card swiped % must be 0–100';
-    if (isNaN(custEntr) || custEntr < 0 || custEntr > 100) errors.customer_entered  = 'Customer entered % must be 0–100';
-    if (isNaN(staffEntr)|| staffEntr< 0 || staffEntr> 100) errors.staff_entered     = 'Staff entered % must be 0–100';
-
-    if (!errors.card_swiped && !errors.customer_entered && !errors.staff_entered) {
-      if (swiped + custEntr + staffEntr !== 100) {
-        errors.card_swiped = 'Card swiped, customer entered, and staff entered percentages must sum to 100';
-      }
-    }
-  }
-
   return errors;
 }
 
@@ -168,15 +133,6 @@ app.post('/api/build-redirect', function (req, res) {
       params.set(field, String(value).trim());
     }
   });
-
-  // marketing_model is an array (e.g. from checkboxes with name="marketing_model[]")
-  const marketingModels = req.body['marketing_model[]'] || req.body.marketing_model;
-  if (marketingModels) {
-    const models = Array.isArray(marketingModels) ? marketingModels : [marketingModels];
-    models.forEach(function (v) {
-      if (v) params.append('marketing_model[]', v);
-    });
-  }
 
   // Pass through UTM/click tracking from the incoming request
   TRACKING_FIELDS.forEach(function (field) {

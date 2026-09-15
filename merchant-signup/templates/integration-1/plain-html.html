@@ -1857,6 +1857,34 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       return result;
     }
 
+    // ── Input masking: EIN (XX-XXXXXXX) and SSN (XXX-XX-XXXX) ───────────────
+    (function () {
+      var einInput = document.getElementById('federal_tax_id');
+      if (einInput) {
+        einInput.addEventListener('input', function () {
+          var digits = this.value.replace(/\D/g, '').slice(0, 9);
+          this.value = digits.length > 2
+            ? digits.slice(0, 2) + '-' + digits.slice(2)
+            : digits;
+        });
+      }
+
+      ['ssn_1', 'ssn_2'].forEach(function (id) {
+        var inp = document.getElementById(id);
+        if (!inp) return;
+        inp.addEventListener('input', function () {
+          var digits = this.value.replace(/\D/g, '').slice(0, 9);
+          if (digits.length > 5) {
+            this.value = digits.slice(0, 3) + '-' + digits.slice(3, 5) + '-' + digits.slice(5);
+          } else if (digits.length > 3) {
+            this.value = digits.slice(0, 3) + '-' + digits.slice(3);
+          } else {
+            this.value = digits;
+          }
+        });
+      });
+    })();
+
     // ── Step form submissions ────────────────────────────────────────────────
 
     // STEP 1
@@ -1954,6 +1982,20 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       if (payload['marketingModel[]']) {
         payload.marketingModel = payload['marketingModel[]'];
         delete payload['marketingModel[]'];
+      }
+
+      // EIN format validation (skipped if group is hidden — e.g. CA sole props)
+      var einGrp = document.getElementById('federal_tax_id_group');
+      var einVal = (payload.federal_tax_id || '').trim();
+      if (einGrp && einGrp.style.display !== 'none') {
+        if (!einVal) {
+          setError('federal_tax_id', 'Federal Tax ID (EIN) is required');
+          return;
+        }
+        if (!/^\d{2}-\d{7}$/.test(einVal)) {
+          setError('federal_tax_id', 'EIN must be in the format XX-XXXXXXX (e.g. 12-3456789)');
+          return;
+        }
       }
 
       var btn = document.getElementById('btn-step2');
@@ -2078,6 +2120,29 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       if (hasOwner2 && payload['dob.2']) {
         var dobErr2 = validateDOB(payload['dob.2']);
         if (dobErr2) { setError('dob_2', dobErr2); return; }
+      }
+
+      // SSN format validation (XXX-XX-XXXX)
+      var SSN_RE = /^\d{3}-\d{2}-\d{4}$/;
+      var ssn1Val = (raw['ssn.1'] || '').trim();
+      if (!ssn1Val) {
+        setError('ssn_1', 'SSN / Tax ID is required');
+        return;
+      }
+      if (!SSN_RE.test(ssn1Val)) {
+        setError('ssn_1', 'SSN must be in the format XXX-XX-XXXX (e.g. 123-45-6789)');
+        return;
+      }
+      if (hasOwner2) {
+        var ssn2Val = (raw['ssn.2'] || '').trim();
+        if (!ssn2Val) {
+          setError('ssn_2', 'SSN / Tax ID is required');
+          return;
+        }
+        if (!SSN_RE.test(ssn2Val)) {
+          setError('ssn_2', 'SSN must be in the format XXX-XX-XXXX (e.g. 123-45-6789)');
+          return;
+        }
       }
 
       // Convert flat dot-keys to nested objects so Laravel's data_get() can find them.

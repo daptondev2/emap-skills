@@ -44,12 +44,11 @@ if (empty($_SESSION['csrf_token'])) {
 }
 $csrfToken = $_SESSION['csrf_token'];
 
-// ── Whitelisted form fields ───────────────────────────────────────────────────
+// ── Whitelisted form fields — same as Integration 1 Step 1 (basic merchant info only) ──────────
 $allowedFormFields = [
     'first_name', 'last_name', 'email', 'phone', 'company_name', 'website',
-    'country', 'annual_sales', 'business_state', 'promo_code',
-    'highest_transaction_amount', 'industry_type', 'card_swiped',
-    'customer_entered', 'staff_entered', 'current_processing', 'expected_monthly_volume',
+    'country', 'annual_sales', 'business_state', 'industry_type',
+    'industry_type_other', 'promo_code',
 ];
 
 $trackingFields = [
@@ -99,7 +98,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $phone       = trim((string)($input['phone']        ?? ''));
     $companyName = trim((string)($input['company_name'] ?? ''));
     $website     = trim((string)($input['website']      ?? ''));
-    $country     = strtoupper(trim((string)($input['country'] ?? '')));
+    $country     = trim((string)($input['country'] ?? ''));       // full country name
+    $countryCode = strtoupper(trim((string)($input['country_code'] ?? ''))); // ISO code from hidden input
     $annualSales = (float)($input['annual_sales'] ?? 0);
     $bizState    = strtoupper(trim((string)($input['business_state'] ?? '')));
 
@@ -123,12 +123,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     elseif (!preg_match($websiteRegex, $website)) $errors['website'] = 'Website must be a valid URL';
 
     if (!$country)               $errors['country'] = 'Country is required';
-    elseif (strlen($country) !== 2) $errors['country'] = 'Country must be a 2-character ISO code (e.g. US, CA)';
 
     if ($annualSales < 1)        $errors['annual_sales'] = 'Annual sales must be at least 1';
     elseif ($annualSales > 999999999999) $errors['annual_sales'] = 'Annual sales value is too large';
 
-    if ($country === 'US') {
+    if ($countryCode === 'US') {
         if (!$bizState)                                   $errors['business_state'] = 'State is required for US businesses';
         elseif (!in_array($bizState, $validUsStates, true)) $errors['business_state'] = 'Must be a valid 2-character US state code';
     }
@@ -146,14 +145,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $val = trim((string)($input[$field] ?? ''));
         if ($val !== '') {
             $params[$field] = $val;
-        }
-    }
-
-    // marketing_model[] — checkbox array
-    if (!empty($input['marketing_model'])) {
-        $models = is_array($input['marketing_model']) ? $input['marketing_model'] : [$input['marketing_model']];
-        foreach ($models as $m) {
-            $params['marketing_model[]'][] = (string)$m;
         }
     }
 
@@ -282,6 +273,9 @@ header('Referrer-Policy: no-referrer');
       </div>
     </div>
 
+    <!-- Hidden field: ISO country code — set by JS on country change for US state detection -->
+    <input type="hidden" name="country_code" id="country_code">
+
     <div class="form-group">
       <label>Annual Sales (USD) <span class="req">*</span></label>
       <input name="annual_sales" type="number" min="1" required placeholder="e.g. 500000">
@@ -306,14 +300,6 @@ header('Referrer-Policy: no-referrer');
       <input name="promo_code" type="text" maxlength="255" autocomplete="off">
     </div>
 
-    <div class="terms-group">
-      <input type="checkbox" id="terms" name="terms_agreed">
-      <label for="terms">I agree to the
-        <a href="https://emap.epd.dev/terms" target="_blank" rel="noopener">Terms and Conditions</a>
-      </label>
-    </div>
-    <span class="field-error" id="err_terms" style="display:block;margin-top:-10px;margin-bottom:10px"></span>
-
     <button type="submit" id="submit-btn">Continue to Easy Pay Direct →</button>
   </form>
 </div>
@@ -328,13 +314,13 @@ header('Referrer-Policy: no-referrer');
   ];
 
   async function loadDropdowns() {
-    // Countries
+    // Countries — value = full name (EMAP expects the name in URL params), data-code = ISO code
     try {
       const res  = await fetch(EMAP_BASE_URL + '/api/partner/countries');
       const json = await res.json();
-      populateSelect('country', json.data || [], 'code', 'name', 'Select country…');
+      populateCountries(json.data || []);
     } catch (_) {
-      populateSelect('country', FALLBACK_COUNTRIES, 'code', 'name', 'Select country…');
+      populateCountries(FALLBACK_COUNTRIES);
     }
 
     // States
@@ -346,14 +332,38 @@ header('Referrer-Policy: no-referrer');
       document.getElementById('business_state').innerHTML = '<option value="">Unable to load — please refresh</option>';
     }
 
-    // Industry types
+    // Industry types — value = name (sent as URL param to EMAP), data-slug = slug (for "other" detection)
     try {
       const res  = await fetch(EMAP_BASE_URL + '/api/partner/industry-types');
       const json = await res.json();
-      populateSelect('industry_type', json.data || [], 'slug', 'name', 'Select industry…');
+      populateIndustryTypes(json.data || []);
     } catch (_) {
       document.getElementById('industry_type').innerHTML = '<option value="">Unable to load — please refresh</option>';
     }
+  }
+
+  function populateIndustryTypes(items) {
+    const sel = document.getElementById('industry_type');
+    sel.innerHTML = '<option value="">Select industry…</option>';
+    items.forEach(function (item) {
+      const o = document.createElement('option');
+      o.value = item.name;         // name → sent as URL param to EMAP
+      o.dataset.slug = item.slug;  // slug → used only for "other" conditional
+      o.textContent = item.name;
+      sel.appendChild(o);
+    });
+  }
+
+  function populateCountries(items) {
+    const sel = document.getElementById('country');
+    sel.innerHTML = '<option value="">Select country…</option>';
+    items.forEach(function (item) {
+      const o = document.createElement('option');
+      o.value = item.name;          // full name → sent as URL param to EMAP
+      o.dataset.code = item.code;   // ISO code → used only for state toggle
+      o.textContent = item.name;
+      sel.appendChild(o);
+    });
   }
 
   function populateSelect(id, items, valueKey, labelKey, placeholder) {
@@ -368,9 +378,11 @@ header('Referrer-Policy: no-referrer');
 
   document.addEventListener('DOMContentLoaded', loadDropdowns);
 
-  // Country → state toggle
+  // Country → state toggle (check data-code, not value, since value is now the country name)
   document.getElementById('country').addEventListener('change', function () {
-    const isUS = this.value === 'US';
+    const code = this.options[this.selectedIndex]?.dataset.code || '';
+    document.getElementById('country_code').value = code;
+    const isUS = code === 'US';
     const grp  = document.getElementById('state_group');
     const sel  = document.getElementById('business_state');
     grp.style.display = isUS ? 'block' : 'none';
@@ -378,9 +390,9 @@ header('Referrer-Policy: no-referrer');
     if (!isUS) sel.value = '';
   });
 
-  // Industry type → other field
+  // Industry type → other field (check data-slug, not value, since value is now the name)
   document.getElementById('industry_type').addEventListener('change', function () {
-    const isOther = this.value === 'other';
+    const isOther = this.options[this.selectedIndex]?.dataset.slug === 'other';
     const grp = document.getElementById('industry_type_other_group');
     const inp = document.getElementById('industry_type_other');
     grp.style.display = isOther ? 'block' : 'none';
@@ -417,11 +429,6 @@ header('Referrer-Policy: no-referrer');
     clearErrors();
 
     if (document.querySelector('[name="_hp"]').value) return;
-
-    if (!document.getElementById('terms').checked) {
-      setError('terms', 'You must agree to the Terms and Conditions');
-      return;
-    }
 
     const data = Object.fromEntries(new FormData(this).entries());
 

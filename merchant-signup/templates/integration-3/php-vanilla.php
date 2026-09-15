@@ -1,6 +1,11 @@
 <?php
 /**
- * EMAP Partner Integration 3 — API Submission (Plain PHP)
+ * EMAP Partner Integration 3 — Email-Based Signup (Plain PHP)
+ *
+ * The partner fills in the merchant's step-1 details and submits.
+ * This file proxies the data to EMAP /api/v1/signup, which creates the account
+ * and emails the merchant a secure link to complete their full application on
+ * Easy Pay Direct's platform.
  *
  * A single file that handles both:
  *   - GET: renders the signup form
@@ -104,8 +109,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $website       = trim((string)($input['website'] ?? ''));
     $country       = strtoupper(trim((string)($input['country'] ?? '')));
     $annualSales   = (float)($input['annual_sales'] ?? 0);
-    $businessState = strtoupper(trim((string)($input['business_state'] ?? '')));
-    $promoCode     = trim((string)($input['promo_code'] ?? ''));
+    $businessState      = strtoupper(trim((string)($input['business_state'] ?? '')));
+    $industryType       = trim((string)($input['industry_type'] ?? ''));
+    $industryTypeOther  = trim((string)($input['industry_type_other'] ?? ''));
+    $promoCode          = trim((string)($input['promo_code'] ?? ''));
 
     if (!$firstName)              $errors['first_name']   = ['First name is required'];
     elseif (strlen($firstName) > 60) $errors['first_name'] = ['First name must be 60 characters or fewer'];
@@ -158,8 +165,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'country'      => $country,
         'annual_sales' => $annualSales,
     ];
-    if ($businessState) $payload['business_state'] = $businessState;
-    if ($promoCode)     $payload['promo_code']     = $promoCode;
+    if ($businessState)     $payload['business_state']     = $businessState;
+    if ($industryType)      $payload['industry_type']      = $industryType;
+    if ($industryTypeOther) $payload['industry_type_other'] = $industryTypeOther;
+    if ($promoCode)         $payload['promo_code']         = $promoCode;
 
     // Add partner key from env — never from the request
     if ($emapPartnerKey) {
@@ -223,6 +232,24 @@ function emapPost(string $url, array $payload, string $partnerKey): array
     return ['status_code' => $statusCode, 'body' => $decoded];
 }
 
+// ── GET: industry-types dropdown proxy ───────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['_dropdown']) && $_GET['_dropdown'] === 'industry-types') {
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: public, max-age=3600');
+    $ch = curl_init($emapOrigin . '/api/partner/industry-types');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 10,
+        CURLOPT_HTTPHEADER     => ['Accept: application/json'],
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
+    ]);
+    $body = curl_exec($ch);
+    curl_close($ch);
+    echo $body ?: json_encode(['data' => []]);
+    exit;
+}
+
 // ── GET: render the HTML form ─────────────────────────────────────────────────
 // Security headers
 header('Cache-Control: no-store');
@@ -234,7 +261,7 @@ header('X-Content-Type-Options: nosniff');
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Apply for a Merchant Account</title>
+  <title>Register a Merchant</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -263,15 +290,60 @@ header('X-Content-Type-Options: nosniff');
     .alert { padding: 14px 16px; border-radius: 8px; margin-bottom: 20px; font-size: .9rem; }
     .alert-error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
     .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .alert-warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
     .hp-field { display: none !important; }
+    #success-panel { display: none; }
+    .success-header { text-align: center; padding: 8px 0 24px; }
+    .success-header .icon { font-size: 3rem; display: block; margin-bottom: 12px; }
+    .success-header h2 { color: #166534; margin: 0 0 8px; font-size: 1.5rem; }
+    .success-header .lead { color: #4b5563; font-size: .95rem; margin: 0 auto; max-width: 380px; }
+    .summary-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px 22px; margin: 24px 0; }
+    .summary-card .summary-title { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #64748b; margin: 0 0 14px; }
+    .summary-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 7px 0; border-bottom: 1px solid #e2e8f0; font-size: .9rem; }
+    .summary-row:last-child { border-bottom: none; }
+    .summary-key { color: #64748b; flex-shrink: 0; }
+    .summary-val { color: #0f172a; font-weight: 600; text-align: right; word-break: break-all; }
+    .email-sent-box { display: flex; align-items: flex-start; gap: 14px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 16px 18px; margin-bottom: 20px; }
+    .email-sent-box .envelope { font-size: 1.6rem; flex-shrink: 0; line-height: 1; }
+    .email-sent-box .email-text strong { color: #166534; font-size: .95rem; display: block; margin-bottom: 4px; }
+    .email-sent-box .email-text p { margin: 0; color: #4b5563; font-size: .87rem; }
+    .reference-note { text-align: center; color: #94a3b8; font-size: .8rem; margin: 12px 0 20px; }
+    .btn-register-another { display: block; width: 100%; padding: 12px; background: #f1f5f9; color: #374151; border: 1.5px solid #d1d5db; border-radius: 8px; font-size: .95rem; font-weight: 600; cursor: pointer; text-align: center; }
+    .btn-register-another:hover { background: #e2e8f0; }
   </style>
 </head>
 <body>
 <div class="card">
-  <h1>Apply for a Merchant Account</h1>
-  <p class="subtitle">Fill in your business details to get started.</p>
+  <h1>Register a Merchant</h1>
+  <p class="subtitle">Enter the merchant's details below. They'll receive an email with a secure link to complete their Easy Pay Direct account application.</p>
 
   <div id="form-alert" class="alert" style="display:none"></div>
+
+  <!-- ── Confirmation page shown after successful signup email is sent ─── -->
+  <div id="success-panel">
+    <div class="success-header">
+      <span class="icon">&#x2705;</span>
+      <h2>Merchant Registered</h2>
+      <p class="lead">The merchant's details have been saved and Easy Pay Direct has emailed them a secure link to complete their account application.</p>
+    </div>
+    <div class="summary-card">
+      <p class="summary-title">Details Saved</p>
+      <div class="summary-row"><span class="summary-key">Name</span><span id="sum-name" class="summary-val"></span></div>
+      <div class="summary-row"><span class="summary-key">Email</span><span id="sum-email" class="summary-val"></span></div>
+      <div class="summary-row"><span class="summary-key">Company</span><span id="sum-company" class="summary-val"></span></div>
+      <div class="summary-row"><span class="summary-key">Phone</span><span id="sum-phone" class="summary-val"></span></div>
+      <div class="summary-row"><span class="summary-key">Website</span><span id="sum-website" class="summary-val"></span></div>
+    </div>
+    <div class="email-sent-box">
+      <span class="envelope">&#x2709;&#xFE0F;</span>
+      <div class="email-text">
+        <strong>Signup email sent to <span id="sum-email-confirm"></span></strong>
+        <p>The merchant will receive a link to complete their merchant account on Easy Pay Direct's platform. This typically arrives within a few minutes.</p>
+      </div>
+    </div>
+    <p class="reference-note" id="success-uuid"></p>
+    <button type="button" class="btn-register-another" id="btn-register-another">Register Another Merchant</button>
+  </div>
 
   <form id="signup-form" novalidate>
     <!-- CSRF token — must be included in every POST -->
@@ -347,23 +419,55 @@ header('X-Content-Type-Options: nosniff');
       <span class="field-error" id="err_annual_sales"></span>
     </div>
     <div class="form-group">
+      <label for="industry_type">Industry Type <span class="req">*</span></label>
+      <select id="industry_type" name="industry_type" required>
+        <option value="">Loading industries…</option>
+      </select>
+      <span class="field-error" id="err_industry_type"></span>
+    </div>
+    <div class="form-group" id="industry_type_other_group" style="display:none">
+      <label for="industry_type_other">Describe your industry <span class="req">*</span></label>
+      <input id="industry_type_other" name="industry_type_other" type="text" maxlength="255" placeholder="Briefly describe your industry">
+      <span class="field-error" id="err_industry_type_other"></span>
+    </div>
+
+    <div class="form-group">
       <label>Referral / Promo Code</label>
       <input name="promo_code" type="text" maxlength="255">
     </div>
 
-    <div class="terms-group">
-      <input type="checkbox" id="terms" name="terms_agreed">
-      <label for="terms">I agree to the
-        <a href="https://emap.epd.dev/terms" target="_blank" rel="noopener">Terms and Conditions</a>
-      </label>
-    </div>
-    <span class="field-error" id="err_terms" style="display:block;margin-top:-10px;margin-bottom:10px"></span>
-
-    <button type="submit" id="submit-btn">Submit Application</button>
+    <button type="submit" id="submit-btn">Send Signup Link</button>
   </form>
 </div>
 
 <script>
+  // Load industry types
+  (async function() {
+    try {
+      const res = await fetch('?_dropdown=industry-types');
+      const json = await res.json();
+      const sel = document.getElementById('industry_type');
+      sel.innerHTML = '<option value="">Select industry…</option>';
+      (json.data || []).forEach(function(t) {
+        const o = document.createElement('option');
+        o.value = t.slug; o.textContent = t.name;
+        sel.appendChild(o);
+      });
+    } catch (_) {
+      document.getElementById('industry_type').innerHTML =
+        '<option value="">Unable to load — please refresh</option>';
+    }
+  })();
+
+  document.getElementById('industry_type').addEventListener('change', function() {
+    const grp = document.getElementById('industry_type_other_group');
+    const inp = document.getElementById('industry_type_other');
+    const isOther = this.value === 'other';
+    grp.style.display = isOther ? 'block' : 'none';
+    inp.required = isOther;
+    if (!isOther) inp.value = '';
+  });
+
   document.getElementById('country').addEventListener('change', function() {
     const sg = document.getElementById('state_group');
     const bs = document.getElementById('business_state');
@@ -401,22 +505,26 @@ header('X-Content-Type-Options: nosniff');
 
     if (document.querySelector('[name="_hp"]').value) return;
 
-    if (!document.getElementById('terms').checked) {
-      setError('terms', 'You must agree to the Terms and Conditions');
-      return;
-    }
-
     const formData = new FormData(this);
     const data = Object.fromEntries(formData.entries());
 
     // Map company_name → name for EMAP API
     data.name = data.company_name;
     delete data.company_name;
-    delete data.terms_agreed;
+
+    // Client-side industry_type check
+    if (!data.industry_type) {
+      setError('industry_type', 'Industry type is required');
+      return;
+    }
+    if (data.industry_type === 'other' && !data.industry_type_other) {
+      setError('industry_type_other', 'Please describe your industry');
+      return;
+    }
 
     const btn = document.getElementById('submit-btn');
     btn.disabled = true;
-    btn.textContent = 'Submitting…';
+    btn.textContent = 'Sending…';
 
     try {
       const resp = await fetch(window.location.pathname, {
@@ -428,7 +536,7 @@ header('X-Content-Type-Options: nosniff');
 
       if (resp.status === 429) {
         showAlert('error', 'Too many attempts. Please wait a few minutes and try again.');
-        btn.disabled = false; btn.textContent = 'Submit Application';
+        btn.disabled = false; btn.textContent = 'Send Signup Link';
         return;
       }
       if (resp.status === 422) {
@@ -436,36 +544,71 @@ header('X-Content-Type-Options: nosniff');
         for (const [f, msgs] of Object.entries(result.errors || {})) {
           setError(f === 'name' ? 'company_name' : f, Array.isArray(msgs) ? msgs[0] : msgs);
         }
-        btn.disabled = false; btn.textContent = 'Submit Application';
+        btn.disabled = false; btn.textContent = 'Send Signup Link';
         return;
       }
       if (!resp.ok) {
         showAlert('error', 'Something went wrong. Please try again.');
-        btn.disabled = false; btn.textContent = 'Submit Application';
+        btn.disabled = false; btn.textContent = 'Send Signup Link';
         return;
       }
+      // Existing user — EMAP resent the verification link; treat as success
       if (result.verificationLink === true) {
-        document.getElementById('signup-form').style.display = 'none';
-        showAlert('warning', 'You already have an account. Check your email or click here to continue.');
-        if (result.url) {
-          const a = document.createElement('a');
-          a.href = result.url; a.textContent = 'Continue my application →';
-          a.style.cssText = 'display:block;margin-top:10px;color:#3b82f6;font-weight:600';
-          document.getElementById('form-alert').after(a);
-        }
+        showSuccessPanel(data, result.uuid || '', true);
         return;
       }
+      // Company already exists
+      if (result.status === false && result.message === 'Company already exists') {
+        showAlert('warning', 'A company with this name already exists. The merchant may already have an active account.');
+        btn.disabled = false; btn.textContent = 'Send Signup Link';
+        return;
+      }
+      // Success — account created, EMAP emailed the merchant a signup link
       if (result.status === true && result.uuid) {
-        document.getElementById('signup-form').style.display = 'none';
-        showAlert('success', 'Application submitted! Check your inbox for next steps. Reference: ' + result.uuid);
+        showSuccessPanel(data, result.uuid, false);
         return;
       }
       showAlert('error', result.message || 'An unexpected error occurred. Please try again.');
-      btn.disabled = false; btn.textContent = 'Submit Application';
+      btn.disabled = false; btn.textContent = 'Send Signup Link';
     } catch {
       showAlert('error', 'A network error occurred. Please check your connection and try again.');
-      btn.disabled = false; btn.textContent = 'Submit Application';
+      btn.disabled = false; btn.textContent = 'Send Signup Link';
     }
+  });
+
+  function showSuccessPanel(data, uuid, isExistingUser) {
+    document.getElementById('signup-form').style.display = 'none';
+    document.getElementById('form-alert').style.display = 'none';
+
+    const fullName = [data.first_name, data.last_name].filter(Boolean).join(' ');
+    document.getElementById('sum-name').textContent    = fullName || '—';
+    document.getElementById('sum-email').textContent   = data.email || '—';
+    document.getElementById('sum-company').textContent = data.name || '—';
+    document.getElementById('sum-phone').textContent   = data.phone || '—';
+    document.getElementById('sum-website').textContent = data.website || '—';
+    document.getElementById('sum-email-confirm').textContent = data.email || 'the merchant';
+
+    const uuidEl = document.getElementById('success-uuid');
+    if (isExistingUser) {
+      uuidEl.textContent = 'This merchant already has an account — a new signup link has been resent.';
+    } else if (uuid) {
+      uuidEl.textContent = 'Application reference: ' + uuid;
+    }
+
+    document.getElementById('success-panel').style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  document.getElementById('btn-register-another').addEventListener('click', function() {
+    document.getElementById('success-panel').style.display = 'none';
+    const form = document.getElementById('signup-form');
+    form.reset();
+    document.getElementById('state_group').style.display = 'none';
+    document.getElementById('business_state').required = false;
+    document.getElementById('industry_type_other_group').style.display = 'none';
+    document.getElementById('industry_type_other').required = false;
+    form.style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 </script>
 </body>
