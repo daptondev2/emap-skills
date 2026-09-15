@@ -9,7 +9,7 @@
  * Requirements: PHP 7.4+, curl extension enabled.
  *
  * Environment (set in .env or your server's environment):
- *   EMAP_BASE_URL       = https://app.easypaydirect.com
+ *   EMAP_BASE_URL       = https://emap.epd.dev
  *   EMAP_PARTNER_KEY    = your_partner_key_here   (never expose this)
  *
  * Loading env from a .env file (optional — if you use phpdotenv):
@@ -354,7 +354,7 @@ header('X-Content-Type-Options: nosniff');
     <div class="terms-group">
       <input type="checkbox" id="terms" name="terms_agreed">
       <label for="terms">I agree to the
-        <a href="https://app.easypaydirect.com/terms" target="_blank" rel="noopener">Terms and Conditions</a>
+        <a href="https://emap.epd.dev/terms" target="_blank" rel="noopener">Terms and Conditions</a>
       </label>
     </div>
     <span class="field-error" id="err_terms" style="display:block;margin-top:-10px;margin-bottom:10px"></span>

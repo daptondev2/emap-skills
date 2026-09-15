@@ -4,7 +4,7 @@
  * Install:  npm install express dotenv node-fetch@2
  *
  * .env file:
- *   EMAP_BASE_URL=https://app.easypaydirect.com
+ *   EMAP_BASE_URL=https://emap.epd.dev
  *   EMAP_PARTNER_KEY=your_partner_key_here    # never commit this
  *   PORT=3000
  *

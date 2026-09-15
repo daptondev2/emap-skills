@@ -9,7 +9,7 @@
  * Requirements: PHP 7.4+, curl extension enabled.
  *
  * Environment (set in your server config or .env loader):
- *   EMAP_BASE_URL    = https://app.easypaydirect.com
+ *   EMAP_BASE_URL    = https://emap.epd.dev
  *   EMAP_PARTNER_KEY = your_partner_key_here   (never expose this)
  *
  * POST endpoints (matched via the `_step` body field):

@@ -1,4 +1,4 @@
-# EMAP Partner Signup Integration — Developer Guide
+# Merchant Signup Integration — Developer Guide
 
 This skill helps you build a merchant signup form on your website that feeds into
 Easy Pay Direct's (EMAP) onboarding system. Merchants fill in their basic business

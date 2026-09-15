@@ -2,7 +2,7 @@
  * EMAP Partner Integration 1 — Full 6-Step Form (Next.js App Router)
  *
  * Environment variables (set in .env.local — never commit this file):
- *   EMAP_BASE_URL    = https://app.easypaydirect.com
+ *   EMAP_BASE_URL    = https://emap.epd.dev
  *   EMAP_PARTNER_KEY = your_partner_key_here
  *
  * File layout — create one file per route:

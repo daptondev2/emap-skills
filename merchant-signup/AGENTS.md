@@ -1,4 +1,4 @@
-# EMAP Partner Signup Skill
+# Merchant Signup Integration Skill
 
 Load `SKILL.md` in this directory for instructions on building a partner merchant-signup
 form integration. Covers Integration 1 (full 6-step form hosted on partner site),

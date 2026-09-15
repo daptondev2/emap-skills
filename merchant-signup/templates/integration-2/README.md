@@ -25,7 +25,7 @@ npm install express dotenv
 ```
 Create `.env`:
 ```
-EMAP_BASE_URL=https://app.easypaydirect.com
+EMAP_BASE_URL=https://emap.epd.dev
 EMAP_PARTNER_SECRET_KEY=your_key_here
 PORT=3000
 ```
@@ -38,7 +38,7 @@ then follows the URL.
 
 **Setup:** Add to `.env.local`:
 ```
-EMAP_BASE_URL=https://app.easypaydirect.com
+EMAP_BASE_URL=https://emap.epd.dev
 EMAP_PARTNER_SECRET_KEY=your_key_here
 ```
 
@@ -51,7 +51,7 @@ country/state/industry dropdowns loaded from EMAP API, and client-side redirect 
 
 **Setup:** Set in your server environment:
 ```
-EMAP_BASE_URL=https://app.easypaydirect.com
+EMAP_BASE_URL=https://emap.epd.dev
 EMAP_PARTNER_SECRET_KEY=your_key_here
 ```
 

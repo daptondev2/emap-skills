@@ -4,7 +4,7 @@
  * File location: app/api/signup/route.ts
  *
  * Environment variables (set in .env.local — never commit this file):
- *   EMAP_BASE_URL    = https://app.easypaydirect.com
+ *   EMAP_BASE_URL    = https://emap.epd.dev
  *   EMAP_PARTNER_KEY = your_partner_key_here
  *
  * Usage: POST /api/signup with JSON body matching SignupPayload below.

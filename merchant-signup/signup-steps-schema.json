@@ -1,5 +1,5 @@
 {
-  "_comment": "EMAP Partner Signup Form - Stepwise Field Schema v1.0. All field keys match the API request parameter names. Slugs match the values accepted by the EMAP backend. Generated from SignupAPIController, ApplicationStepRequest, HandleOwnershipRequest, and variantA Blade views.",
+  "_comment": "Merchant Signup Form - Stepwise Field Schema v1.0. All field keys match the API request parameter names. Slugs match the values accepted by the EMAP backend. Generated from SignupAPIController, ApplicationStepRequest, HandleOwnershipRequest, and variantA Blade views.",
   "version": "1.0",
   "baseUrl": "{EMAP_BASE_URL}",
   "apiPrefix": "/api/v1",

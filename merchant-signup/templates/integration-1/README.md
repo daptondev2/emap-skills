@@ -28,7 +28,7 @@ the export to `GET` or `POST`.
 
 **Setup:** Add to `.env.local`:
 ```
-EMAP_BASE_URL=https://app.easypaydirect.com
+EMAP_BASE_URL=https://emap.epd.dev
 EMAP_PARTNER_KEY=your_partner_key_here
 ```
 
@@ -44,7 +44,7 @@ CSRF protection is enabled via PHP sessions. The CSRF token is injected into
 
 **Setup:** Set in your server environment or `.env` loader:
 ```
-EMAP_BASE_URL=https://app.easypaydirect.com
+EMAP_BASE_URL=https://emap.epd.dev
 EMAP_PARTNER_KEY=your_partner_key_here
 ```
 
@@ -59,7 +59,7 @@ npm install express dotenv node-fetch@2
 
 **Setup:** Create `.env` (never commit it):
 ```
-EMAP_BASE_URL=https://app.easypaydirect.com
+EMAP_BASE_URL=https://emap.epd.dev
 EMAP_PARTNER_KEY=your_partner_key_here
 PORT=3000
 ```

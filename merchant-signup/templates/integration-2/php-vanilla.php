@@ -12,7 +12,7 @@
  * No cURL needed — this integration never calls EMAP's API directly.
  *
  * Environment (set in your server config or .env loader):
- *   EMAP_BASE_URL           = https://app.easypaydirect.com
+ *   EMAP_BASE_URL           = https://emap.epd.dev
  *   EMAP_PARTNER_SECRET_KEY = your_key_here   (optional; enables partner attribution)
  */
 
@@ -309,7 +309,7 @@ header('Referrer-Policy: no-referrer');
     <div class="terms-group">
       <input type="checkbox" id="terms" name="terms_agreed">
       <label for="terms">I agree to the
-        <a href="https://app.easypaydirect.com/terms" target="_blank" rel="noopener">Terms and Conditions</a>
+        <a href="https://emap.epd.dev/terms" target="_blank" rel="noopener">Terms and Conditions</a>
       </label>
     </div>
     <span class="field-error" id="err_terms" style="display:block;margin-top:-10px;margin-bottom:10px"></span>

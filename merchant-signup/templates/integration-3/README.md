@@ -31,7 +31,7 @@ TypeScript. Uses the built-in `fetch` API.
 
 Create a `.env` file (never commit it):
 ```
-EMAP_BASE_URL=https://app.easypaydirect.com
+EMAP_BASE_URL=https://emap.epd.dev
 EMAP_PARTNER_KEY=your_partner_key_here
 PORT=3000
 ```

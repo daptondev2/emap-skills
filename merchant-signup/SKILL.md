@@ -11,7 +11,7 @@ description: >-
   templates, and a security checklist.
 ---
 
-# EMAP Partner Signup Integration
+# Merchant Signup Integration
 
 A developer guide for embedding an EMAP merchant signup form on a partner website.
 The merchant fills in their basic business information on the **partner's site**;
