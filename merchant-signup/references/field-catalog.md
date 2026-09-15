@@ -18,7 +18,7 @@ Complete field reference for both integration modes.
 | Phone | `phone` | `phone` | Required | max 20 chars; digits, `+`, `-`, `(`, `)`, spaces only; regex `^[0-9+\-()\s]+$` | E.164 strongly recommended: `+12025551234`. EMAP's own validation uses this same regex. |
 | Company Name | `company_name` | `name` | Required | string, max 60 chars | **Different param name in each mode.** |
 | Website | `website` | `website` | Required | Must be a valid URL; optional `http://` or `https://` prefix; regex `^(https?:\/\/)?[a-zA-Z0-9]([a-zA-Z0-9\-]*\.)+[a-zA-Z]{2,}(\/[^\s]*)?$` | EMAP uses this for fraud screening. |
-| Country | `country` | `country` | Required | 2-char ISO 3166-1 alpha-2 code, e.g. `US`, `CA`, `GB` | Int 2: EMAP also resolves full country names. Int 3: strict code match required. |
+| Country | `country` | `country` | Required | Int 2: full country name, e.g. `United States`, `Canada` (use the `name` field from `/api/partner/countries`). Int 3: 2-char ISO code, e.g. `US`, `CA` — strict code match required. | Int 2 and Int 3 differ — see notes. |
 | Annual Sales | `annual_sales` | `annual_sales` | Required | integer, min 1, max 999,999,999,999 | In USD. |
 | Business State | `business_state` | `business_state` | Conditional | 2-char US state code; must be a valid state from the list below | Required when `country=US`. Excluded from auto-submit check in Int 2. |
 | Promo Code | `promo_code` | `promo_code` | Optional | string, max 255 chars | Referral/promo code. Excluded from auto-submit check in Int 2. |

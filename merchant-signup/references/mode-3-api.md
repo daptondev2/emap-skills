@@ -73,7 +73,7 @@ reference. The merchant will also receive a welcome email with their password an
 {
   "message": "success",
   "verificationLink": true,
-  "url": "https://app.easypaydirect.com/merchant/signup/verification/<token>"
+  "url": "https://emap.epd.dev/merchant/signup/verification/<token>"
 }
 ```
 
@@ -178,7 +178,7 @@ HTTP 422.
 ## Example: cURL
 
 ```bash
-curl -X POST https://app.easypaydirect.com/api/v1/signup \
+curl -X POST https://emap.epd.dev/api/v1/signup \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
   -d '{
@@ -200,7 +200,7 @@ curl -X POST https://app.easypaydirect.com/api/v1/signup \
 ## Example: resume link cURL
 
 ```bash
-curl -X POST https://app.easypaydirect.com/api/v1/signup/resume-link \
+curl -X POST https://emap.epd.dev/api/v1/signup/resume-link \
   -H "Content-Type: application/json" \
   -d '{"email": "jane@acme.com"}'
 ```

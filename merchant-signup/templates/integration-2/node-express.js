@@ -98,19 +98,17 @@ function validateSignupFields(body) {
   if (!website)                         errors.website = 'Website is required';
   else if (!WEBSITE_RE.test(website))   errors.website = 'Website must be a valid URL (e.g. https://yourcompany.com)';
 
-  const country = body.country?.trim().toUpperCase() ?? '';
+  const country = body.country?.trim() ?? '';
   if (!country)                         errors.country = 'Country is required';
-  else if (country.length !== 2)        errors.country = 'Country must be a 2-character ISO code (e.g. US, CA)';
 
   const sales = Number(body.annual_sales);
   if (!body.annual_sales || isNaN(sales) || sales < 1)
                                         errors.annual_sales = 'Annual sales must be at least 1';
   else if (sales > 999999999999)        errors.annual_sales = 'Annual sales value is too large';
 
-  if (country === 'US') {
-    const state = body.business_state?.trim().toUpperCase() ?? '';
-    if (!state)                         errors.business_state = 'State is required for US businesses';
-    else if (!VALID_US_STATES.has(state)) errors.business_state = 'Must be a valid 2-character US state code (e.g. CA, TX)';
+  if (body.business_state) {
+    const state = body.business_state.trim().toUpperCase();
+    if (!VALID_US_STATES.has(state))    errors.business_state = 'Must be a valid 2-character US state code (e.g. CA, TX)';
   }
 
   // Optional auto-submit fields — validate format when provided

@@ -75,7 +75,7 @@ node node-express.js
 
 1. Merchant fills in Step 1 (basic business info). Your backend POSTs to `EMAP /api/v1/signup`.
    EMAP returns a `uuid` that identifies the in-progress application.
-2. The `uuid` is stored in `sessionStorage` and sent with every subsequent step.
+2. The `uuid` is stored in `localStorage` and sent with every subsequent step.
 3. Steps 2, 3, 5, and 6 POST to `EMAP /api/v1/application/step` with the appropriate `step_count`.
 4. Step 4 (ownership) POSTs to `EMAP /api/v1/ownership`.
 5. On Step 6 success, EMAP finalises the application and notifies your backend.
@@ -107,7 +107,7 @@ node node-express.js
    minimal styles only — no framework dependencies.
 2. **Step copy:** Each step has a `<h2>` and optional `<p class="step-desc">`. Edit these freely.
 3. **Conditional fields:** Do not remove or rename conditional field triggers
-   (e.g. `country`, `business_organized`, `primary_contact`, `ownership_percentage.1`).
+   (e.g. `country`, `business_organized`, `is_physical_address_same_as_legal_address`, `ownership_percentage.1`).
    EMAP's validation depends on the correct field names and values.
 4. **Owner 2:** Owner 2 fields appear automatically when Owner 1's ownership percentage < 51%.
    You can add Owner 3+ using the same dot-notation pattern (`first_name.3`, `ssn.3`, etc.).

@@ -63,7 +63,7 @@ The `uuid` returned by Step 1 must be included in every subsequent request.
 
 Same shapes as Integration 3. See [`api-errors.md`](api-errors.md) for the full table.
 
-On success: `{ "status": true, "uuid": "<uuid>" }`. Store the `uuid` in `localStorage`.
+On success: `{ "status": true, "uuid": "<uuid>" }`. Store the `uuid` and `country` in `localStorage` as `emap_uuid` and `emap_country`. The persisted `emap_country` code drives conditional field visibility in steps 2 and 5 — do not use the address country fields for this purpose.
 
 ---
 
@@ -77,23 +77,32 @@ On success: `{ "status": true, "uuid": "<uuid>" }`. Store the `uuid` in `localSt
 |---|---|---|
 | `uuid` | Yes | From Step 1 |
 | `step_count` | Yes | Must be `2` |
-| `industry_type` | No | Slug from `/api/partner/industry-types` |
-| `business_organized` | Yes | Slug: `sole-proprietor`, `llc`, `corporation`, `partnership`, `non-profit` |
+| `legal_name` | Yes | Legal company name, max 255 — pre-fill from Step 1 `name` |
+| `name` | Yes | Trading/DBA name, max 255 — pre-fill from Step 1 `name` |
+| `industry_type` | Yes | Slug from `/api/partner/industry-types` |
+| `industry_type_other` | Required if industry_type=`other` | Max 255 |
+| `customer_service_telephone_number` | Yes | Max 20; digits, `+`, `-`, `(`, `)`, spaces |
+| `business_organized` | Yes | Slug: `sole-proprietorship`, `llc`, `corporation`, `partnership`, `non-profit` |
 | `business_location` | Yes | Slug: `home`, `office`, `retail-store`, `online-only` |
-| `federal_tax_id` | Required for US LLCs/Corps | EIN in `XX-XXXXXXX` format |
-| `business_register_number` | Required for CA businesses | Canadian business number |
-| `address` | Yes | Street address |
-| `address_city` | Yes | City |
-| `address_state` | Required if address_country=US | 2-char state code |
-| `address_zip` | Yes | Postal/ZIP code |
+| `business_formed` | Yes | Business formation date, format `YYYY-MM-DD` |
+| `federal_tax_id` | Required unless Step 1 country=`CA` or business_organized=`sole-proprietorship` | Max 20; alphanumeric and hyphens. Use `emap_country` from localStorage, not `address_country`. |
+| `business_register_number` | Required when Step 1 country ≠ `US` | Max 20. Use `emap_country` from localStorage, not `address_country`. |
+| `street_number` | Yes | Max 10 |
+| `street_address` | Yes | Max 255 |
+| `city` | Yes | Max 100 |
+| `state` | Yes | State/province |
+| `postal_code` | Yes | Max 20 |
 | `address_country` | Yes | 2-char ISO country code |
-| `years_in_business` | Yes | Integer |
-| `physical_address_different` | Yes | `1` = different, `0` = same as business address |
-| `physical_address` | Required if physical_address_different=1 | Street |
-| `physical_address_city` | Required if physical_address_different=1 | City |
-| `physical_address_state` | Required if physical_address_different=1 and country=US | State |
-| `physical_address_zip` | Required if physical_address_different=1 | ZIP |
-| `physical_address_country` | Required if physical_address_different=1 | 2-char ISO |
+| `is_physical_address_same_as_legal_address` | Yes | `1` = same, `0` = different |
+| `physical_address_street_number` | Required if is_physical_address_same_as_legal_address=`0` | Max 10 |
+| `physical_address_street_address` | Required if is_physical_address_same_as_legal_address=`0` | Max 255 |
+| `physical_address_city` | Required if is_physical_address_same_as_legal_address=`0` | Max 100 |
+| `physical_address_state` | Required if is_physical_address_same_as_legal_address=`0` | State/province |
+| `physical_address_postal_code` | Required if is_physical_address_same_as_legal_address=`0` | Max 20 |
+| `physical_address_country` | Required if is_physical_address_same_as_legal_address=`0` | 2-char ISO |
+| `marketingModel` | Yes | Array of marketing model IDs from `/api/partner/interest-details` |
+| `subscription_frequency` | Required if `marketingModel` includes `2` | `1`=Weekly `2`=Monthly `3`=Other |
+| `subscription_frequency_other` | Required if subscription_frequency=`3` | Min 5, max 255 |
 
 ---
 
@@ -107,26 +116,18 @@ On success: `{ "status": true, "uuid": "<uuid>" }`. Store the `uuid` in `localSt
 |---|---|---|
 | `uuid` | Yes | From Step 1 |
 | `step_count` | Yes | Must be `3` |
-| `refund_policy` | Yes | Slug: `no-refunds`, `30-days`, `60-days`, `90-days`, `other` |
-| `fulfillment_by` | Yes | Slug: `merchant`, `vendor`, `others` |
-| `fullfillment_company` | Required if fulfillment_by is `vendor` or `others` | Company name (note: two l's) |
-| `shopping_cart` | Yes | Slug from `/api/partner/shopping-carts`, or `api`, or `other` |
-| `shopping_cart_other` | Required if shopping_cart=`other` | Text description |
-| `customer_service_time` | Yes | Slug: `less-than-24`, `24-48`, `48-72`, `more-than-72` |
-| `transaction_device` | Yes | Slug: `online`, `retail`, `both` |
-| `card_swiped` | Yes | Integer 0–100; percentage of transactions swiped |
-| `customer_entered` | Yes | Integer 0–100; keyed by customer |
-| `staff_entered` | Yes | Integer 0–100; keyed by staff |
-| `marketing_model` | Yes | Array of integers from `/api/partner/interest-details` mapped values |
-| `subscription_frequency` | Required if marketing_model includes 2 or 3 | `1`=Weekly `2`=Monthly `3`=Other |
-| `subscription_frequency_other` | Required if subscription_frequency=3 | Text description |
-| `primary_contact` | Yes | `1`=Owner is primary contact `0`=Other person |
-| `primary_contact_first_name` | Required if primary_contact=0 | Max 60 |
-| `primary_contact_last_name` | Required if primary_contact=0 | Max 60 |
-| `primary_contact_email` | Required if primary_contact=0 | Valid email |
-| `primary_contact_job_title` | Required if primary_contact=0 | Max 100 |
+| `card_swiped` | Yes | Numeric 0–100; must be a multiple of 5 |
+| `customer_entered` | Yes | Numeric 0–100; must be a multiple of 5 |
+| `staff_entered` | Yes | Numeric 0–100; must be a multiple of 5 |
+| `fulfillment_by` | Yes | Slug from `service_fullfillment` table |
+| `fullfillment_company` | Required if fulfillment_by=`Vendor` or `Others` | Max 300 (note: two l's) |
+| `average_transaction_amount` | Yes | Numeric, min 1 |
+| `highest_transaction_amount` | Yes | Numeric, min 1 |
+| `shopping_cart` | Yes | Slug from `/api/partner/shopping-carts` |
+| `refund_policy` | Yes | Slug from refund options |
+| `customer_service_time` | Yes | Slug from customer service time options |
 
-**Card percentage rule:** `card_swiped + customer_entered + staff_entered` must equal exactly 100.
+**Card percentage rule:** `card_swiped + customer_entered + staff_entered` must equal exactly 100. Each value must be a multiple of 5.
 
 ---
 
@@ -135,32 +136,50 @@ On success: `{ "status": true, "uuid": "<uuid>" }`. Store the `uuid` in `localSt
 **EMAP endpoint:** `POST {EMAP_BASE_URL}/api/v1/ownership`
 
 Fields use dot-notation names (e.g. `first_name.1`, `ssn.1`). The number suffix is the owner index.
-Owner 2 is required when Owner 1's `ownership_percentage.1 < 51`.
+Owner 2 is required when `ownership_percentage.1 < 51`.
 
-### Owner fields (repeat with `.2` suffix for Owner 2)
+### Common fields
 
 | Field | Required | Notes |
 |---|---|---|
 | `uuid` | Yes | From Step 1 |
-| `first_name.1` | Yes | Max 60 |
-| `last_name.1` | Yes | Max 60 |
-| `email.1` | Yes | Valid email |
-| `owner_job_title.1` | Yes | Slug from static list |
-| `ownership_percentage.1` | Yes | Integer 1–100; whole numbers only |
-| `dob.1` | Yes | Date; format `YYYY-MM-DD`; owner must be 18–100 years old |
-| `ssn.1` | Yes (US/CA) | US: `XXX-XX-XXXX` (SSN); CA: `XXX-XX-XXXX` (SIN). Other countries: plain tax ID. |
-| `country.1` | Yes | 2-char ISO; drives SSN label and state field |
-| `address.1` | Yes | Street address |
-| `city.1` | Yes | City |
-| `state.1` | Required if country.1=US | 2-char US state code |
-| `zip.1` | Yes | Postal/ZIP code |
-| `driver_license_number.1` | Yes | Driver license number |
-| `driver_license_state.1` | Required if country.1=US | 2-char state code |
-| `driver_license_expiration_date.1` | Yes | Must be a future date |
+| `primary_contact` | Yes | `1` = the person filling the form IS the owner; `0` = someone else is filling it on behalf of the owner |
+| `primary_contact_job_title` | Required if primary_contact=`0` | Max 255 |
+
+### Owner 1 fields
+
+| Field | Required | Notes |
+|---|---|---|
+| `first_name.1` | Required if primary_contact=`0` | Max 60; omit when primary_contact=1 (backend uses Step 1 data) |
+| `last_name.1` | Required if primary_contact=`0` | Max 60 |
+| `email.1` | Required if primary_contact=`0` | Valid email |
+| `phone.1` | Yes | Phone number |
+| `title.1` | Yes | Slug from owner job title list |
+| `ownership_percentage.1` | Yes | Integer 1–100 |
+| `dob.1` | Yes | Format `YYYY-MM-DD`; owner must be 18–100 years old |
+| `ssn.1` | Yes | US/CA: `XXX-XX-XXXX`; other countries: plain tax ID |
+| `street_number.1` | Yes | Max 10 |
+| `street_address.1` | Yes | Max 255 |
+| `city.1` | Yes | Max 100 |
+| `state.1` | Yes | State/province |
+| `postal_code.1` | Yes | Max 20 |
+| `country.1` | Yes | 2-char ISO code |
+| `license.1` | Yes | Driver license number; min 5, max 25 |
+| `driver_license_state.1` | Required if country.1=`US` | 2-char state code |
+| `driver_license_expiration_date.1` | Required if country.1=`US` | Format `YYYY-MM-DD`; must be a future date |
 | `bankruptcy_filed.1` | Yes | `1`=Yes `0`=No |
-| `bankruptcy_type.1` | Required if bankruptcy_filed.1=1 | Chapter type |
-| `bankruptcy_discharged.1` | Required if bankruptcy_filed.1=1 | `1`=Yes `0`=No |
-| `bankruptcy_discharged_date.1` | Required if bankruptcy_discharged.1=1 | Must be a past date |
+| `bankruptcy_discharged.1` | Required if bankruptcy_filed.1=`1` | `1`=Yes `0`=No |
+| `bankruptcy_discharged_date.1` | Required if bankruptcy_discharged.1=`1` | Format `YYYY-MM-DD`; must be a past date |
+
+### Owner 2 fields (required when ownership_percentage.1 < 51)
+
+All Owner 2 fields use the `.2` suffix. Required fields mirror Owner 1:
+`first_name.2`, `last_name.2`, `email.2`, `phone.2`, `title.2`, `ssn.2`, `dob.2`, `ownership_percentage.2`,
+`street_number.2`, `street_address.2`, `city.2`, `state.2`, `postal_code.2`, `country.2`,
+`license.2`, `driver_license_state.2` (if country.2=US), `driver_license_expiration_date.2` (if country.2=US),
+`bankruptcy_filed.2`, `bankruptcy_discharged.2` (if filed), `bankruptcy_discharged_date.2` (if discharged).
+
+**Combined ownership** (`ownership_percentage.1 + ownership_percentage.2`) must not exceed 100.
 
 **SSN/DOB/bank data: never store or log these values. Send over HTTPS only.**
 
@@ -176,20 +195,15 @@ Owner 2 is required when Owner 1's `ownership_percentage.1 < 51`.
 |---|---|---|
 | `uuid` | Yes | From Step 1 |
 | `step_count` | Yes | Must be `5` |
-| `bank_name` | Yes | Bank name |
-| `bank_routing_number` | Yes | 9-digit ABA routing number |
-| `bank_account_number` | Yes | Account number |
-| `bank_account_type` | Yes | `1`=Checking `2`=Savings |
-| `institution_number` | Required if country=CA | Canadian institution number |
-| `customer_pay_currency` | Required if country=CA | Currency code (e.g. `CAD`) |
-| `current_processing` | Yes | `1`=Currently processing cards `0`=Not currently |
-| `processor_name` | Required if current_processing=1 | Current processor name |
-| `bad_experience` | Yes | `1`=Had a bad experience with a processor `0`=No |
-| `bad_experience_happened` | Required if bad_experience=1 | Description |
+| `current_processing` | Yes | Boolean |
+| `routing_number` | Yes | Alphanumeric, max 20 |
+| `account_number` | Yes | Alphanumeric, max 20 |
+| `institution_number` | Show/required when Step 1 country=`CA` | 3-digit Canadian institution number; format `[0-9]{3}`. Use `emap_country` from localStorage. |
+| `customer_pay_currency` | Show/required when Step 1 country=`CA` | `USD` or `CAD`. Use `emap_country` from localStorage. |
 
 ---
 
-## Step 6 — Marketing & agreements (ApplicationStepRequest, step_count=6)
+## Step 6 — Referral & agreements (ApplicationStepRequest, step_count=6)
 
 **EMAP endpoint:** `POST {EMAP_BASE_URL}/api/v1/application/step`
 
@@ -200,8 +214,13 @@ Owner 2 is required when Owner 1's `ownership_percentage.1 < 51`.
 | `uuid` | Yes | From Step 1 |
 | `step_count` | Yes | Must be `6` |
 | `howdidyouhear` | Yes | Slug from `/api/partner/referral-sources` |
-| `hear_about_us_other` | Required if howdidyouhear contains `other`, `friend`, or `referral` | Text |
-| `terms` | Yes | Must be `1` (agreed) |
+| `hear_about_us_other` | No | Max 255 |
+| `multiple_merchant_accounts` | Yes | Boolean |
+| `transaction_device` | No | Slug from transaction devices |
+| `bad_experience` | Yes | Boolean |
+| `bad_experience_happened` | Required if bad_experience=`true` | Max 500 |
+| `other_interests_capital` | No | Array |
+| `terms_and_conditions_agreed` | Yes | Boolean |
 
 On Step 6 success, EMAP finalises the application. Clear `localStorage` keys and show a success panel.
 
@@ -214,9 +233,9 @@ On Step 6 success, EMAP finalises the application. Clear `localStorage` keys and
 | `GET /api/partner/countries` | Step 1, Step 2 (address), Step 4 (owner address) | `{ data: [ { id, name, code } ] }` |
 | `GET /api/partner/states` | Step 1, Step 2, Step 4 | `{ data: [ { id, name, code } ] }` |
 | `GET /api/partner/industry-types` | Step 2 | `{ data: [ { id, name, slug } ] }` |
+| `GET /api/partner/interest-details` | Step 2 (`marketingModel`) | `{ data: [ { id, name, slug, group_name } ] }` |
 | `GET /api/partner/shopping-carts` | Step 3 | `{ data: [ { id, name, slug } ] }` |
 | `GET /api/partner/referral-sources` | Step 6 | `{ data: [ { id, name, slug } ] }` |
-| `GET /api/partner/interest-details` | Step 3 | `{ data: [ { id, name, slug, group_name } ] }` |
 
 Proxy all dropdown calls through your backend (same origin) to avoid CORS issues.
 

@@ -93,7 +93,7 @@
     label .required { color: #ef4444; margin-left: 2px; }
     label .hint { font-weight: 400; color: #6b7280; font-size: .8rem; }
 
-    input, select, textarea {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea {
       width: 100%;
       padding: 10px 13px;
       border: 1.5px solid #d1d5db;
@@ -106,12 +106,12 @@
       font-family: inherit;
     }
     textarea { resize: vertical; min-height: 80px; }
-    input:focus, select:focus, textarea:focus {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus, select:focus, textarea:focus {
       outline: none;
       border-color: #3b82f6;
       box-shadow: 0 0 0 3px rgba(59,130,246,.15);
     }
-    input.error, select.error, textarea.error { border-color: #ef4444; }
+    input:not([type="checkbox"]):not([type="radio"]).error, select.error, textarea.error { border-color: #ef4444; }
     .field-error { display: block; color: #ef4444; font-size: .8rem; margin-top: 4px; }
 
     .checkbox-group { display: flex; flex-direction: column; gap: 8px; }
@@ -124,9 +124,16 @@
     .radio-item input[type="radio"] { width: 16px; height: 16px; cursor: pointer; }
     .radio-item label { font-weight: 400; cursor: pointer; margin-bottom: 0; }
 
-    .pct-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-    .pct-sum-note { font-size: .8rem; color: #6b7280; margin-top: 4px; }
+    .pct-sliders { display: flex; flex-direction: column; gap: 14px; margin-top: 8px; }
+    .pct-slider-row { display: grid; grid-template-columns: 170px 1fr 44px; align-items: center; gap: 12px; }
+    .pct-slider-row label { font-size: .85rem; font-weight: 500; color: #374151; margin: 0; }
+    .pct-slider-row input[type="range"] { width: 100%; accent-color: #3b82f6; cursor: pointer; height: 4px; }
+    .pct-val { font-size: .92rem; font-weight: 600; color: #1d4ed8; text-align: right; white-space: nowrap; }
+    .pct-sum-note { font-size: .8rem; color: #6b7280; margin-top: 6px; }
     .pct-sum-note.error { color: #ef4444; }
+
+    .terms-box { width: 100%; height: 220px; font-size: .78rem; line-height: 1.55; color: #374151; background: #f9fafb; border: 1.5px solid #d1d5db; border-radius: 7px; padding: 12px 14px; resize: none; font-family: inherit; overflow-y: scroll; }
+    .terms-box:focus { outline: none; border-color: #3b82f6; }
 
     .terms-group { margin: 20px 0; display: flex; align-items: flex-start; gap: 10px; }
     .terms-group input[type="checkbox"] { width: 17px; height: 17px; flex-shrink: 0; margin-top: 2px; cursor: pointer; }
@@ -569,21 +576,24 @@
 
       <div class="form-section">
         <h3>Transaction Entry Methods <span class="hint" style="text-transform:none;font-size:.8rem;color:#6b7280">(must total 100%)</span></h3>
-        <div class="pct-row">
-          <div class="form-group">
-            <label for="card_swiped">Card Presented (%)</label>
-            <input id="card_swiped" name="card_swiped" type="number" min="0" max="100" value="0" required>
+        <div class="pct-sliders">
+          <div class="pct-slider-row">
+            <label for="card_swiped">Card Presented</label>
+            <input id="card_swiped" name="card_swiped" type="range" min="0" max="100" step="5" value="40" required>
+            <span class="pct-val" id="val_card_swiped">40%</span>
           </div>
-          <div class="form-group">
-            <label for="customer_entered">Customer Keyed-In (%)</label>
-            <input id="customer_entered" name="customer_entered" type="number" min="0" max="100" value="0" required>
+          <div class="pct-slider-row">
+            <label for="customer_entered">Customer Keyed-In</label>
+            <input id="customer_entered" name="customer_entered" type="range" min="0" max="100" step="5" value="30" required>
+            <span class="pct-val" id="val_customer_entered">30%</span>
           </div>
-          <div class="form-group">
-            <label for="staff_entered">Staff Keyed-In (%)</label>
-            <input id="staff_entered" name="staff_entered" type="number" min="0" max="100" value="0" required>
+          <div class="pct-slider-row">
+            <label for="staff_entered">Staff Keyed-In</label>
+            <input id="staff_entered" name="staff_entered" type="range" min="0" max="100" step="5" value="30" required>
+            <span class="pct-val" id="val_staff_entered">30%</span>
           </div>
         </div>
-        <p class="pct-sum-note" id="pct_sum_note">Total: <strong id="pct_total">0</strong>% (must equal 100%)</p>
+        <p class="pct-sum-note" id="pct_sum_note">Total: <strong id="pct_total">100</strong>%</p>
         <span class="field-error" id="err_card_swiped"></span>
       </div>
 
@@ -960,21 +970,6 @@
         </div>
       </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label for="bank_name">Bank Name</label>
-          <input id="bank_name" name="bank_name" type="text" maxlength="255" placeholder="e.g. Chase, Wells Fargo">
-        </div>
-        <div class="form-group">
-          <label for="bank_account_type">Account Type</label>
-          <select id="bank_account_type" name="bank_account_type">
-            <option value="">Select…</option>
-            <option value="checking">Checking</option>
-            <option value="savings">Savings</option>
-          </select>
-        </div>
-      </div>
-
       <!-- Canada-specific fields -->
       <div id="ca_banking_fields" style="display:none">
         <div class="form-row">
@@ -1081,15 +1076,192 @@
         </div>
       </div>
 
+      <div class="form-group">
+        <label>Terms and Conditions <span class="required">*</span></label>
+        <textarea class="terms-box" readonly>TERMS AND CONDITIONS OF MERCHANT SERVICE AGREEMENT
+
+1. INTRODUCTION AND DEFINITIONS.
+
+This document, "Terms and Conditions of Merchant Service Agreement" ("Terms and Conditions") accompanies the document "Easy Pay Direct, it's affiliated banking or processing partners Payments Merchant Application" ("Merchant Application"). The Merchant Service Agreement ("Agreement" or "Card Services Agreement") includes these Terms and Conditions and the terms and conditions of the Merchant Application. The Member bank identified in such Merchant Application ("Member") is a member of Visa USA, Inc.("Visa") and MasterCard International, Inc.("MasterCard"). Easy Pay Direct, it's affiliated banking or processing partners Payments Direct, Inc.("Easy Pay Direct, it's affiliated banking or processing partners") is a registered independent sales organization of Visa, a member service provider of MasterCard and a registered acquirer for Discover Financial Services LLC ("Discover"). Merchant and Easy Pay Direct, it's affiliated banking or processing partners agree that the rights and obligations contained in these Terms and Conditions of Merchant Service Agreement do not apply to the Member with respect to Discover transactions and Switched Transactions (as defined below). To the extent Merchant accepts Discover cards, the provisions in this Agreement with respect to Discover apply if Merchant does not have a separate agreement with Discover. To the extent Merchant accepts Discover cards and has a separate agreement with Discover, Discover card transactions shall be processed as Switched Transactions (as defined below). Any references to the Debit Sponsor shall refer to the debit sponsor identified below. The Agreement is between Easy Pay Direct, it's affiliated banking or processing partners, the Member and the merchant identified in the Merchant Application ("Merchant"). Under the terms of the Agreement, Merchant will be furnished with the services and products described herein and in the Merchant Application, and selected by Merchant therein (collectively and individually, as applicable, the "Services"). Easy Pay Direct, its affiliated banking or processing partners will be the sole and exclusive provider of the Services to Merchant during the term of this Agreement. Any Merchant accepted by Easy Pay Direct, it's affiliated banking or processing partners for card processing services agrees to be bound by the Agreement, including the terms of the Merchant Application and these Terms And Conditions as may be modified or amended in the future. A Merchant's submission of a transaction to Easy Pay Direct, its affiliated banking or processing partners Shall be deemed to signify Merchant's acceptance of the Merchant Services Agreement, including the Terms and Conditions herein. Except as expressly stated in the first three paragraphs of Section 13, all terms and conditions of this Merchant Services Agreement shall survive termination to the extent necessary to protect Easy Pay Direct, it's affiliated banking or processing partners Direct or Member's and anyone acting on Easy Pay Direct, its affiliated banking or processing partners or Member's behalf's rights herein.
+
+
+2. SERVICE DESCRIPTIONS.
+
+Credit Card processing services: Easy Pay Direct, it's affiliated banking or processing partners's actions to the appropriate card associations and/or issuers (e.g., Visa, MasterCard, Diners, Discover); settlement; dispute resolution with cardholders' banks; and transaction-related reporting, statements and products.
+
+Debit/ATM Processing Services: Easy Pay Direct, it's affiliated banking or processing partners has connected to the following debit card networks ("Networks"): Accel, AFFN, Interlink, MAC, Maestro, NYCE, Pulse, Star, and Tyme. Easy Pay Direct, it's affiliated banking or processing partners will provide Merchant with the ability to access the Networks that Easy Pay Direct, it's affiliated banking or processing partners has connected to for the purpose of authorizing debit card transactions at the point of sale from cards issued by the members of the respective Networks. Easy Pay Direct, its affiliated banking or processing partners will provide connection to such Networks, terminal applications, settlement and reporting activities.
+
+EBT Transaction Processing Services: Easy Pay Direct, it's affiliated banking or processing partners offers electronic interfaces to Electronic Benefits Transfer ("EBT") networks for the processing of cash payments or credits to or for the benefit of benefit recipients ("Recipients"). Easy Pay Direct, it's affiliated banking or processing partners will provide settlement and switching services for various Point of Sale transactions initiated through Merchant for the authorization of the issuance of the United States Department of Agriculture, Food and Nutrition Services ("FNS") food stamp benefits ("FS Benefits") and/or government delivered cash assistance benefits ("Cash Benefits," with FS Benefits, "Benefits") to Recipients through the use of a state-issued card ("EBT Card"). With respect to Visa and MasterCard products, Merchant agrees to pay and Merchant's account(s) will be charged pursuant to Section 5 of this Agreement for any additional fees incurred as a result of Merchant's subsequent acceptance of transactions with any Visa or MasterCard product that it has not elected to accept.
+
+
+3. PROCEDURES.
+
+Merchant will permit holders of valid cards bearing the symbols of the cards authorized to be accepted by Merchant hereunder to charge purchases or leases of goods and services and the debt resulting there from shall be purchased hereunder on a provisional basis in accordance with Section 5 below, provided that the transaction complies with the terms of this Agreement. All indebtedness submitted by Merchant for purchase will be evidenced by an approved sales slip. Merchant will not present for purchase any indebtedness that does not arise out of a transaction between a cardholder and Merchant. Merchant agrees to follow the Card Acceptance Guide which is incorporated into and made part of this Agreement, and to be bound by the operating regulations and rules of Visa, MasterCard, Discover and any other card association or network organization covered by this Agreement, as any of the above referenced documents may be modified and amended from time to time. Merchant acknowledges that the Card Acceptance Guide is located on Easy Pay Direct, it's affiliated banking or processing partners's website at www.easypaymentsinc.com. Without limiting the generality of the foregoing, Merchant agrees to comply with and be bound by, and to cause any third party who provides Merchant with services related to payment processing or facilitates Merchant's ability to accept credit and debit cards and who is not a party to this Card Services Agreement to comply with and be bound by the rules and regulations of Visa, MasterCard, Discover and any other card association or network organization related to cardholders and transaction information security, including without limitation, Payment Card Industry Data Security Standards ("PCI DSS"), Visa's Cardholder Information Security Program and MasterCard's Site Data Protection Program.
+
+
+4. MARKETING.
+
+Merchant shall adequately display the card issuer service marks and promotional materials supplied by Easy Pay Direct, it's affiliated banking or processing partners. Merchant shall cease to use or display such service marks immediately upon notice from Easy Pay Direct, it's affiliated banking or processing partners or upon termination of this Agreement.
+
+
+5. PAYMENT, CHARGES AND FEES.
+
+Fees and charges payable by Merchant shall be as set forth in the Merchant Application and these Terms and Conditions. Merchant will be paid for indebtedness purchased under this Agreement by credit to Merchant's account(s). Each purchase of indebtedness shall be funded on a provisional basis until all chargebacks, fees, fines, penalties and other adjustments are identified and implemented in respect of such purchase under this Card Services Agreement and/or the rules and regulations of a card association or network organization. Accordingly, any such provisional funding is subject to reversal and recoupment with regard to any such chargebacks, fees, fines, penalties and other adjustments. Merchant's account(s) will be credited for the gross amount of the indebtedness deposited less the amount of any credit vouchers deposited. Merchant shall not be entitled to credit for any indebtedness that arises out of a transaction not processed in accordance with the terms of this Card Services Agreement or the rules and regulations of a card association or network organization. Chargebacks and adjustments will be charged to Merchant's account(s) on a daily basis. Merchant agrees to pay and Merchant's account(s) will be charged for the discount, fees, chargebacks and other fees and charges described in this Agreement.
+
+
+6. EQUIPMENT AND SUPPLIES/THIRD PARTY SERVICES.
+
+Merchant agrees that it will not acquire any title, copyrights, or any other proprietary right to any advertising material; leased equipment including imprinters, authorization terminals, or printers; software; credit card authenticators; unused forms; and Merchant deposit plastic cards provided by Easy Pay Direct, it's affiliated banking or processing partners in connection with this Card Services Agreement. Merchant will protect all such items from loss, theft, damage or any legal encumbrance and will allow Easy Pay Direct, its affiliated banking or processing partners and its designated representatives reasonable access to Merchant's premises for their repair, removal, modification, installation and relocation.
+
+
+7. FINANCIAL INFORMATION.
+
+Merchant agrees to furnish Easy Pay Direct, it's affiliated banking or processing partners and Member such financial statements and information concerning Merchant, its owners, principals, partners, proprietors or its affiliates as Easy Pay Direct, it's affiliated banking or processing partners may from time to time request. Easy Pay Direct, it's affiliated banking or processing partners, or its duly authorized representatives, may examine the books and records of Merchant, including records of all indebtedness previously purchased or presented for purchase. Merchant agrees to retain copies of all paper and electronic sales slips and credit slips submitted to Easy Pay Direct, it's affiliated banking or processing partners for a period of two years from submission.
+
+
+8. CHANGE IN BUSINESS.
+
+Merchant agrees to provide Easy Pay Direct, it's affiliated banking or processing partners and Member 60 days prior written notice of its intent to (a) transfer or sell any substantial part (10% or more) of its total stock, assets and/or to liquidate; or (b) change the basic nature of its business, or (c) convert all or part of the business to mail order sales, telephone order sales, or to other sales where the card is not present and swiped through Merchant's terminal.
+
+
+9. TRANSFERABILITY.
+
+This Agreement is not transferable by Merchant without the written consent of Easy Pay Direct, it's affiliated banking or processing partners and Member. Any attempt by Merchant to assign its rights or to delegate its obligations in violation of this paragraph shall be void.
+
+
+10. WARRANTIES AND REPRESENTATIONS.
+
+Merchant warrants and represents to Easy Pay Direct, it's affiliated banking or processing partners and Member: (a) that each sales transaction delivered hereunder will represent a bona fide sale to a card holder by Merchant for the amount shown on the sales slip as the total sale and constitutes the binding obligation of the card holder, free from any claim, demand, defense, setoff or other adverse claim whatsoever; (b) that each sales slip or other evidence of indebtedness will accurately describe the goods and services which have been sold and delivered to the card holder or in accordance with his instructions; (c) that Merchant will comply fully with all federal, state and local laws, rules and regulations applicable to its business; (d) that Merchant will fulfill completely all of its obligations to the cardholder and will resolve any customer dispute or complaint directly with the card holder; (e) that all of the information contained in this Merchant Application and Service Agreement is true and correct.
+
+
+11. INDEMNITY.
+
+Merchant agrees to satisfy directly with the card holder any claim or complaint arising in connection with the card sale. Merchant agrees to indemnify and hold EasyPayDirect, it's affiliated banking or processing partners and Member harmless from and against any and all liabilities, losses, claims, damages, disputes, offsets, claims or counterclaims made by a cardholder or any other person or entity with regard to indebtedness sold by Merchant hereunder or any other Service provided hereunder.
+
+
+12. LIMITATION OF LIABILITY.
+
+Neither Member nor Easy Pay Direct, its affiliated banking or processing partners shall be liable for failure to provide the Services if such failure is due to any cause or condition beyond such party's reasonable control. The liability of Easy Pay Direct, it's affiliated banking or processing partners and Member for any loss hereunder shall, in the aggregate, be limited to actual, direct, and general money damages in an amount not to exceed one (1) month's average charge paid by Merchant hereunder for Services during the previous twelve (12) months.
+
+
+13. TERM AND TERMINATION.
+
+This Agreement shall remain in full force and effect for an initial term of three (3) years. This Agreement shall be automatically extended for successive one (1) year periods on the same terms and conditions expressed herein, or as may be amended, unless Merchant gives written notice of termination at least 60 days prior to the expiration of the initial term or any extension or renewals thereof.
+
+
+14. RETURNED ITEMS/CHARGEBACKS.
+
+If a card holder disputes any transaction, if a transaction is charged back for any reason by the card issuing institution, or if Easy Pay Direct, it's affiliated banking or processing partners or Member has any reason to believe an indebtedness previously purchased is questionable, not genuine, or is otherwise unacceptable, the amount of such indebtedness may be charged back and deducted from any payment due to Merchant or may be charged against any of Merchant's accounts or the Reserve Account.
+
+
+15. RESERVE ACCOUNT.
+
+At any time, Easy Pay Direct, it's affiliated banking or processing partners and Member may, at their option, establish a reserve account to secure the performance of Merchant's obligations under this Agreement ("Reserve Account"). Any funds in the Reserve Account may be held until the later of (a) the expiration of any potentially applicable chargeback rights and (b) the period necessary to secure the performance of Merchant's obligations under this Card Services Agreement, which holding period may extend beyond termination of this Agreement.
+
+
+16. DEFAULT/SECURITY INTEREST.
+
+Upon failure by Merchant to meet any of its obligations under this Agreement (including funding the Reserve Account), any of the accounts referred to in Section 5 or any other accounts belonging to Merchant or Merchant's guarantor held by any designated depository may be debited without notice to Merchant.
+
+
+17. AMENDMENTS.
+
+This Agreement may be amended only in writing signed by Easy Pay Direct, it's affiliated banking or processing partners, Member, and Merchant, except that the Card Acceptance Guide and any and all fees, charges, and/or discounts may be changed immediately.
+
+
+18. WAIVER.
+
+No provision of this Agreement shall be deemed waived by any party unless such waiver is in writing and signed by the party against whom enforcement is sought.
+
+
+19. EXCHANGE OF INFORMATION.
+
+Merchant authorizes Easy Pay Direct, it's affiliated banking or processing partners to order a credit report on Merchant or any owner, officer, shareholder, partner, proprietor, managing agent or guarantor of Merchant.
+
+
+20. ONLINE STATEMENTS.
+
+If Merchant elects to receive monthly statements by accessing them on-line (an "E-statement"), Merchant will need to visit and register at their processor's relevant URL to obtain a user ID and password.
+
+
+21. GENERAL.
+
+If any provision of this Agreement or portion thereof is held to be unenforceable, such a determination will not affect the remainder of this Agreement. Paragraph headings are included for convenience only and are not to be used in interpreting this Agreement.
+
+
+22. NOTICES.
+
+All notices required by this Agreement shall be in writing and shall be sent by telefax, by overnight carrier, or by regular or certified mail.
+
+
+23. TELEPHONE MONITORING AND CONTACTING THE MERCHANT.
+
+From time to time Easy Pay Direct, it's affiliated banking or processing partners and/or its agents may monitor and record telephone calls regarding Merchant's account to assure the quality of their service(s).
+
+
+24. MERGER.
+
+The Agreement, including these Terms and Conditions and the Merchant Application, constitutes the entire Agreement between Merchant, Easy Pay Direct, it's affiliated banking or processing partners Direct, and Member and supersedes all prior memoranda or agreements relating thereto, whether oral or in writing.
+
+
+25. CHOICE OF LAW/ATTORNEY'S FEES/VENUE/JURY TRIAL WAIVER.
+
+Should it be necessary for Easy Pay Direct, it's affiliated banking or processing partners or Member to defend or enforce any of its rights under this Agreement in any collection or legal action, Merchant agrees to reimburse Easy Pay Direct, it's affiliate banking or processing partners and/or Member for all costs and expenses, including reasonable attorney's fees. Merchant waives trial by jury with respect to any litigation arising out of or relating to this Agreement. Any and all disputes shall be governed by the laws of the State of Georgia and shall be resolved on an individual basis without resort to any form of class action.
+
+
+26. EFFECTIVE DATE.
+
+This Card Services Agreement shall become effective only upon acceptance by Easy Pay Direct, it's affiliated banking or processing partners and Member, or upon delivery of indebtedness at such locations as designated by Easy Pay Direct, it's affiliated banking or processing partners for purchase, whichever event shall first occur.
+
+
+27. DESIGNATION OF DEPOSITORY.
+
+The financial institution set forth in the Merchant Application is designated by Merchant as a depository institution ("Depository") for its credit card indebtedness.
+
+
+28. FINANCIAL ACCOMMODATION.
+
+The acquisition and processing of sales slips hereunder is a financial accommodation and, as such, in the event Merchant becomes a debtor in bankruptcy, this Agreement cannot be assumed or enforced, and Easy Pay Direct, it's affiliated banking or processing partners and Member shall be excused from performance hereunder.
+
+
+29. DEBIT/ATM PROCESSING SERVICES: ADDITIONAL TERMS AND CONDITIONS.
+
+Debit Sponsor shall act as Merchant's sponsor with respect to the participation of point-of-sale terminals in the following debit card networks: Accel, AFFN, Alaska Option, CU24, Interlink, Maestro, NYCE, Pulse, Shazam, Star, and Tyme.
+
+
+30. MERCHANT ACCEPTANCE OF EBT TRANSACTIONS: ADDITIONAL TERMS AND CONDITIONS.
+
+Merchant agrees to issue Benefits to Recipients in accordance with procedures specified herein and pursuant to the Quest Operating Rules, as amended from time-to-time, issued by the National Automated Clearing House Association.
+
+
+31. DISCOVER PROGRAM MARKS.
+
+Merchant is hereby granted a limited non-exclusive, non-transferable license to use Discover brands, emblems, trademarks, and/or logos that identify Discover cards ("Discover Program Marks").
+
+
+32. PRICING FOR SERVICES.
+
+Pricing for services may vary based on banks, industry, location, size, marketing model and/or other risk factors and is at the discretion of Easy Pay Direct or its associated partners. By agreeing to these terms, you are agreeing to pricing of a minimum of $36 per month, 2.69% for qualified transactions, 3.79% for non qualified transactions, and $0.36 per transaction.
+
+
+33. MID AND NON-QUALIFIED SURCHARGES/CROSS-BORDER FEES.
+
+Merchant pricing appears in the Card Services Fee Schedule of the Merchant Application. Transactions that do not clear as priced are subject to MID or non-qualified surcharges that are billed back to you on your monthly statement.
+
+
+By clicking to the terms below, I represent that I have read and am authorized to sign and submit this application on behalf of the entity above and all information I have provided herein is true, complete, and accurate.
+
+A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO SIGNIFY MERCHANT'S ACCEPTANCE OF THE AGREEMENT, INCLUDING THE TERMS AND CONDITIONS HEREIN.</textarea>
+      </div>
+
       <div class="terms-group">
         <input type="checkbox" id="terms_agreed" name="terms_and_conditions_agreed" value="1" required>
         <label for="terms_agreed">
-          I have read and accept the
-          <a href="https://emap.epd.dev/terms" target="_blank" rel="noopener">Terms and Conditions</a>
+          I have read and accept the Terms and Conditions above
           <span class="required">*</span>
         </label>
       </div>
-      <span class="field-error" id="err_terms" style="display:block;margin-top:-10px;margin-bottom:10px"></span>
+      <span class="field-error" id="err_terms_agreed" style="display:block;margin-top:-10px;margin-bottom:10px"></span>
 
       <div class="btn-row">
         <button type="button" class="btn-back" onclick="goToStep(5)">← Back</button>
@@ -1178,6 +1350,7 @@
       });
       document.getElementById('form-step' + step).classList.add('active');
       currentStep = step;
+      if (appUUID) localStorage.setItem('emap_step', step);
       updateProgress(step);
       hideAlert();
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1362,7 +1535,37 @@
       }
     }
 
-    document.addEventListener('DOMContentLoaded', loadAllDropdowns);
+    function restoreSession() {
+      if (!appUUID) return;
+      var savedStep = parseInt(localStorage.getItem('emap_step'), 10);
+      if (!savedStep || savedStep < 2 || savedStep > 6) savedStep = 2;
+
+      // Restore CA banking visibility
+      if (step1Country === 'CA') {
+        document.getElementById('ca_banking_fields').style.display = 'block';
+      }
+
+      // Restore marketingModel checkbox state
+      try {
+        var savedMM = localStorage.getItem('emap_marketing_model');
+        if (savedMM) {
+          JSON.parse(savedMM).forEach(function (v) {
+            var cb = document.querySelector('[name="marketingModel[]"][value="' + v + '"]');
+            if (cb) cb.checked = true;
+          });
+          var hasRecurring = document.getElementById('mm2').checked || document.getElementById('mm3').checked;
+          document.getElementById('subscription_frequency_group').style.display = hasRecurring ? 'block' : 'none';
+        }
+      } catch (_) {}
+
+      updateFederalTaxVisibility();
+      goToStep(savedStep);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      loadAllDropdowns();
+      restoreSession();
+    });
 
     // ── Conditional field logic ──────────────────────────────────────────────
     // Step 1: country → state
@@ -1414,6 +1617,14 @@
     }
 
     // Step 2: marketing model → subscription_frequency
+    function saveMarketingModel() {
+      var checked = [];
+      document.querySelectorAll('[name="marketingModel[]"]').forEach(function (c) {
+        if (c.checked) checked.push(c.value);
+      });
+      if (appUUID) localStorage.setItem('emap_marketing_model', JSON.stringify(checked));
+    }
+
     document.querySelectorAll('[name="marketingModel[]"]').forEach(function (cb) {
       cb.addEventListener('change', function () {
         var hasRecurring = document.getElementById('mm2').checked || document.getElementById('mm3').checked;
@@ -1423,6 +1634,7 @@
           document.getElementById('subscription_frequency').value = '';
           document.getElementById('subscription_frequency_other_group').style.display = 'none';
         }
+        saveMarketingModel();
       });
     });
 
@@ -1464,18 +1676,65 @@
       if (!isCustom) inp.value = '';
     });
 
-    // Step 3: card percentage sum display
-    ['card_swiped', 'customer_entered', 'staff_entered'].forEach(function (id) {
-      document.getElementById(id).addEventListener('input', updatePctSum);
-    });
+    // Step 3: interlocked sliders — moving one redistributes remainder to the other two
+    var PCT_IDS = ['card_swiped', 'customer_entered', 'staff_entered'];
 
-    function updatePctSum() {
-      var total = ['card_swiped', 'customer_entered', 'staff_entered']
-        .reduce(function (sum, id) { return sum + (parseInt(document.getElementById(id).value, 10) || 0); }, 0);
+    function snap5(v) { return Math.round(v / 5) * 5; }
+
+    function syncSliders(changedId) {
+      var changed = parseInt(document.getElementById(changedId).value, 10);
+      var others = PCT_IDS.filter(function (id) { return id !== changedId; });
+      var remaining = 100 - changed;
+
+      var aEl = document.getElementById(others[0]);
+      var bEl = document.getElementById(others[1]);
+      var aVal = parseInt(aEl.value, 10);
+      var bVal = parseInt(bEl.value, 10);
+      var otherSum = aVal + bVal;
+
+      var newA, newB;
+      if (remaining < 0) {
+        // Changed slider pushed past 100 — clamp and zero others
+        changed = 100; remaining = 0;
+        document.getElementById(changedId).value = 100;
+        newA = 0; newB = 0;
+      } else if (otherSum === 0) {
+        // Split evenly
+        newA = snap5(remaining / 2);
+        newB = remaining - newA;
+      } else {
+        // Proportional split
+        newA = snap5(remaining * (aVal / otherSum));
+        newB = remaining - newA;
+      }
+
+      // Clamp to [0, 100]
+      newA = Math.max(0, Math.min(100, newA));
+      newB = Math.max(0, Math.min(100, newB));
+      // Ensure exact sum of 100
+      newB = remaining - newA;
+
+      aEl.value = newA;
+      bEl.value = newB;
+
+      PCT_IDS.forEach(function (id) {
+        var v = parseInt(document.getElementById(id).value, 10);
+        document.getElementById('val_' + id).textContent = v + '%';
+      });
+      var total = PCT_IDS.reduce(function (s, id) { return s + parseInt(document.getElementById(id).value, 10); }, 0);
       document.getElementById('pct_total').textContent = total;
-      var note = document.getElementById('pct_sum_note');
-      note.classList.toggle('error', total !== 100);
+      document.getElementById('pct_sum_note').classList.toggle('error', total !== 100);
     }
+
+    PCT_IDS.forEach(function (id) {
+      document.getElementById(id).addEventListener('input', function () { syncSliders(id); });
+    });
+    // initialise display without redistributing — just update labels
+    PCT_IDS.forEach(function (id) {
+      var v = parseInt(document.getElementById(id).value, 10);
+      document.getElementById('val_' + id).textContent = v + '%';
+    });
+    document.getElementById('pct_total').textContent = '100';
 
     // Step 4: primary_contact
     document.querySelectorAll('[name="primary_contact"]').forEach(function (r) {
@@ -1574,6 +1833,28 @@
       if (age < 18) return 'Owner must be at least 18 years old';
       if (age > 100) return 'Please enter a valid date of birth';
       return '';
+    }
+
+    // ── Step 4 nested-key helper ─────────────────────────────────────────────
+    // Laravel's data_get() splits on dots and traverses nested arrays.
+    // Field names like "phone.1" must be sent as {"phone": {"1": "..."}} so
+    // the validator can find them via data_get($data, 'phone.1').
+    function toNestedDot(flat) {
+      var result = {};
+      Object.keys(flat).forEach(function (key) {
+        var dot = key.indexOf('.');
+        if (dot !== -1) {
+          var base   = key.slice(0, dot);
+          var suffix = key.slice(dot + 1);
+          if (typeof result[base] !== 'object' || result[base] === null) {
+            result[base] = {};
+          }
+          result[base][suffix] = flat[key];
+        } else {
+          result[key] = flat[key];
+        }
+      });
+      return result;
     }
 
     // ── Step form submissions ────────────────────────────────────────────────
@@ -1708,20 +1989,103 @@
       clearStepErrors(this);
 
       var fd = new FormData(this);
-      var payload = { uuid: appUUID };
-      for (var pair of fd.entries()) payload[pair[0]] = pair[1];
+      var raw = {};
+      for (var pair of fd.entries()) raw[pair[0]] = pair[1];
 
-      // DOB validation
+      var isPrimaryContact = raw['primary_contact'] === '1';
+      var pct1 = parseInt(raw['ownership_percentage.1'], 10) || 0;
+      var hasOwner2 = pct1 > 0 && pct1 < 51;
+
+      // Build payload with only the fields the API expects
+      var payload = { uuid: appUUID };
+
+      // Common
+      payload['primary_contact'] = raw['primary_contact'];
+      if (!isPrimaryContact) {
+        // Applicant is a representative — send owner's identity so EMAP can verify
+        payload['primary_contact_job_title'] = (raw['primary_contact_job_title'] || '').trim();
+        payload['first_name.1'] = (raw['first_name.1'] || '').trim();
+        payload['last_name.1']  = (raw['last_name.1']  || '').trim();
+        payload['email.1']      = (raw['email.1']      || '').trim();
+      }
+      // When primary_contact=1, first_name/last_name/email must NOT be sent —
+      // EMAP uses the Step 1 contact data for the owner identity.
+
+      // Owner 1 — always required
+      payload['phone.1']               = (raw['phone.1'] || '').trim();
+      payload['title.1']               = raw['title.1'] || '';
+      payload['ssn.1']                 = (raw['ssn.1'] || '').trim();
+      payload['dob.1']                 = raw['dob.1'] || '';
+      payload['ownership_percentage.1'] = pct1;           // integer
+      payload['street_number.1']       = (raw['street_number.1'] || '').trim();
+      payload['street_address.1']      = (raw['street_address.1'] || '').trim();
+      payload['city.1']                = (raw['city.1'] || '').trim();
+      payload['state.1']               = (raw['state.1'] || '').trim();
+      payload['postal_code.1']         = (raw['postal_code.1'] || '').trim();
+      payload['country.1']             = raw['country.1'] || '';
+      payload['license.1']             = (raw['license.1'] || '').trim();
+      payload['bankruptcy_filed.1']    = raw['bankruptcy_filed.1'] || '0';
+
+      // US-only: driver license state + expiry
+      if (raw['country.1'] === 'US') {
+        payload['driver_license_state.1']           = raw['driver_license_state.1'] || '';
+        payload['driver_license_expiration_date.1'] = raw['driver_license_expiration_date.1'] || '';
+      }
+
+      // Bankruptcy cascade for Owner 1
+      if (raw['bankruptcy_filed.1'] === '1') {
+        payload['bankruptcy_discharged.1'] = raw['bankruptcy_discharged.1'] || '';
+        if (raw['bankruptcy_discharged.1'] === '1') {
+          payload['bankruptcy_discharged_date.1'] = raw['bankruptcy_discharged_date.1'] || '';
+        }
+      }
+
+      // Owner 2 — only when Owner 1 owns < 51%
+      if (hasOwner2) {
+        payload['first_name.2']          = (raw['first_name.2'] || '').trim();
+        payload['last_name.2']           = (raw['last_name.2']  || '').trim();
+        payload['email.2']               = (raw['email.2']      || '').trim();
+        payload['phone.2']               = (raw['phone.2']      || '').trim();
+        payload['title.2']               = raw['title.2'] || '';
+        payload['ssn.2']                 = (raw['ssn.2'] || '').trim();
+        payload['dob.2']                 = raw['dob.2'] || '';
+        payload['ownership_percentage.2'] = parseInt(raw['ownership_percentage.2'], 10) || 0;
+        payload['street_number.2']       = (raw['street_number.2'] || '').trim();
+        payload['street_address.2']      = (raw['street_address.2'] || '').trim();
+        payload['city.2']                = (raw['city.2'] || '').trim();
+        payload['state.2']               = (raw['state.2'] || '').trim();
+        payload['postal_code.2']         = (raw['postal_code.2'] || '').trim();
+        payload['country.2']             = raw['country.2'] || '';
+        payload['license.2']             = (raw['license.2'] || '').trim();
+        payload['bankruptcy_filed.2']    = raw['bankruptcy_filed.2'] || '0';
+
+        if (raw['country.2'] === 'US') {
+          payload['driver_license_state.2']           = raw['driver_license_state.2'] || '';
+          payload['driver_license_expiration_date.2'] = raw['driver_license_expiration_date.2'] || '';
+        }
+
+        if (raw['bankruptcy_filed.2'] === '1') {
+          payload['bankruptcy_discharged.2'] = raw['bankruptcy_discharged.2'] || '';
+          if (raw['bankruptcy_discharged.2'] === '1') {
+            payload['bankruptcy_discharged_date.2'] = raw['bankruptcy_discharged_date.2'] || '';
+          }
+        }
+      }
+
+      // DOB age validation (18–100)
       var dobErr1 = validateDOB(payload['dob.1']);
       if (dobErr1) { setError('dob_1', dobErr1); return; }
-      var pct1 = parseInt(payload['ownership_percentage.1'], 10) || 0;
-      if (pct1 < 51 && payload['dob.2']) {
+      if (hasOwner2 && payload['dob.2']) {
         var dobErr2 = validateDOB(payload['dob.2']);
         if (dobErr2) { setError('dob_2', dobErr2); return; }
       }
 
+      // Convert flat dot-keys to nested objects so Laravel's data_get() can find them.
+      // {"phone.1": "..."} → {"phone": {"1": "..."}}
+      var nestedPayload = toNestedDot(payload);
+
       var btn = document.getElementById('btn-step4');
-      var result = await submitStep(4, payload, btn, 'Continue — Banking →');
+      var result = await submitStep(4, nestedPayload, btn, 'Continue — Banking →');
       if (result && result.status !== false) goToStep(5);
     });
 
@@ -1745,7 +2109,7 @@
       clearStepErrors(this);
 
       if (!document.getElementById('terms_agreed').checked) {
-        setError('terms', 'You must accept the Terms and Conditions');
+        setError('terms_agreed', 'You must accept the Terms and Conditions');
         return;
       }
 
@@ -1767,6 +2131,8 @@
       if (result.status === true || result.uuid) {
         localStorage.removeItem('emap_uuid');
         localStorage.removeItem('emap_country');
+        localStorage.removeItem('emap_step');
+        localStorage.removeItem('emap_marketing_model');
         document.getElementById('form-step6').style.display = 'none';
         document.getElementById('progress-bar').style.display = 'none';
         document.getElementById('success-panel').style.display = 'block';

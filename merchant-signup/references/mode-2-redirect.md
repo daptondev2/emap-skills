@@ -69,7 +69,7 @@ function buildEmapRedirectUrl(fields, emapBaseUrl, partnerSecretKey) {
     annual_sales: fields.annualSales,
   };
 
-  if (fields.country === 'US' && fields.businessState) {
+  if (fields.businessState) {
     fieldMap.business_state = fields.businessState;
   }
 
@@ -206,7 +206,7 @@ function getTrackingParams() {
 ## Minimal example (from_lander only)
 
 ```
-https://app.easypaydirect.com/signup
+https://emap.epd.dev/signup
   ?first_name=Jane
   &last_name=Smith
   &company_name=Acme+Corp
@@ -222,14 +222,14 @@ in remaining fields (website, country, industry type, etc.) and submits manually
 ## Full auto-submit example
 
 ```
-https://app.easypaydirect.com/signup
+https://emap.epd.dev/signup
   ?first_name=Jane
   &last_name=Smith
   &company_name=Acme+Corp
   &email=jane%40acme.com
   &phone=%2B12025551234
   &website=https%3A%2F%2Facme.com
-  &country=US
+  &country=United+States
   &business_state=CA
   &annual_sales=500000
   &highest_transaction_amount=5000

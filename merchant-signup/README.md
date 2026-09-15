@@ -40,7 +40,7 @@ Set these in `.env` (never commit `.env` to git):
 
 | Variable | Required for | Description |
 |---|---|---|
-| `EMAP_BASE_URL` | All modes | EMAP host — `https://app.easypaydirect.com` (or staging URL from Easy Pay Direct) |
+| `EMAP_BASE_URL` | All modes | EMAP host — `https://emap.epd.dev` (or staging URL from Easy Pay Direct) |
 | `EMAP_PARTNER_KEY` | Integration 1, Integration 3 | Your partner `security_key` from EMAP — backend only, never in browser |
 | `EMAP_PARTNER_SECRET_KEY` | Integration 2 | Same `security_key` value — added to redirect URL server-side |
 

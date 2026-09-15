@@ -94,30 +94,6 @@
       margin-top: 4px;
     }
 
-    .terms-group {
-      margin: 20px 0;
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-    }
-
-    .terms-group input[type="checkbox"] {
-      width: 17px;
-      height: 17px;
-      flex-shrink: 0;
-      margin-top: 2px;
-      cursor: pointer;
-    }
-
-    .terms-group label {
-      font-size: .88rem;
-      font-weight: 400;
-      color: #4b5563;
-      cursor: pointer;
-    }
-
-    .terms-group a { color: #3b82f6; }
-
     button[type="submit"] {
       width: 100%;
       padding: 13px;
@@ -237,15 +213,6 @@
         <input id="promo_code" name="promo_code" type="text" maxlength="255" autocomplete="off">
       </div>
 
-      <div class="terms-group">
-        <input type="checkbox" id="terms_agreed" name="terms_agreed" required>
-        <label for="terms_agreed">
-          I agree to the
-          <a href="https://emap.epd.dev/terms" target="_blank" rel="noopener">Terms and Conditions</a>
-        </label>
-      </div>
-      <span class="field-error" id="err_terms" style="display:block;margin-top:-10px;margin-bottom:10px"></span>
-
       <button type="submit" id="submit-btn">Continue to Easy Pay Direct →</button>
     </form>
   </div>
@@ -283,7 +250,7 @@
         sel.innerHTML = '<option value="">Select country…</option>';
         list.forEach(function (c) {
           const o = document.createElement('option');
-          o.value = c.code; o.textContent = c.name;
+          o.value = c.name; o.dataset.code = c.code; o.textContent = c.name;
           sel.appendChild(o);
         });
       } catch (_) {
@@ -291,7 +258,7 @@
         sel.innerHTML = '<option value="">Select country…</option>';
         FALLBACK_COUNTRIES.forEach(function (c) {
           const o = document.createElement('option');
-          o.value = c.code; o.textContent = c.name;
+          o.value = c.name; o.dataset.code = c.code; o.textContent = c.name;
           sel.appendChild(o);
         });
       }
@@ -350,7 +317,7 @@
     document.getElementById('country').addEventListener('change', function () {
       const stateGroup = document.getElementById('state_group');
       const stateSelect = document.getElementById('business_state');
-      const isUS = this.value === 'US';
+      const isUS = this.options[this.selectedIndex]?.dataset.code === 'US';
       stateGroup.style.display = isUS ? 'block' : 'none';
       stateSelect.required = isUS;
       if (!isUS) stateSelect.value = '';
@@ -424,7 +391,9 @@
                                               errors.annual_sales = 'Annual sales must be at least 1';
       else if (sales > 999999999999)          errors.annual_sales = 'Annual sales value is too large';
 
-      if (data.country === 'US') {
+      const countryEl = document.getElementById('country');
+      const selectedCode = countryEl.options[countryEl.selectedIndex]?.dataset.code;
+      if (selectedCode === 'US') {
         if (!data.business_state)                            errors.business_state = 'State is required for US businesses';
         else if (!VALID_US_STATES.has(data.business_state)) errors.business_state = 'Must be a valid US state code';
       }
@@ -439,15 +408,10 @@
       // Honeypot check — silent rejection
       if (document.querySelector('[name="_hp"]').value) return;
 
-      if (!document.getElementById('terms_agreed').checked) {
-        setError('terms', 'You must agree to the Terms and Conditions');
-        return;
-      }
-
       const formData = new FormData(this);
       const data = {};
       for (const [key, value] of formData.entries()) {
-        if (key !== '_hp' && key !== 'terms_agreed') data[key] = value.trim();
+        if (key !== '_hp') data[key] = value.trim();
       }
 
       const errors = validateForm(data);

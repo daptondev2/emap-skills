@@ -15,7 +15,7 @@ Complete every item before going live. Items marked **[CRITICAL]** are blockers.
   ```
 
 - [ ] **[CRITICAL] `EMAP_BASE_URL` pinned to official host.**
-  Set to `https://app.easypaydirect.com` (or the staging URL from Easy Pay Direct).
+  Set to `https://emap.epd.dev` (or the staging URL from Easy Pay Direct).
   Never construct the URL from user-supplied input.
 
 ---
@@ -106,9 +106,6 @@ Complete every item before going live. Items marked **[CRITICAL]** are blockers.
 
 - [ ] **Generic user-facing error messages.** Map EMAP's internal errors to friendly messages
   in your backend. Never surface EMAP's raw error text to the merchant.
-
-- [ ] **Terms and Conditions consent.** Display a checkbox linking to EMAP's T&C. It must be
-  checked before the form can be submitted (validate both client-side and server-side).
 
 - [ ] **429 handling with backoff.** If EMAP returns 429, tell the merchant to wait before retrying.
   Implement exponential backoff on automated retries (if any).

@@ -1,5 +1,5 @@
 ---
-name: emap-partner-signup
+name: emap-merchant-signup
 description: >-
   Guides a developer building an EMAP partner merchant-signup form on their own
   website. Covers Integration 1 (full form — all 6 signup steps hosted on the
@@ -109,30 +109,29 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
 
 2. **Configure environment variables:**
    ```
-   EMAP_BASE_URL=https://app.easypaydirect.com
+   EMAP_BASE_URL=https://emap.epd.dev
    EMAP_PARTNER_KEY=your_key_here   # optional; enables partner attribution
    PORT=3000
    ```
 
 3. **Understand the step flow:**
-   - Step 1 (`POST /api/v1/signup`) returns a `uuid`. Store it in `sessionStorage('emap_uuid')`.
+   - Step 1 (`POST /api/v1/signup`) returns a `uuid`. Store it in `localStorage('emap_uuid')`.
    - Steps 2, 3, 5, 6 call `POST /api/v1/application/step` with the `uuid` and the appropriate `step_count`.
    - Step 4 calls `POST /api/v1/ownership` (no `step_count`; uses dot-notation field names).
-   - Step 6 success → clear `sessionStorage` and show a completion panel.
+   - Step 6 success → clear `localStorage` and show a completion panel.
 
 4. **Handle conditional fields:**
    - `country=US` → show `business_state` (step 1) and `state.1` (step 4).
-   - `business_organized` is LLC or corporation → show `federal_tax_id` (US) or `business_register_number` (CA).
-   - `physical_address_different=1` → show the physical address block (step 2).
-   - `marketing_model` includes 2 or 3 → show `subscription_frequency`; if frequency=3 show `subscription_frequency_other` (step 3).
-   - `fulfillment_by` is vendor or others → show `fullfillment_company` (double-l, step 3).
-   - `shopping_cart=other` → show `shopping_cart_other` (step 3).
-   - `primary_contact=0` → show primary contact name/email/title fields (step 3).
+   - `business_organized` is not `sole-proprietorship` and `emap_country` (Step 1) ≠ `CA` → show `federal_tax_id` (step 2).
+   - `emap_country` (Step 1) ≠ `US` → show `business_register_number` (step 2).
+   - `is_physical_address_same_as_legal_address=0` → show the physical address block (step 2).
+   - `marketingModel` includes `2` → show `subscription_frequency`; if frequency=`3` show `subscription_frequency_other` (step 2).
+   - `fulfillment_by` is `Vendor` or `Others` → show `fullfillment_company` (double-l, step 3).
+   - `primary_contact=0` → show `first_name.1`, `last_name.1`, `email.1`, `primary_contact_job_title` (step 4).
    - `ownership_percentage.1 < 51` → show Owner 2 section (step 4).
-   - `country.1=CA` → show `institution_number` + `customer_pay_currency` (step 5).
-   - `current_processing=1` → show `processor_name` (step 5).
-   - `bad_experience=1` → show `bad_experience_happened` (step 5).
-   - `howdidyouhear` contains "other", "friend", or "referral" → show `hear_about_us_other` (step 6).
+   - `country.1=US` → show `driver_license_state.1` and `driver_license_expiration_date.1` (step 4).
+   - `emap_country` (Step 1) = `CA` → show `institution_number` + `customer_pay_currency` (step 5).
+   - `bad_experience=true` → show `bad_experience_happened` (step 6).
 
 5. **Card percentage (step 3):** `card_swiped + customer_entered + staff_entered` must equal 100.
    Validate client-side and block submission if not.
@@ -175,7 +174,7 @@ Read [`references/mode-2-redirect.md`](references/mode-2-redirect.md) before pro
 
 3. **Configure environment variables:**
    ```
-   EMAP_BASE_URL=https://app.easypaydirect.com
+   EMAP_BASE_URL=https://emap.epd.dev
    EMAP_PARTNER_SECRET_KEY=your_key_here   # optional; enables partner attribution
    ```
 
@@ -213,7 +212,7 @@ Read [`references/mode-3-api.md`](references/mode-3-api.md) before proceeding.
 
 3. **Configure environment variables:**
    ```
-   EMAP_BASE_URL=https://app.easypaydirect.com
+   EMAP_BASE_URL=https://emap.epd.dev
    EMAP_PARTNER_KEY=your_key_here   # never commit this
    ```
 
@@ -268,7 +267,6 @@ Quick self-check:
 - [ ] Backend validation before forwarding to EMAP.
 - [ ] Submit button disabled on first click (double-submit prevention).
 - [ ] Generic user-facing errors — do not expose EMAP's raw error messages.
-- [ ] Terms and Conditions checkbox visible and required before submission.
 
 ---
 

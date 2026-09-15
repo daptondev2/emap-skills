@@ -59,18 +59,6 @@
 
     .field-error { display: block; color: #ef4444; font-size: .8rem; margin-top: 4px; }
 
-    .terms-group {
-      margin: 20px 0;
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-    }
-    .terms-group input[type="checkbox"] {
-      width: 17px; height: 17px; flex-shrink: 0; margin-top: 2px; cursor: pointer;
-    }
-    .terms-group label { font-size: .88rem; font-weight: 400; color: #4b5563; cursor: pointer; }
-    .terms-group a { color: #3b82f6; }
-
     button[type="submit"] {
       width: 100%;
       padding: 13px;
@@ -214,15 +202,6 @@
         <input id="promo_code" name="promo_code" type="text" maxlength="255" autocomplete="off">
       </div>
 
-      <div class="terms-group">
-        <input type="checkbox" id="terms_agreed" name="terms_agreed">
-        <label for="terms_agreed">
-          I agree to the
-          <a href="https://emap.epd.dev/terms" target="_blank" rel="noopener">Terms and Conditions</a>
-        </label>
-      </div>
-      <span class="field-error" id="err_terms" style="display:block;margin-top:-10px;margin-bottom:10px"></span>
-
       <button type="submit" id="submit-btn">Submit Application</button>
     </form>
   </div>
@@ -338,15 +317,10 @@
       // Honeypot check — silent rejection
       if (document.querySelector('[name="_hp"]').value) return;
 
-      if (!document.getElementById('terms_agreed').checked) {
-        setError('terms', 'You must agree to the Terms and Conditions');
-        return;
-      }
-
       const formData = new FormData(this);
       const data = {};
       for (const [key, value] of formData.entries()) {
-        if (key !== '_hp' && key !== 'terms_agreed') data[key] = value.trim();
+        if (key !== '_hp') data[key] = value.trim();
       }
 
       // Client-side pre-validation
