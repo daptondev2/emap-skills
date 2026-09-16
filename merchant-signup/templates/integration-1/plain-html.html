@@ -355,8 +355,8 @@
       </div>
 
       <div class="form-group" id="federal_tax_id_group">
-        <label for="federal_tax_id">Federal Tax ID <span class="required">*</span> <span class="hint">(EIN)</span></label>
-        <input id="federal_tax_id" name="federal_tax_id" type="text" maxlength="20" placeholder="XX-XXXXXXX" autocomplete="off">
+        <label for="federal_tax_id" id="federal_tax_id_label">Federal Tax ID <span class="required">*</span> <span class="hint" id="federal_tax_id_hint">(EIN)</span></label>
+        <input id="federal_tax_id" name="federal_tax_id" type="text" maxlength="30" placeholder="XX-XXXXXXX" autocomplete="off">
         <span class="field-error" id="err_federal_tax_id"></span>
       </div>
 
@@ -1671,13 +1671,28 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
     function updateFederalTaxVisibility() {
       var org = document.getElementById('business_organized').value;
       var country = document.getElementById('address_country').value || step1Country;
+      var isUS = country === 'US' || country === '';
       var isCA = country === 'CA';
       var isSoleProp = org === 'Sole-Proprietorship';
       var taxGrp = document.getElementById('federal_tax_id_group');
       var regGrp = document.getElementById('business_register_number_group');
-      // Hide EIN for CA sole props; show BRN for non-US
-      taxGrp.style.display = (isCA && isSoleProp) ? 'none' : 'block';
-      regGrp.style.display = (country && country !== 'US') ? 'block' : 'none';
+      // EMAP requires federal_tax_id for all non-CA, non-sole-prop companies
+      taxGrp.style.display = (isCA || isSoleProp) ? 'none' : 'block';
+      regGrp.style.display = (!isUS) ? 'block' : 'none';
+
+      // Update EIN label and placeholder based on country
+      var lbl = document.getElementById('federal_tax_id_label');
+      var hint = document.getElementById('federal_tax_id_hint');
+      var inp = document.getElementById('federal_tax_id');
+      if (lbl && hint && inp) {
+        if (isUS) {
+          hint.textContent = '(EIN)';
+          inp.placeholder = 'XX-XXXXXXX';
+        } else {
+          hint.textContent = '(EIN or equivalent Tax ID for your country)';
+          inp.placeholder = 'Your country\'s business tax ID';
+        }
+      }
     }
 
     // Step 2: marketing model → subscription_frequency
@@ -2049,15 +2064,17 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         delete payload['marketingModel[]'];
       }
 
-      // EIN format validation (skipped if group is hidden — e.g. CA sole props)
+      // EIN / Tax ID validation (field hidden for CA and sole-props)
       var einGrp = document.getElementById('federal_tax_id_group');
       var einVal = (payload.federal_tax_id || '').trim();
-      if (einGrp && einGrp.style.display !== 'none') {
+      var einCountry = (document.getElementById('address_country').value || step1Country || '').toUpperCase();
+      if (einGrp && window.getComputedStyle(einGrp).display !== 'none') {
         if (!einVal) {
-          setError('federal_tax_id', 'Federal Tax ID (EIN) is required');
+          setError('federal_tax_id', 'Tax ID is required');
           return;
         }
-        if (!/^\d{2}-\d{7}$/.test(einVal)) {
+        // EIN format check only for US companies
+        if ((einCountry === 'US' || einCountry === '') && !/^\d{2}-\d{7}$/.test(einVal)) {
           setError('federal_tax_id', 'EIN must be in the format XX-XXXXXXX (e.g. 12-3456789)');
           return;
         }
@@ -2187,25 +2204,29 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         if (dobErr2) { setError('dob_2', dobErr2); return; }
       }
 
-      // SSN format validation (XXX-XX-XXXX)
+      // SSN / Tax ID validation — format depends on country
       var SSN_RE = /^\d{3}-\d{2}-\d{4}$/;
+      var ssnCountry = (step1Country || '').toUpperCase();
+      var ssnRequiresFormat = ssnCountry === 'US' || ssnCountry === 'CA';
+      var ssnLabel = ssnRequiresFormat ? 'SSN / SIN' : 'Tax ID / Gov ID';
+
       var ssn1Val = (raw['ssn.1'] || '').trim();
       if (!ssn1Val) {
-        setError('ssn_1', 'SSN / Tax ID is required');
+        setError('ssn_1', ssnLabel + ' is required');
         return;
       }
-      if (!SSN_RE.test(ssn1Val)) {
-        setError('ssn_1', 'SSN must be in the format XXX-XX-XXXX (e.g. 123-45-6789)');
+      if (ssnRequiresFormat && !SSN_RE.test(ssn1Val)) {
+        setError('ssn_1', 'SSN / SIN must be in the format XXX-XX-XXXX (e.g. 123-45-6789)');
         return;
       }
       if (hasOwner2) {
         var ssn2Val = (raw['ssn.2'] || '').trim();
         if (!ssn2Val) {
-          setError('ssn_2', 'SSN / Tax ID is required');
+          setError('ssn_2', ssnLabel + ' is required');
           return;
         }
-        if (!SSN_RE.test(ssn2Val)) {
-          setError('ssn_2', 'SSN must be in the format XXX-XX-XXXX (e.g. 123-45-6789)');
+        if (ssnRequiresFormat && !SSN_RE.test(ssn2Val)) {
+          setError('ssn_2', 'SSN / SIN must be in the format XXX-XX-XXXX (e.g. 123-45-6789)');
           return;
         }
       }

@@ -1,163 +1,192 @@
-# EMAP Merchant Signup Integration
+# EMAP Merchant Signup Skill
 
-A drop-in integration kit for embedding Easy Pay Direct (EMAP) merchant onboarding into your website or application. Merchants submit their business details through your interface; EMAP handles underwriting, e-signature, and account provisioning.
+## What is this?
+
+[Easy Pay Direct (EMAP)](https://easypaydirect.com) is a payment processing platform for high-risk and e-commerce merchants. As an **EMAP partner**, you earn residual commissions every month for every merchant you refer — for the lifetime of their account.
+
+This skill gives you everything you need to **embed a merchant signup form on your own website**, so merchants can apply directly through your site. When they're approved and start processing payments, EMAP pays you a commission automatically.
+
+You don't need to handle any payment processing yourself. You just embed the form, send traffic to it, and earn.
 
 ---
 
-## Integration modes
+## How it works
 
-| Mode | Description | Backend required |
+1. A merchant visits your website and fills in their business details through your branded signup form.
+2. Their application is submitted to Easy Pay Direct.
+3. Easy Pay Direct reviews and approves the merchant.
+4. The merchant starts processing credit cards through EMAP.
+5. **You receive a monthly residual commission** for as long as they're a customer.
+
+---
+
+## Before you start
+
+### Step 1 — Become an EMAP partner
+
+If you're not already a partner, sign up at:
+**https://emap.easypaydirect.com/signup/partner**
+
+Once registered, log in to the partner portal and navigate to:
+**Integration → API Integration**
+
+Copy your **Partner API Key** — you'll need it to link signups to your account.
+
+> Without a partner key, the signup form still works but applications won't be attributed to you. You won't earn commissions on unattributed signups.
+
+### Step 2 — Choose how you want to embed the form
+
+There are three ways to integrate, depending on how your website is built:
+
+| Option | Best for | Requires |
 |---|---|---|
-| **1 — Full Form** | You host all 6 signup steps; your server proxies each submission to the EMAP API. Merchants never leave your domain. | Yes |
-| **2 — Redirect Handoff** | You collect step-1 fields; on submit the browser redirects to EMAP's `/signup` with data pre-filled as URL parameters. | No |
-| **3 — Email Signup** | You collect step-1 fields; your server POSTs to the EMAP API and EMAP emails the merchant a secure link to complete their application. | Yes |
+| **Full Form (Integration 1)** | Full branding control — merchant stays on your site for all 6 steps | A backend server (PHP, Node.js, etc.) |
+| **Redirect (Integration 2)** | Static sites or quick setup — merchant is sent to EMAP to finish | Nothing — just HTML |
+| **Email Signup (Integration 3)** | You collect their info, EMAP emails them a link to finish | A backend server |
+
+**Not sure which to pick?**
+- Static website (Webflow, Squarespace, no backend) → use **Integration 2**
+- WordPress, custom PHP, Node.js, or any server → use **Integration 3** (easiest with a backend) or **Integration 1** (most control)
 
 ---
 
-## Quickstart
+## Installation
 
-### 1. Get your credentials
+### Option A — Use with an AI coding assistant (recommended)
 
-Contact Easy Pay Direct to receive:
-- Your `EMAP_BASE_URL` (production or staging)
-- Your `EMAP_PARTNER_KEY` (backend only — never expose to browsers)
+This skill is designed to be used with an AI coding assistant (Claude, Copilot, Cursor, Gemini, etc.). Load the skill file and ask the assistant to build the form for you.
 
-### 2. Pick a template
+**Step 1: Download or clone this skill**
+```bash
+git clone https://github.com/your-org/emap-signup-skill.git
+# or download the zip and extract it
+```
+
+**Step 2: Tell your AI assistant to load the skill**
+
+In your AI assistant chat, say:
+> "Load the skill at `signup-skills/merchant-signup/SKILL.md` and build me an EMAP partner signup form for my [PHP / Node.js / static HTML] project. My partner key is `YOUR_PARTNER_KEY_HERE`."
+
+The assistant will ask you a few questions and then generate the complete signup form for your tech stack.
+
+**Step 3: Add your environment variables**
+
+Create a `.env` file in your project (never commit this to git):
+```
+EMAP_BASE_URL=https://emap.epd.dev
+EMAP_PARTNER_KEY=your_partner_key_here
+```
+
+**Step 4: Deploy and test**
+
+Submit a test application using the staging URL from Easy Pay Direct, then go live.
+
+---
+
+### Option B — Copy a ready-made template
+
+If you'd rather skip the AI assistant, grab a template directly:
 
 ```
 templates/
-  integration-1/
-    plain-html.html     — 6-step form (copy and style)
-    php-vanilla.php     — PHP backend: serves form + proxies all 6 steps
-    node-express.js     — Express.js backend
-    nextjs-route.ts     — Next.js App Router route handlers
-  integration-2/
-    plain-html.html     — Standalone HTML, no backend needed
-    php-vanilla.php     — PHP: renders form + builds redirect server-side
-    node-express.js     — Express.js variant
-    nextjs-route.ts     — Next.js variant
-  integration-3/
-    plain-html.html     — Single-step HTML form
-    php-vanilla.php     — PHP backend: form + EMAP API proxy in one file
-    node-express.js     — Express.js backend
-    nextjs-route.ts     — Next.js API route (TypeScript)
+  integration-1/        ← Full 6-step form on your site
+    plain-html.html     → Copy this HTML file and style it
+    php-vanilla.php     → Drop-in PHP backend (no framework needed)
+    node-express.js     → Express.js backend
+    nextjs-route.ts     → Next.js App Router
+
+  integration-2/        ← Redirect to EMAP after step 1
+    plain-html.html     → Self-contained HTML, no backend needed
+    php-vanilla.php     → PHP variant
+    node-express.js     → Express.js variant
+
+  integration-3/        ← Email link sent to merchant after step 1
+    plain-html.html     → HTML form
+    php-vanilla.php     → Drop-in PHP backend
+    node-express.js     → Express.js backend
+    nextjs-route.ts     → Next.js App Router
 ```
 
-### 3. Set environment variables
-
-```bash
-EMAP_BASE_URL=https://emap.epd.dev       # provided by Easy Pay Direct
-EMAP_PARTNER_KEY=your_key_here           # backend only, never in browser code
-```
-
-### 4. Drop the template into your project
-
-Each template is self-contained. Copy the file(s) into your project, set the environment variables, and the integration is live.
+Open the template for your integration mode and tech stack. Follow the comments at the top of the file — they explain exactly what environment variables to set and how to deploy.
 
 ---
 
-## Choosing a mode
+## What the merchant sees
 
-**Integration 1** — Full control. The merchant stays on your domain for all 6 steps. Requires a backend to proxy each step to EMAP. Best for partners who want full branding ownership and access to all application data as it's collected.
+### Integration 1 — Full 6-step form
+The merchant completes their entire application on **your website**:
 
-**Integration 2** — Zero backend. A static HTML form sends the merchant to EMAP's hosted signup page with their details pre-filled. Suitable for Webflow, WordPress, or any environment with no server-side code. Step-1 PII will appear briefly in the redirect URL.
+1. **Step 1 — Business Basics** — name, email, phone, company, website, country, annual sales, industry
+2. **Step 2 — Company Info** — legal structure, address, EIN, revenue model
+3. **Step 3 — Products** — fulfillment method, shopping cart, transaction amounts, product description
+4. **Step 4 — Owners** — owner identity, SSN/SIN (or equivalent), date of birth, ownership percentage
+5. **Step 5 — Banking** — routing number, account number (labels adapt to the merchant's country)
+6. **Step 6 — Final Details** — referral source, terms acceptance
 
-**Integration 3** — Clean handoff. Your form POSTs to your server, which calls the EMAP API and returns a UUID. EMAP emails the merchant a secure link to complete their application from step 2 onward. Good middle ground: you control the first impression, EMAP handles the rest.
+At the end, they see a confirmation panel with a reference number and you receive attribution in your EMAP partner account.
+
+### Integration 2 — Quick redirect
+The merchant fills in step-1 details on your site, then clicks **Continue**. They're redirected to EMAP's secure onboarding to complete the rest. Takes about 2 minutes to set up.
+
+### Integration 3 — Email link
+The merchant fills in step-1 details on your site and clicks **Send Signup Link**. They receive an email from EMAP with a secure link to complete the rest of their application at their convenience.
 
 ---
 
-## API overview
+## Country support
 
-All backend modes proxy to these EMAP endpoints:
+The form supports merchants from any country. Fields and labels automatically adapt:
 
-| Step | EMAP endpoint | Key fields |
-|---|---|---|
-| 1 — Business basics | `POST /api/v1/signup` | `first_name`, `last_name`, `email`, `phone`, `name`, `website`, `country`, `annual_sales` |
-| 2 — Company info | `POST /api/v1/application/step` | `step_count=2`, `uuid`, legal address, EIN, revenue model |
-| 3 — Products | `POST /api/v1/application/step` | `step_count=3`, processing percentages, fulfillment, refund policy |
-| 4 — Ownership | `POST /api/v1/ownership` | `uuid`, owner SSN/SIN, DOB, ownership percentage |
-| 5 — Banking | `POST /api/v1/application/step` | `step_count=5`, `uuid`, routing/account numbers |
-| 6 — Final details | `POST /api/v1/application/step` | `step_count=6`, `uuid`, referral source, T&C acceptance |
+| Country | SSN field label | Routing number label | Account number label |
+|---|---|---|---|
+| United States | SSN / SIN | Routing Number | Account Number |
+| Canada | SSN / SIN | Transit Number / Routing Number | Account Number |
+| Australia | Personal Tax ID | BSB Code | Account Number |
+| United Kingdom | Personal Tax ID | Sort Code | Account Number |
+| Other countries | Personal Tax ID / Gov ID | BIC Code / SWIFT Code | IBAN / Account Number |
 
-Step-1 success returns `{ "status": true, "uuid": "..." }`. Store the `uuid` in session — every subsequent step requires it.
+---
 
-### Dropdown data endpoints
+## Earning commissions
 
-Populate selects from these EMAP GET endpoints (results are cacheable):
+Once a merchant you referred is approved:
+- EMAP pays you a **monthly residual** on their processing volume
+- Commissions are tracked in your EMAP partner portal
+- You can view your referrals, their status, and your earnings at any time
 
-| Data | Endpoint |
+The more merchants you refer, the more you earn — and commissions are paid for the lifetime of each merchant account.
+
+Log in to the partner portal to see your dashboard:
+**https://emap.easypaydirect.com/login/partner**
+
+---
+
+## Testing
+
+Before going live, test with EMAP's staging environment:
+
+1. Get the staging URL from Easy Pay Direct (ask your partner manager or email newclients@easypaydirect.com)
+2. Set `EMAP_BASE_URL` in your `.env` to the staging URL
+3. Submit a test application with fake data
+4. Confirm you see the success screen (Integration 1) or receive the email (Integration 3)
+5. Check your partner portal to confirm the test application appears under your account
+
+---
+
+## Getting your partner key
+
+| Where to get it | Steps |
 |---|---|
-| Countries | `GET /api/partner/countries` |
-| US states | `GET /api/partner/states` |
-| Industry types | `GET /api/partner/industry-types` |
-| Shopping carts | `GET /api/partner/shopping-carts` |
-| Referral sources | `GET /api/partner/referral-sources` |
-| Interest details | `GET /api/partner/interest-details` |
-
-Country options return ISO 3166-1 alpha-2 codes as values (`US`, `CA`, `GB`, `AU`). Industry-type values are slugs (e.g. `Retail(eCommerce)-Other`) — use the API value as-is for submission.
-
----
-
-## Country-dependent field labels
-
-Three fields on Steps 4 and 5 change label and hint text based on the country selected in Step 1:
-
-| Field | US / CA | AU | GB | Other |
-|---|---|---|---|---|
-| SSN field | SSN / SIN | Personal Tax ID | Personal Tax ID | Personal Tax ID / Gov ID |
-| Routing number | Routing Number / Transit Number | BSB Code | Sort Code | BIC / SWIFT / Routing Number |
-| Account number | Account Number | Account Number | Account Number | IBAN / Account Number |
-
-The `plain-html.html` templates handle this automatically via a `updateCountryLabels(country)` function called on country change and on step navigation.
-
----
-
-## Security checklist
-
-- Store `EMAP_PARTNER_KEY` server-side only. It must never appear in browser-rendered HTML or JavaScript.
-- Integration 1 and 3 backends validate CSRF tokens on every POST (PHP template uses `$_SESSION['csrf_token']`).
-- All curl calls to EMAP enforce `CURLOPT_SSL_VERIFYPEER = true` and `CURLOPT_SSL_VERIFYHOST = 2`.
-- Honeypot field (`_hp`) silently discards bot submissions without revealing the check.
-- Integration 2 sends PII in URL parameters — acceptable for low-risk flows, but consider Integration 3 if you need to keep data off the URL.
-- Never log full request bodies — they contain SSNs and routing numbers.
-
----
-
-## Field reference
-
-See [`references/field-catalog.md`](references/field-catalog.md) for the complete field list, types, validation rules, and which steps each field belongs to.
-
-For integration-specific deep dives:
-- [`references/mode-1-fullform.md`](references/mode-1-fullform.md) — all 6 steps, conditional logic, session handling
-- [`references/mode-2-redirect.md`](references/mode-2-redirect.md) — URL parameter encoding, auto-submit behavior
-- [`references/mode-3-api.md`](references/mode-3-api.md) — API call shape, success/error handling, resend link
-- [`references/api-errors.md`](references/api-errors.md) — error shapes, status codes, retry guidance
-- [`references/security-checklist.md`](references/security-checklist.md) — pre-launch checklist
-
----
-
-## Testing locally
-
-A self-contained test harness is included in `skill-test/` (sibling directory):
-
-```bash
-# Requires PHP 7.4+ with curl extension and a local EMAP instance on port 8000
-php -S 127.0.0.1:3002 -t skill-test/ skill-test/router.php
-```
-
-Then open `http://127.0.0.1:3002` in your browser and select a mode to test.
-
-The harness routes:
-- `GET /api/*` → EMAP dropdown proxy
-- `POST /api/step/N` → EMAP step endpoint (no CSRF required in test mode)
-- `/int1.php`, `/int2.php`, `/int3.php` → individual integration wrappers
-
-Set `EMAP_BASE_URL` in `router.php` to point to your local EMAP instance.
+| Already registered | Log in → Integration → API Integration → copy the key |
+| Not yet a partner | Sign up at https://emap.easypaydirect.com/signup/partner, then follow the steps above |
+| Lost your key | Log in → Integration → API Integration (the key is always visible there) |
 
 ---
 
 ## Support
 
-Contact Easy Pay Direct for partner credentials, staging access, or integration questions:
-- Email: newclients@easypaydirect.com
-- Phone: +1 (800) 805-4949
+- **Partner portal:** https://emap.easypaydirect.com/login/partner
+- **Email:** newclients@easypaydirect.com
+- **Phone:** +1 (800) 805-4949
+
+For technical questions about this integration skill, open an issue in this repository.
