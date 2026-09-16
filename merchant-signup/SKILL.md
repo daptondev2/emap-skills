@@ -1,7 +1,7 @@
 ---
 name: emap-merchant-signup
 description: >-
-  Guides a developer building an EMAP partner merchant-signup form on their own
+  Guides a partner building an EMAP merchant-signup form on their own
   website. Covers Integration 1 (full form — all 6 signup steps hosted on the
   partner site, each step proxied to EMAP's API), Integration 2 (redirect
   handoff — browser redirects to EMAP with step-1 data in URL params, EMAP
