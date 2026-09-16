@@ -21,7 +21,7 @@ Complete field reference for Integration 2 (redirect) and Integration 3 (API sub
 | Country | `country` | `country` | Required | **Int 2:** full country name, e.g. `United States`, `Canada` — use the `name` field from `/api/partner/countries`. **Int 3:** 2-char ISO code, e.g. `US`, `CA` | Value format differs between modes |
 | Annual Sales | `annual_sales` | `annual_sales` | Required | integer, min 1, max 999,999,999,999 | In USD |
 | Business State | `business_state` | `business_state` | When US | 2-char US state code (see list below) | Required when country = United States (Int 2) or `US` (Int 3) |
-| Industry Type | `industry_type` | `industry_type` | Required | **Int 2:** full industry name, e.g. `E-Commerce` — use the `name` field from `/api/partner/industry-types`. **Int 3:** slug, e.g. `e-commerce` — use the `slug` field | Value format differs between modes |
+| Industry Type | `industry_type` | `industry_type` | Required | **Int 1:** slug, e.g. `e-commerce` — use the `slug` field from `/api/partner/industry-types`. **Int 2:** full industry name, e.g. `E-Commerce` — use the `name` field. **Int 3:** slug, e.g. `e-commerce` — use the `slug` field | Value format differs between modes |
 | Industry Type Other | `industry_type_other` | `industry_type_other` | Conditional | string, max 255 chars | Required when `industry_type` = "Other" (Int 2) or `other` (Int 3) |
 | Promo Code | `promo_code` | `promo_code` | Optional | string, max 255 chars | Referral / promo code |
 

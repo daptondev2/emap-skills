@@ -38,6 +38,8 @@ The `uuid` returned by Step 1 must be included in every subsequent request.
   "country":    "US",
   "annual_sales": 500000,
   "business_state": "CA",
+  "industry_type": "e-commerce",
+  "industry_type_other": "",
   "promo_code": "PARTNER20",
   "partner_key": "YOUR_EMAP_PARTNER_KEY"
 }
@@ -232,7 +234,7 @@ On Step 6 success, EMAP finalises the application. Clear `localStorage` keys and
 |---|---|---|
 | `GET /api/partner/countries` | Step 1, Step 2 (address), Step 4 (owner address) | `{ data: [ { id, name, code } ] }` |
 | `GET /api/partner/states` | Step 1, Step 2, Step 4 | `{ data: [ { id, name, code } ] }` |
-| `GET /api/partner/industry-types` | Step 2 | `{ data: [ { id, name, slug } ] }` |
+| `GET /api/partner/industry-types` | Step 1 | `{ data: [ { id, name, slug } ] }` |
 | `GET /api/partner/interest-details` | Step 6 (`other_interests_capital`) | `{ data: [ { id, name, slug, group_name } ] }` |
 | `GET /api/partner/shopping-carts` | Step 3 | `{ data: [ { id, name, slug } ] }` |
 | `GET /api/partner/referral-sources` | Step 6 | `{ data: [ { id, name, slug } ] }` |

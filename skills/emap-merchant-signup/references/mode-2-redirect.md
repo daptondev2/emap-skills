@@ -196,7 +196,7 @@ https://emap.epd.dev/signup
   &country=United+States
   &business_state=CA
   &annual_sales=500000
-  &industry_type=e-commerce
+  &industry_type=E-Commerce
   &promo_code=PARTNER10
   &secretKey=YOUR_PARTNER_KEY
 ```
