@@ -1,8 +1,8 @@
-# EMAP Merchant Signup Skill
+# Easy Pay Direct Merchant Signup Skill
 
 ## What is this skill used for?
 
-This skill is for **partners** who want to earn commission by referring merchants to [Easy Pay Direct (EMAP)](https://easypaydirect.com). Give it to your AI coding assistant and it builds a merchant signup form that you embed on your own website — in whichever of three ways fits your site (full form, redirect handoff, or email-based signup). Every merchant who signs up through your form is attributed to you via your partner key, so the signups you drive earn you a monthly residual commission for the lifetime of their account.
+This skill is for **partners** who want to earn commission by referring merchants to [Easy Pay Direct](https://easypaydirect.com). Give it to your AI coding assistant and it builds a merchant signup form that you embed on your own website — in whichever of three ways fits your site (full form, redirect handoff, or email-based signup). Every merchant who signs up through your form is attributed to you via your partner key, so the signups you drive earn you a monthly residual commission for the lifetime of their account.
 
 You don't need to handle any payment processing yourself. You just embed the form, send traffic to it, and earn.
 
@@ -10,7 +10,7 @@ You don't need to handle any payment processing yourself. You just embed the for
 
 **What you'll need**
 
-- **A partner API key (optional)**, from the [EMAP partner portal](https://emap.easypaydirect.com/signup/partner). It's what attributes signups to you for commission.
+- **A partner API key (optional)**, from the [Easy Pay Direct partner portal](https://emap.easypaydirect.com/signup/partner). It's what attributes signups to you for commission.
 - **An AI coding assistant** (Claude Code, Cursor, etc.). This is what actually builds the form from the skill. App builders like Replit, v0, etc. work too, as long as you can give them the `SKILL.md` contents to build from.
 - **Node.js**, only for the `npx` install method below; not needed if you copy the skill manually. Get it at [nodejs.org](https://nodejs.org).
 
@@ -53,9 +53,9 @@ Before it writes any code, the skill stops and asks:
 
 1. **Which integration variant?** Asked in plain language, with exactly three options:
 
-   1. **Full form** — the merchant fills out their entire application on your website, from start to finish. They never have to leave your site. Requires a backend.
-   2. **Redirect handoff** — the merchant only enters their basic contact info on your website. As soon as they submit that, they're automatically taken to EMAP's own website to finish the rest of their application there. No backend required.
-   3. **Email-based signup** — the merchant enters their basic contact info on your website, and instead of being redirected, they get an email with a secure link to continue on EMAP whenever they're ready. Requires a backend.
+   1. **Full form** — the merchant fills out their entire application on your website, from start to finish. They never have to leave your site.
+   2. **Redirect handoff** — the merchant only enters their basic contact info on your website. As soon as they submit that, they're automatically taken to Easy Pay Direct's own website to finish the rest of their application there.
+   3. **Email-based signup** — the merchant enters their basic contact info on your website, and instead of being redirected, they get an email with a secure link to continue on Easy Pay Direct whenever they're ready.
 
 2. **Do you have a partner API key?** Determines whether `partner_key` gets sent with the signup request, so the merchant is attributed to you. You can provide a key, sign up for one, or skip and proceed without attribution.
 
