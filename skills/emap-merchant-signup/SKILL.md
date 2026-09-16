@@ -28,6 +28,7 @@ with Integration 1, the partner hosts all 6 steps themselves.
 - [Build Integration 2: Redirect handoff](#build-integration-2-redirect-handoff)
 - [Build Integration 3: Email-based signup](#build-integration-3-email-based-signup)
 - [Integration 3: Resume link](#integration-3-resume-link)
+- [Verify loop: schema conformance](#verify-loop-schema-conformance) ← **run before calling any build done**
 - [Verify: security and coverage](#verify-security-and-coverage)
 - [Guardrails](#guardrails)
 
@@ -74,12 +75,14 @@ Load a reference only when implementing that feature — do not read all upfront
 
 | File | Read it when… |
 |---|---|
-| [`references/field-catalog.md`](references/field-catalog.md) | building the form — complete field list, types, constraints, and which fields trigger auto-submit |
-| [`references/mode-1-fullform.md`](references/mode-1-fullform.md) | implementing Integration 1 — all 6-step API contracts, field rules, UUID lifecycle, conditional logic |
+| [`signup-steps-schema.json`](signup-steps-schema.json) | **building or verifying ANY form (all 3 integrations)** — the authoritative, machine-readable source for every field's widget `type` (`select`/`radio`/`checkbox-group`/`text`/etc.), option labels (`staticDropdowns`), dynamic dropdown endpoints, and per-country validation (`countryVariants`). **Never infer a widget type or a hardcoded field's option labels from field name or from a markdown table — always resolve them from this file.** |
+| [`references/field-catalog.md`](references/field-catalog.md) | building **Integration 2 or 3** — complete field list, types, constraints, and which fields trigger auto-submit. **Not applicable to Integration 1** — its country/industry value formats differ; use `mode-1-fullform.md` and the schema above instead. |
+| [`references/mode-1-fullform.md`](references/mode-1-fullform.md) | implementing Integration 1 — all 6-step API contracts, field rules, UUID lifecycle, conditional logic. This file documents API payload/value rules only — it does **not** tell you which HTML widget to render or which validation is per-country; get that from `signup-steps-schema.json`. |
 | [`references/mode-2-redirect.md`](references/mode-2-redirect.md) | implementing Integration 2 — URL construction, auto-submit logic, partner attribution, UTM pass-through |
 | [`references/mode-3-api.md`](references/mode-3-api.md) | implementing Integration 3 — email-based signup API contract, request/response shapes, resume link, error handling |
 | [`references/api-errors.md`](references/api-errors.md) | handling errors — all HTTP status codes, response shapes, and recommended developer actions |
 | [`references/security-checklist.md`](references/security-checklist.md) | before going live — all security requirements that must pass |
+| [`references/dropdown-fallbacks.json`](references/dropdown-fallbacks.json) | implementing a dropdown-proxy route — static snapshot of every EMAP `/api/partner/*` dropdown response, served when the live call fails or returns no usable data |
 
 ---
 
@@ -142,7 +145,10 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
 1. **Use the template** from `templates/integration-1/`:
    - `node-express.js` — backend that proxies all 6 steps and serves dropdown data.
    - `plain-html.html` — complete 6-step form. Works with the Express backend above.
-   - If the project uses a different stack, generate the backend following the `node-express.js` pattern.
+   - If the project uses a different stack, **port the template 1:1** — same field list, same widget
+     type per field, same validation, same conditional logic, same backend routes — rather than
+     regenerating the form from the prose reference alone. Use `signup-steps-schema.json` as the
+     field-by-field spec while porting.
 
 2. **Configure environment variables:**
    ```
@@ -151,27 +157,46 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
    PORT=3000
    ```
 
-3. **Understand the step flow:**
+3. **Implement all 6 dropdown-proxy backend routes** (required even on a different stack — a missing
+   or misconfigured route is the most common cause of a dropdown rendering with no options):
+   ```
+   GET /api/countries          → proxies EMAP GET /api/partner/countries
+   GET /api/states             → proxies EMAP GET /api/partner/states
+   GET /api/industry-types     → proxies EMAP GET /api/partner/industry-types
+   GET /api/shopping-carts     → proxies EMAP GET /api/partner/shopping-carts
+   GET /api/referral-sources   → proxies EMAP GET /api/partner/referral-sources
+   GET /api/interest-details   → proxies EMAP GET /api/partner/interest-details
+   ```
+   Follow the `dropdownProxy()` pattern in `node-express.js` (same-origin proxy, cache 1 hour, no auth).
+   Verify each route actually returns populated `data` before wiring the frontend `<select>` to it.
+   **Each route must fall back to the static snapshot in [`references/dropdown-fallbacks.json`](references/dropdown-fallbacks.json)
+   when the live EMAP call errors, times out, or returns an empty/missing `data` array** — the
+   `node-express.js` template already does this (inlined as `DROPDOWN_FALLBACKS`); port that
+   fallback logic along with the rest of the proxy if you're generating a different stack. This is
+   what stops a dropdown from silently rendering with zero options when EMAP's dropdown API is
+   briefly down or slow.
+
+4. **Understand the step flow:**
    - Step 1 (`POST /api/v1/signup`) returns a `uuid`. Collect: first name, last name, email, phone, company name, website, country, annual sales, **industry type**, and (if US) business state. Store the `uuid` in `localStorage('emap_uuid')`.
    - Steps 2, 3, 5, 6 call `POST /api/v1/application/step` with the `uuid` and the appropriate `step_count`.
    - Step 4 calls `POST /api/v1/ownership` (no `step_count`; uses dot-notation field names).
    - Step 6 success → clear `localStorage` and show a completion panel.
 
-4. **Pre-fill Step 2 from Step 1 data:**
+5. **Pre-fill Step 2 from Step 1 data:**
    When Step 1 succeeds and the form advances to Step 2, automatically populate:
    - `legal_name` ← value of `company_name` from Step 1
    - `name` (DBA / "doing business as") ← value of `company_name` from Step 1
    The merchant can edit these fields in Step 2 if the legal name differs from the trading name.
    Only pre-fill when the fields are currently empty (do not overwrite if the merchant has already typed something or if the session was restored from localStorage).
 
-5. **No back-navigation between steps:**
+6. **No back-navigation between steps:**
    Once a merchant submits a step successfully, they **cannot** return to a previous step.
    - Do **not** render Back buttons on any step (steps 2–6).
    - Do **not** call `goToStep(n)` with a lower step number from any UI action.
    This is intentional — each step is persisted to EMAP's API on submit, and EMAP does not
    support replaying an earlier step after it has been accepted.
 
-6. **Handle conditional fields:**
+7. **Handle conditional fields:**
    - `industry_type` is collected in **Step 1** (not Step 2) and submitted with `POST /api/v1/signup`. Show `industry_type_other` when `industry_type = other` (step 1).
    - `country=US` → show `business_state` (step 1) and `state.1` (step 4).
    - `business_organized` is not `Sole-Proprietorship` and `emap_country` (Step 1) ≠ `CA` → show `federal_tax_id` (step 2).
@@ -185,29 +210,66 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
    - `emap_country` (Step 1) = `CA` → show `institution_number` + `customer_pay_currency` (step 5).
    - `bad_experience=true` → show `bad_experience_happened` (step 6).
 
-7. **Card percentage (step 3):** `card_swiped + customer_entered + staff_entered` must equal 100.
-   Validate client-side and block submission if not.
+8. **Widget type — never guess, always resolve from the schema.** These fields are hardcoded
+   value sets, not dynamic dropdown data, and have repeatedly been generated as a `<select>` of
+   raw values by mistake. Check `signup-steps-schema.json` for each one's `type` before rendering:
+   - `marketingModel` → **checkbox-group** (`staticDropdowns.marketing_model`), not a select. Render
+     the `label` text (e.g. "Recurring/Continuity/Subscription"), send the integer `value`.
+   - `is_physical_address_same_as_legal_address`, `primary_contact`, `bankruptcy_filed.1/.2`,
+     `bankruptcy_discharged.1/.2`, `current_processing`, `bad_experience`,
+     `multiple_merchant_accounts`, `leave_deposit` → **radio buttons** (Yes/No), not a select.
+   - `terms_and_conditions_agreed` → **checkbox**, not a select.
+   - Fields backed by `optionsSource: dynamicDropdownEndpoints.*` (`country`, `industry_type`,
+     `shopping_cart`, `howdidyouhear`, etc.) are correctly rendered as `<select>`.
 
-8. **SSN (step 4):** For US/CA owners, apply Cleave.js mask `blocks:[3,2,4] delimiters:["-","-"]`
-   to format as `XXX-XX-XXXX`. Validate: `ssn.replace(/-/g,'').length >= 9`.
-   For other countries, show a plain text field labelled "Personal Tax ID / Government ID Number".
+9. **Per-country field validation — must be enforced, not just displayed as a hint.** Read
+   `countryVariants` in `signup-steps-schema.json` for these fields and wire the matching
+   `maxLength`/`minLength`/`pattern` into both the input's HTML attributes AND a submit-time JS
+   check (the same way the SSN mask below is enforced) — a label or placeholder that *says*
+   "9 digits" does nothing on its own:
+   - `routing_number` — US: exactly 9 digits (`^[0-9]{9}$`).
+   - `account_number` — US: 8–17 characters.
+   - `federal_tax_id`, `institution_number` — see their `countryVariants`/`pattern` in the schema.
 
-9. **DOB (step 4):** Owner must be between 18 and 100 years old.
-   `maxDate = today − 18 years`, `minDate = today − 100 years`.
+10. **Card percentage (step 3):** `card_swiped + customer_entered + staff_entered` must equal 100.
+    Validate client-side and block submission if not.
 
-10. **Handle all response shapes** on each step (see [`references/api-errors.md`](references/api-errors.md)):
-   - `{"status":true}` → advance to next step.
-   - HTTP 422 → display per-field errors.
-   - HTTP 429 → ask the merchant to wait and retry.
-   - HTTP 5xx → show generic "please try again".
+11. **SSN (step 4):** For US/CA owners, apply Cleave.js mask `blocks:[3,2,4] delimiters:["-","-"]`
+    to format as `XXX-XX-XXXX`. Validate: `ssn.replace(/-/g,'').length >= 9`.
+    For other countries, show a plain text field labelled "Personal Tax ID / Government ID Number".
 
-11. **Test:**
-   - Complete all 6 steps with test data against the EMAP staging URL.
-   - Verify Step 6 shows the success panel and `sessionStorage` is cleared.
-   - Verify `legal_name` and `name` (DBA) are pre-filled with the company name when Step 2 loads.
-   - Confirm no Back buttons appear on any step.
-   - Test card percentage validator and Owner 2 conditional display.
-   - Test SSN Cleave.js mask and DOB age gate.
+12. **DOB (step 4):** Owner must be between 18 and 100 years old.
+    `maxDate = today − 18 years`, `minDate = today − 100 years`.
+    Enforce this **both client-side** (date input `min`/`max` attributes plus a submit-time check)
+    **and server-side** (recompute the owner's age from the submitted date in your `/api/step/4`
+    handler before proxying to EMAP) — a client-only check can be bypassed by calling your backend
+    directly.
+
+13. **Handle all response shapes** on each step (see [`references/api-errors.md`](references/api-errors.md)):
+    - `{"status":true}` → advance to next step.
+    - HTTP 422 → display per-field errors.
+    - HTTP 429 → ask the merchant to wait and retry.
+    - HTTP 5xx → show generic "please try again".
+
+14. **Test:**
+    - Complete all 6 steps with test data against the EMAP staging URL.
+    - Verify Step 6 shows the success panel and `localStorage` is cleared.
+    - Verify `legal_name` and `name` (DBA) are pre-filled with the company name when Step 2 loads.
+    - Confirm no Back buttons appear on any step.
+    - Test card percentage validator and Owner 2 conditional display.
+    - Test SSN Cleave.js mask and DOB age gate — confirm both the browser form AND a direct
+      `POST /api/step/4` call with an underage/over-100 DOB are rejected with a 422.
+    - Confirm all dropdown-backed selects (`country`, `state`, `industry_type`, `shopping_cart`,
+      `howdidyouhear`) actually populate with options at runtime.
+    - Simulate an EMAP dropdown-API outage (point `EMAP_BASE_URL` at an unreachable host) and
+      confirm each dropdown still populates from `references/dropdown-fallbacks.json` instead of
+      rendering empty.
+    - Confirm `marketingModel` renders as labeled checkboxes and
+      `is_physical_address_same_as_legal_address` as labeled radios — not raw-value selects.
+    - Confirm `routing_number` rejects a US value that isn't exactly 9 digits, and `account_number`
+      rejects a US value outside 8–17 characters.
+    - **Run the verify step** in [Verify: security and coverage](#verify-security-and-coverage)
+      before telling the developer the form is done.
 
 ---
 
@@ -353,6 +415,81 @@ the email address exists — this prevents account enumeration.
 - You want to add a "Resend link" button to your confirmation page.
 
 Always proxy this through your backend — never call EMAP directly from the browser.
+
+---
+
+## Verify loop: schema conformance
+
+Do this for **every** integration mode, after the form and backend are written and before you tell
+the developer the build is done. Its purpose is to catch the exact class of bug this skill has
+shipped before: a rule that exists in `signup-steps-schema.json` (or `field-catalog.md` for Int 2/3)
+but wasn't actually wired into the generated code — a `<select>` used where a checkbox-group was
+required, a country-specific length limit shown as a hint but not enforced, a dropdown wired to a
+proxy route that doesn't return data, etc. Do not rely on having "read the schema earlier" — the
+generated code is the thing being graded, not your memory of the instructions.
+
+**Roles** — three, not two. A single verify agent's own findings are not trustworthy enough to act
+on directly (it can hallucinate a mismatch or misread the schema); they must be independently
+confirmed before the build agent spends a fix cycle on them.
+
+1. **Build agent** — you. Writes the code, applies fixes. Never grades its own output.
+2. **Verify agent** (fresh `general-purpose` agent per round) — reads the schema/reference docs and
+   the generated files, proposes findings. Proposes only — does not decide what's real.
+3. **Confirm agent** (fresh `general-purpose` agent **per individual finding**, spawned in parallel)
+   — independently re-derives the same finding from the primary source (the exact schema field and
+   the exact file/line cited) without trusting the verify agent's description of it, and returns a
+   verdict. Only `CONFIRMED` findings ever reach the build agent.
+
+**Findings contract.** The verify agent must return a JSON array — not prose — each item shaped as:
+```json
+{
+  "file": "relative/path/to/file",
+  "field": "schema field key, or 'route:/api/countries', or 'storage:emap_uuid'",
+  "category": "widget_type | hardcoded_label | country_validation | conditional_logic | dropdown_route | other",
+  "expected": "what signup-steps-schema.json / field-catalog.md says",
+  "actual": "what the generated code actually does, with a line reference",
+  "severity": "blocker | minor"
+}
+```
+An empty array (`[]`) is a valid, expected result — do not treat "I found nothing" as a failure to
+justify by inventing an item.
+
+**Loop:**
+
+1. **Build agent** finishes the form + backend for the chosen integration mode.
+2. **Build agent** spawns a **verify agent** with this brief: *"Read `signup-steps-schema.json`
+   (and, for Integration 2/3, `references/field-catalog.md`). Read the generated form/backend files
+   at `<paths>`. For every field in scope, check: (a) the rendered widget type matches the schema's
+   `type` (select vs. radio vs. checkbox-group vs. checkbox vs. text) — do not accept a `<select>`
+   for a field whose schema entry is `radio` or `checkbox-group`; (b) hardcoded-option fields
+   (`staticDropdowns`) render the human-readable `label`, not the raw `value`/`slug`; (c) every
+   `countryVariants` constraint (`pattern`/`exactLength`/`minLength`/`maxLength`) is enforced by
+   actual validation code (HTML attribute AND/OR a submit-time check), not only shown as label/hint
+   text; (d) every `dependsOn`/`visibleIf` conditional is implemented and the shown/hidden field is
+   also required/optional to match; (e) all 6 dropdown-proxy routes exist, return non-empty data for
+   a live test country, AND fall back to `references/dropdown-fallbacks.json` (not an empty array)
+   when the live EMAP call is made to fail/timeout. Return findings strictly as the JSON array
+   defined in the Findings contract above — no prose, no markdown. Return `[]` if none exist — do
+   not invent findings to justify the pass."*
+3. **Verify agent** returns its findings array. **If the array is empty, skip straight to step 6**
+   (there is nothing to confirm).
+4. **Build agent spawns one confirm agent per finding, in parallel**, with this brief per finding:
+   *"A verify agent claims: `<the single finding JSON>`. Do not trust this description. Independently
+   open `<file>` at the cited location and independently look up `<field>` in
+   `signup-steps-schema.json` (or `field-catalog.md`) yourself. Decide from the primary sources only:
+   is this finding real? Return `{finding, verdict: "CONFIRMED" | "REJECTED", reason}`."*
+5. **Build agent keeps only `CONFIRMED` findings**, discards `REJECTED` ones (a rejected finding is
+   not reported to the developer and is not a reason to loop again).
+6. **If there are zero `CONFIRMED` findings** → conformance passed. Proceed to
+   [Verify: security and coverage](#verify-security-and-coverage), then hand off to the developer.
+7. **If there is at least one `CONFIRMED` finding** → the build agent fixes every one of them
+   directly in the code (do not just re-read the docs and re-explain the rule — change the file),
+   then returns to step 2 with a **fresh** verify agent for a full re-check (do not reuse the prior
+   verify agent instance, and do not skip re-verification of fields that already passed — a fix can
+   regress an unrelated field).
+8. **Cap at 5 verify→confirm→fix rounds.** If `CONFIRMED` findings remain after 5 rounds, stop
+   looping, report exactly those remaining `CONFIRMED` findings to the developer, and do not claim
+   the build is done.
 
 ---
 

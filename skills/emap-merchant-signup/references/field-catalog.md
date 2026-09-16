@@ -2,6 +2,11 @@
 
 Complete field reference for Integration 2 (redirect) and Integration 3 (API submission).
 
+> **Not for Integration 1.** The country/industry_type value formats and required-ness rules
+> below are specific to Int 2/3. For Integration 1, use
+> [`mode-1-fullform.md`](mode-1-fullform.md) and `../signup-steps-schema.json` instead — do not
+> pull field formats from this file when building Integration 1.
+
 > **Company name field naming difference:** Integration 2 URL param is `company_name`;
 > Integration 3 API field is `name`. This is intentional — EMAP's web form uses `name`,
 > but the `from_lander` auto-save logic checks `company_name` in URL params.

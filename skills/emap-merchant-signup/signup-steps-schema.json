@@ -4,43 +4,83 @@
   "baseUrl": "{EMAP_BASE_URL}",
   "apiPrefix": "/api/v1",
   "dropdownApiPrefix": "/api/partner",
-
+  "_dynamicDropdownEndpointsNote": "Every entry has a matching key in references/dropdown-fallbacks.json. If the live GET call errors, times out, or returns an empty/missing `data` array, serve that fallback snapshot instead of an empty result — see the dropdownProxy()/DROPDOWN_FALLBACKS pattern in templates/integration-1/node-express.js.",
   "dynamicDropdownEndpoints": {
     "countries": {
       "method": "GET",
       "url": "/api/partner/countries",
-      "responseShape": { "data": [{ "name": "string", "code": "string" }] },
+      "responseShape": {
+        "data": [
+          {
+            "name": "string",
+            "code": "string"
+          }
+        ]
+      },
       "sendField": "code",
-      "displayField": "name"
+      "displayField": "name",
+      "fallback": "references/dropdown-fallbacks.json#countries"
     },
     "states": {
       "method": "GET",
       "url": "/api/partner/states",
       "note": "US states only — shown only when country = US",
-      "responseShape": { "data": [{ "name": "string", "code": "string" }] },
+      "responseShape": {
+        "data": [
+          {
+            "name": "string",
+            "code": "string"
+          }
+        ]
+      },
       "sendField": "code",
-      "displayField": "name"
+      "displayField": "name",
+      "fallback": "references/dropdown-fallbacks.json#states"
     },
     "industry_types": {
       "method": "GET",
       "url": "/api/partner/industry-types",
-      "responseShape": { "data": [{ "name": "string", "slug": "string" }] },
+      "responseShape": {
+        "data": [
+          {
+            "name": "string",
+            "slug": "string"
+          }
+        ]
+      },
       "sendField": "slug",
-      "displayField": "name"
+      "displayField": "name",
+      "fallback": "references/dropdown-fallbacks.json#industry_types"
     },
     "shopping_carts": {
       "method": "GET",
       "url": "/api/partner/shopping-carts",
-      "responseShape": { "data": [{ "name": "string", "slug": "string" }] },
+      "responseShape": {
+        "data": [
+          {
+            "name": "string",
+            "slug": "string"
+          }
+        ]
+      },
       "sendField": "slug",
-      "displayField": "name"
+      "displayField": "name",
+      "fallback": "references/dropdown-fallbacks.json#shopping_carts"
     },
     "referral_sources": {
       "method": "GET",
       "url": "/api/partner/referral-sources",
-      "responseShape": { "data": [{ "name": "string", "slug": "string" }] },
+      "responseShape": {
+        "data": [
+          {
+            "name": "string",
+            "slug": "string"
+          }
+        ]
+      },
       "sendField": "slug",
-      "displayField": "name"
+      "displayField": "name",
+      "fallback": "references/dropdown-fallbacks.json#referral_sources"
     },
     "interest_details": {
       "method": "GET",
@@ -49,98 +89,264 @@
         "data": [
           {
             "group_name": "string",
-            "interests": [{ "id": "integer", "name": "string" }]
+            "interests": [
+              {
+                "id": "integer",
+                "name": "string"
+              }
+            ]
           }
         ]
       },
       "sendField": "id",
       "displayField": "name",
-      "isGrouped": true
+      "isGrouped": true,
+      "fallback": "references/dropdown-fallbacks.json#interest_details"
     }
   },
-
   "_staticDropdownsNote": "Options with a 'slug' key: send the slug value as the API param. Options with a 'value' key: send the integer or non-slug value as the API param.",
   "staticDropdowns": {
     "business_organized": [
-      { "label": "Corporation", "slug": "Corporation" },
-      { "label": "LLC", "slug": "LLC" },
-      { "label": "Partnership", "slug": "Partnership" },
-      { "label": "Government", "slug": "Government" },
-      { "label": "Sole Proprietorship", "slug": "Sole-Proprietorship" },
-      { "label": "Non-Profit", "slug": "Non-Profit" },
-      { "label": "Other", "slug": "Other" }
+      {
+        "label": "Corporation",
+        "slug": "Corporation"
+      },
+      {
+        "label": "LLC",
+        "slug": "LLC"
+      },
+      {
+        "label": "Partnership",
+        "slug": "Partnership"
+      },
+      {
+        "label": "Government",
+        "slug": "Government"
+      },
+      {
+        "label": "Sole Proprietorship",
+        "slug": "Sole-Proprietorship"
+      },
+      {
+        "label": "Non-Profit",
+        "slug": "Non-Profit"
+      },
+      {
+        "label": "Other",
+        "slug": "Other"
+      }
     ],
     "business_location": [
-      { "label": "Home Based", "slug": "Home-Based" },
-      { "label": "Co-Working", "slug": "Co-Working" },
-      { "label": "Corporate Office", "slug": "Corporate-Office" },
-      { "label": "Storefront", "slug": "Storefront" },
-      { "label": "Others", "slug": "Others" }
+      {
+        "label": "Home Based",
+        "slug": "Home-Based"
+      },
+      {
+        "label": "Co-Working",
+        "slug": "Co-Working"
+      },
+      {
+        "label": "Corporate Office",
+        "slug": "Corporate-Office"
+      },
+      {
+        "label": "Storefront",
+        "slug": "Storefront"
+      },
+      {
+        "label": "Others",
+        "slug": "Others"
+      }
     ],
     "refund_policy": [
-      { "label": "Full Refund", "slug": "Full-Refund" },
-      { "label": "No Refund", "slug": "No-Refund" },
-      { "label": "Exchange Only", "slug": "Exchange-Only" },
-      { "label": "Partial Refund", "slug": "Partial-Refund" }
+      {
+        "label": "Full Refund",
+        "slug": "Full-Refund"
+      },
+      {
+        "label": "No Refund",
+        "slug": "No-Refund"
+      },
+      {
+        "label": "Exchange Only",
+        "slug": "Exchange-Only"
+      },
+      {
+        "label": "Partial Refund",
+        "slug": "Partial-Refund"
+      }
     ],
     "fulfillment_by": [
-      { "label": "Direct By You", "slug": "Direct-By-You" },
-      { "label": "Vendor", "slug": "Vendor" },
-      { "label": "Others", "slug": "Others" }
+      {
+        "label": "Direct By You",
+        "slug": "Direct-By-You"
+      },
+      {
+        "label": "Vendor",
+        "slug": "Vendor"
+      },
+      {
+        "label": "Others",
+        "slug": "Others"
+      }
     ],
     "customer_service_time": [
-      { "label": "0–7 days", "slug": "0-7-days" },
-      { "label": "7–30 days", "slug": "7-30-days" },
-      { "label": "31+ days", "slug": "31+days" }
+      {
+        "label": "0–7 days",
+        "slug": "0-7-days"
+      },
+      {
+        "label": "7–30 days",
+        "slug": "7-30-days"
+      },
+      {
+        "label": "31+ days",
+        "slug": "31+days"
+      }
     ],
     "marketing_model": [
-      { "label": "One Time Purchase", "value": 1 },
-      { "label": "Recurring/Continuity/Subscription", "value": 2 },
-      { "label": "Trial Offer + Subscription", "value": 3 }
+      {
+        "label": "One Time Purchase",
+        "value": 1
+      },
+      {
+        "label": "Recurring/Continuity/Subscription",
+        "value": 2
+      },
+      {
+        "label": "Trial Offer + Subscription",
+        "value": 3
+      }
     ],
     "subscription_frequency": [
-      { "label": "Monthly", "value": "1" },
-      { "label": "Yearly", "value": "2" },
-      { "label": "Other", "value": "3" }
+      {
+        "label": "Monthly",
+        "value": "1"
+      },
+      {
+        "label": "Yearly",
+        "value": "2"
+      },
+      {
+        "label": "Other",
+        "value": "3"
+      }
     ],
     "transaction_device": [
-      { "label": "Easy Pay Direct Gateway", "slug": "Easy-Pay-Direct-Gateway" },
-      { "label": "Another Payment Gateway", "slug": "Another-Payment-Gateway" },
-      { "label": "Need Terminal / POS System", "slug": "Need-terminal/POS-system" },
-      { "label": "Own Terminal / POS System", "slug": "Own-terminal/POS-system" },
-      { "label": "iPhone / Android", "slug": "iPhone/Android" },
-      { "label": "Other", "slug": "Other" }
+      {
+        "label": "Easy Pay Direct Gateway",
+        "slug": "Easy-Pay-Direct-Gateway"
+      },
+      {
+        "label": "Another Payment Gateway",
+        "slug": "Another-Payment-Gateway"
+      },
+      {
+        "label": "Need Terminal / POS System",
+        "slug": "Need-terminal/POS-system"
+      },
+      {
+        "label": "Own Terminal / POS System",
+        "slug": "Own-terminal/POS-system"
+      },
+      {
+        "label": "iPhone / Android",
+        "slug": "iPhone/Android"
+      },
+      {
+        "label": "Other",
+        "slug": "Other"
+      }
     ],
     "owner_job_title": [
-      { "label": "CEO", "slug": "ceo" },
-      { "label": "CFO", "slug": "cfo" },
-      { "label": "Chairman", "slug": "chairman" },
-      { "label": "Co-owner", "slug": "co-owner" },
-      { "label": "Controller", "slug": "controller" },
-      { "label": "Director", "slug": "director" },
-      { "label": "General Manager", "slug": "general-manager" },
-      { "label": "Office Manager", "slug": "office-manager" },
-      { "label": "Owner", "slug": "owner" },
-      { "label": "Partner", "slug": "partner" },
-      { "label": "President", "slug": "president" },
-      { "label": "Treasurer", "slug": "treasurer" },
-      { "label": "Vice President", "slug": "vice-president" },
-      { "label": "Other", "slug": "other" }
+      {
+        "label": "CEO",
+        "slug": "ceo"
+      },
+      {
+        "label": "CFO",
+        "slug": "cfo"
+      },
+      {
+        "label": "Chairman",
+        "slug": "chairman"
+      },
+      {
+        "label": "Co-owner",
+        "slug": "co-owner"
+      },
+      {
+        "label": "Controller",
+        "slug": "controller"
+      },
+      {
+        "label": "Director",
+        "slug": "director"
+      },
+      {
+        "label": "General Manager",
+        "slug": "general-manager"
+      },
+      {
+        "label": "Office Manager",
+        "slug": "office-manager"
+      },
+      {
+        "label": "Owner",
+        "slug": "owner"
+      },
+      {
+        "label": "Partner",
+        "slug": "partner"
+      },
+      {
+        "label": "President",
+        "slug": "president"
+      },
+      {
+        "label": "Treasurer",
+        "slug": "treasurer"
+      },
+      {
+        "label": "Vice President",
+        "slug": "vice-president"
+      },
+      {
+        "label": "Other",
+        "slug": "other"
+      }
     ],
     "bank_account_type": [
-      { "label": "Checking", "value": "checking" },
-      { "label": "Savings", "value": "savings" }
+      {
+        "label": "Checking",
+        "value": "checking"
+      },
+      {
+        "label": "Savings",
+        "value": "savings"
+      }
     ],
     "customer_pay_currency": [
-      { "label": "USD", "value": "USD" },
-      { "label": "CAD", "value": "CAD" }
+      {
+        "label": "USD",
+        "value": "USD"
+      },
+      {
+        "label": "CAD",
+        "value": "CAD"
+      }
     ],
     "yesNo": [
-      { "label": "Yes", "value": "1" },
-      { "label": "No", "value": "0" }
+      {
+        "label": "Yes",
+        "value": "1"
+      },
+      {
+        "label": "No",
+        "value": "0"
+      }
     ]
   },
-
   "steps": [
     {
       "step": 1,
@@ -210,7 +416,7 @@
           "label": "Company Website",
           "type": "url",
           "required": true,
-          "pattern": "^(?:(?:https?):\/\/)?(?:[\\w-]+\\.)+[a-z]{2,63}+\\/?$",
+          "pattern": "^(?:(?:https?)://)?(?:[\\w-]+\\.)+[a-z]{2,63}+\\/?$",
           "placeholder": "https://yoursite.com",
           "hint": "If unavailable, link to your social media profile"
         },
@@ -297,7 +503,6 @@
         }
       ]
     },
-
     {
       "step": 2,
       "title": "Company Information",
@@ -307,7 +512,10 @@
         "url": "/api/v1/application/step",
         "controller": "App\\Http\\Controllers\\API\\SignupAPIController@submitApplicationStep",
         "request": "App\\Http\\Requests\\API\\ApplicationStepRequest",
-        "requiredBodyFields": ["uuid", "step_count"],
+        "requiredBodyFields": [
+          "uuid",
+          "step_count"
+        ],
         "step_count": 2,
         "successResponse": {
           "status": true,
@@ -417,8 +625,12 @@
             "value": "US"
           },
           "countryVariants": {
-            "CA": { "maxLength": 11 },
-            "default": { "maxLength": 20 }
+            "CA": {
+              "maxLength": 11
+            },
+            "default": {
+              "maxLength": 20
+            }
           }
         },
         {
@@ -555,8 +767,14 @@
           "type": "radio",
           "required": true,
           "options": [
-            { "label": "Yes", "value": "1" },
-            { "label": "No", "value": "0" }
+            {
+              "label": "Yes",
+              "value": "1"
+            },
+            {
+              "label": "No",
+              "value": "0"
+            }
           ]
         },
         {
@@ -675,7 +893,6 @@
         }
       ]
     },
-
     {
       "step": 3,
       "title": "Product & Processing",
@@ -695,7 +912,11 @@
       },
       "crossFieldValidations": [
         {
-          "fields": ["card_swiped", "customer_entered", "staff_entered"],
+          "fields": [
+            "card_swiped",
+            "customer_entered",
+            "staff_entered"
+          ],
           "rule": "sum == 100",
           "message": "card_swiped + customer_entered + staff_entered must equal 100"
         }
@@ -751,13 +972,19 @@
           "dependsOn": {
             "field": "fulfillment_by",
             "operator": "in",
-            "value": ["Vendor", "Others"],
+            "value": [
+              "Vendor",
+              "Others"
+            ],
             "effect": "required"
           },
           "visibleIf": {
             "field": "fulfillment_by",
             "operator": "in",
-            "value": ["Vendor", "Others"]
+            "value": [
+              "Vendor",
+              "Others"
+            ]
           }
         },
         {
@@ -789,8 +1016,14 @@
           "type": "select",
           "required": true,
           "options": [
-            { "label": "Yes", "value": "1" },
-            { "label": "No", "value": "0" }
+            {
+              "label": "Yes",
+              "value": "1"
+            },
+            {
+              "label": "No",
+              "value": "0"
+            }
           ],
           "hint": "Are customers required to leave deposits?"
         },
@@ -863,7 +1096,6 @@
         }
       ]
     },
-
     {
       "step": 4,
       "title": "Owners",
@@ -873,7 +1105,10 @@
         "url": "/api/v1/ownership",
         "controller": "App\\Http\\Controllers\\API\\SignupAPIController@handleOwnership",
         "request": "App\\Http\\Requests\\API\\HandleOwnershipRequest",
-        "requiredBodyFields": ["uuid", "primary_contact"],
+        "requiredBodyFields": [
+          "uuid",
+          "primary_contact"
+        ],
         "successResponse": {
           "status": true,
           "message": "Owners created successfully",
@@ -883,7 +1118,10 @@
       },
       "crossFieldValidations": [
         {
-          "fields": ["ownership_percentage.1", "ownership_percentage.2"],
+          "fields": [
+            "ownership_percentage.1",
+            "ownership_percentage.2"
+          ],
           "rule": "sum <= 100",
           "message": "Combined ownership percentage cannot exceed 100%"
         }
@@ -908,8 +1146,14 @@
           "type": "radio",
           "required": true,
           "options": [
-            { "label": "Yes, I am the primary contact / owner", "value": "1" },
-            { "label": "No, I am not the primary contact / owner", "value": "0" }
+            {
+              "label": "Yes, I am the primary contact / owner",
+              "value": "1"
+            },
+            {
+              "label": "No, I am not the primary contact / owner",
+              "value": "0"
+            }
           ],
           "note": "If 1: do NOT send first_name.1, last_name.1, email.1 — backend uses Step 1 user data. If 0: all three are required."
         },
@@ -1020,8 +1264,15 @@
                   "inputMask": {
                     "library": "Cleave.js",
                     "numericOnly": true,
-                    "blocks": [3, 2, 4],
-                    "delimiters": ["-", "-"]
+                    "blocks": [
+                      3,
+                      2,
+                      4
+                    ],
+                    "delimiters": [
+                      "-",
+                      "-"
+                    ]
                   },
                   "pattern": "^\\d{3}-\\d{2}-\\d{4}$",
                   "minLength": 11,
@@ -1034,8 +1285,15 @@
                   "inputMask": {
                     "library": "Cleave.js",
                     "numericOnly": true,
-                    "blocks": [3, 2, 4],
-                    "delimiters": ["-", "-"]
+                    "blocks": [
+                      3,
+                      2,
+                      4
+                    ],
+                    "delimiters": [
+                      "-",
+                      "-"
+                    ]
                   },
                   "pattern": "^\\d{3}-\\d{2}-\\d{4}$",
                   "minLength": 11,
@@ -1062,7 +1320,8 @@
               "maxAge": 100,
               "maxDate": "today - 18 years (moment().subtract(18, 'years'))",
               "minDate": "today - 100 years (new Date().getFullYear() - 100)",
-              "validationNote": "Owner must be at least 18 years old. Max date = today minus 18 years. Min year = current year minus 100. Must be a valid calendar date in YYYY-MM-DD format."
+              "validationNote": "Owner must be at least 18 years old. Max date = today minus 18 years. Min year = current year minus 100. Must be a valid calendar date in YYYY-MM-DD format. Must be enforced both client-side (date input min/max + submit-time check) AND server-side (backend recomputes age from the submitted date) — do not rely on the HTML date input's min/max alone.",
+              "enforceServerSide": true
             },
             {
               "key": "ownership_percentage.1",
@@ -1180,8 +1439,14 @@
               "type": "radio",
               "required": true,
               "options": [
-                { "label": "Yes", "value": "1" },
-                { "label": "No", "value": "0" }
+                {
+                  "label": "Yes",
+                  "value": "1"
+                },
+                {
+                  "label": "No",
+                  "value": "0"
+                }
               ]
             },
             {
@@ -1190,8 +1455,14 @@
               "type": "radio",
               "required": false,
               "options": [
-                { "label": "Yes", "value": "1" },
-                { "label": "No", "value": "0" }
+                {
+                  "label": "Yes",
+                  "value": "1"
+                },
+                {
+                  "label": "No",
+                  "value": "0"
+                }
               ],
               "dependsOn": {
                 "field": "bankruptcy_filed.1",
@@ -1312,8 +1583,15 @@
                   "inputMask": {
                     "library": "Cleave.js",
                     "numericOnly": true,
-                    "blocks": [3, 2, 4],
-                    "delimiters": ["-", "-"]
+                    "blocks": [
+                      3,
+                      2,
+                      4
+                    ],
+                    "delimiters": [
+                      "-",
+                      "-"
+                    ]
                   },
                   "pattern": "^\\d{3}-\\d{2}-\\d{4}$",
                   "minLength": 11,
@@ -1326,8 +1604,15 @@
                   "inputMask": {
                     "library": "Cleave.js",
                     "numericOnly": true,
-                    "blocks": [3, 2, 4],
-                    "delimiters": ["-", "-"]
+                    "blocks": [
+                      3,
+                      2,
+                      4
+                    ],
+                    "delimiters": [
+                      "-",
+                      "-"
+                    ]
                   },
                   "pattern": "^\\d{3}-\\d{2}-\\d{4}$",
                   "minLength": 11,
@@ -1359,12 +1644,13 @@
               "maxAge": 100,
               "maxDate": "today - 18 years (moment().subtract(18, 'years'))",
               "minDate": "today - 100 years (new Date().getFullYear() - 100)",
-              "validationNote": "Owner must be at least 18 years old. Max date = today minus 18 years. Min year = current year minus 100.",
+              "validationNote": "Owner must be at least 18 years old. Max date = today minus 18 years. Min year = current year minus 100. Must be enforced both client-side (date input min/max + submit-time check) AND server-side (backend recomputes age from the submitted date) — do not rely on the HTML date input's min/max alone.",
               "conditionalRequired": {
                 "field": "ownership_percentage.1",
                 "operator": "lessThan",
                 "value": 51
-              }
+              },
+              "enforceServerSide": true
             },
             {
               "key": "ownership_percentage.2",
@@ -1505,8 +1791,14 @@
               "type": "radio",
               "required": false,
               "options": [
-                { "label": "Yes", "value": "1" },
-                { "label": "No", "value": "0" }
+                {
+                  "label": "Yes",
+                  "value": "1"
+                },
+                {
+                  "label": "No",
+                  "value": "0"
+                }
               ],
               "conditionalRequired": {
                 "field": "ownership_percentage.1",
@@ -1520,8 +1812,14 @@
               "type": "radio",
               "required": false,
               "options": [
-                { "label": "Yes", "value": "1" },
-                { "label": "No", "value": "0" }
+                {
+                  "label": "Yes",
+                  "value": "1"
+                },
+                {
+                  "label": "No",
+                  "value": "0"
+                }
               ],
               "visibleIf": {
                 "field": "bankruptcy_filed.2",
@@ -1557,7 +1855,6 @@
         }
       ]
     },
-
     {
       "step": 5,
       "title": "Banking",
@@ -1600,11 +1897,23 @@
           "maxLength": 20,
           "placeholder": "Routing Number",
           "countryVariants": {
-            "US": { "label": "Routing Number", "exactLength": 9, "pattern": "^[0-9]{9}$" },
-            "CA": { "label": "Transit Number / Routing Number" },
-            "AU": { "label": "BSB Code" },
-            "GB": { "label": "Sort Code" },
-            "default": { "label": "BIC Code / SWIFT Code / Routing Number" }
+            "US": {
+              "label": "Routing Number",
+              "exactLength": 9,
+              "pattern": "^[0-9]{9}$"
+            },
+            "CA": {
+              "label": "Transit Number / Routing Number"
+            },
+            "AU": {
+              "label": "BSB Code"
+            },
+            "GB": {
+              "label": "Sort Code"
+            },
+            "default": {
+              "label": "BIC Code / SWIFT Code / Routing Number"
+            }
           }
         },
         {
@@ -1618,11 +1927,23 @@
           "maxLength": 20,
           "placeholder": "Account Number",
           "countryVariants": {
-            "US": { "label": "Account Number", "minLength": 8, "maxLength": 17 },
-            "CA": { "label": "Account Number" },
-            "AU": { "label": "Account Number" },
-            "GB": { "label": "Account Number" },
-            "default": { "label": "IBAN / Account Number" }
+            "US": {
+              "label": "Account Number",
+              "minLength": 8,
+              "maxLength": 17
+            },
+            "CA": {
+              "label": "Account Number"
+            },
+            "AU": {
+              "label": "Account Number"
+            },
+            "GB": {
+              "label": "Account Number"
+            },
+            "default": {
+              "label": "IBAN / Account Number"
+            }
           }
         },
         {
@@ -1685,8 +2006,14 @@
           "type": "select",
           "required": true,
           "options": [
-            { "label": "Yes", "value": "1" },
-            { "label": "No", "value": "0" }
+            {
+              "label": "Yes",
+              "value": "1"
+            },
+            {
+              "label": "No",
+              "value": "0"
+            }
           ]
         },
         {
@@ -1709,7 +2036,6 @@
         }
       ]
     },
-
     {
       "step": 6,
       "title": "Final Details",
@@ -1767,8 +2093,14 @@
           "type": "select",
           "required": true,
           "options": [
-            { "label": "Yes", "value": "1" },
-            { "label": "No", "value": "0" }
+            {
+              "label": "Yes",
+              "value": "1"
+            },
+            {
+              "label": "No",
+              "value": "0"
+            }
           ]
         },
         {
@@ -1785,8 +2117,14 @@
           "type": "select",
           "required": true,
           "options": [
-            { "label": "Yes", "value": "1" },
-            { "label": "No", "value": "0" }
+            {
+              "label": "Yes",
+              "value": "1"
+            },
+            {
+              "label": "No",
+              "value": "0"
+            }
           ]
         },
         {
@@ -1829,7 +2167,6 @@
       ]
     }
   ],
-
   "excludedFromSkill": [
     {
       "field": "my_range",

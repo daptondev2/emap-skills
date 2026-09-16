@@ -4,6 +4,25 @@ Integration 1 hosts the complete EMAP 6-step merchant signup on the partner's si
 Each step is a separate API call from your backend to EMAP. The merchant never visits
 the EMAP domain.
 
+> **This file documents API payload rules, not UI widget types.** The tables below tell you
+> what value to send and whether a field is required — they do not tell you whether to render a
+> `<select>`, radio buttons, or a checkbox-group. For widget type, option labels, and per-country
+> validation limits (`countryVariants`), always check `../signup-steps-schema.json` — do not infer
+> the widget from the field's data type or name.
+>
+> **Known landmine fields** (previously generated wrong because their widget/validation isn't
+> obvious from a value-format note alone):
+> - `marketingModel` — schema `type: checkbox-group`, not a select of raw integers.
+> - `is_physical_address_same_as_legal_address`, `primary_contact`, `bankruptcy_filed.1/.2`,
+>   `bankruptcy_discharged.1/.2`, `current_processing`, `bad_experience`,
+>   `multiple_merchant_accounts` — schema `type: radio` (Yes/No), not a select.
+> - `routing_number` (US: exactly 9 digits), `account_number` (US: 8–17 chars) — the `countryVariants`
+>   length limit must be enforced in code (HTML attribute + submit-time check), not just shown as a
+>   hint string.
+> - `dob.1`/`dob.2` — owner must be 18–100 years old. Enforce on **both** the client (date input
+>   `min`/`max` + submit-time check) **and** the server (recompute age from the submitted date
+>   before proxying to EMAP) — client-only validation can be bypassed by a direct API call.
+
 ---
 
 ## Overview of EMAP endpoints used
@@ -198,8 +217,8 @@ All Owner 2 fields use the `.2` suffix. Required fields mirror Owner 1:
 | `uuid` | Yes | From Step 1 |
 | `step_count` | Yes | Must be `5` |
 | `current_processing` | Yes | Boolean |
-| `routing_number` | Yes | Alphanumeric, max 20 |
-| `account_number` | Yes | Alphanumeric, max 20 |
+| `routing_number` | Yes | Alphanumeric, max 20 generically. **US: must be exactly 9 digits** — enforce with `pattern="^[0-9]{9}$"` and a submit-time length check, not just a hint label. See `countryVariants` in `signup-steps-schema.json`. |
+| `account_number` | Yes | Alphanumeric, max 20 generically. **US: must be 8–17 characters** — enforce, don't just hint. See `countryVariants` in `signup-steps-schema.json`. |
 | `institution_number` | Show/required when Step 1 country=`CA` | 3-digit Canadian institution number; format `[0-9]{3}`. Use `emap_country` from localStorage. |
 | `customer_pay_currency` | Show/required when Step 1 country=`CA` | `USD` or `CAD`. Use `emap_country` from localStorage. |
 
@@ -240,6 +259,12 @@ On Step 6 success, EMAP finalises the application. Clear `localStorage` keys and
 | `GET /api/partner/referral-sources` | Step 6 | `{ data: [ { id, name, slug } ] }` |
 
 Proxy all dropdown calls through your backend (same origin) to avoid CORS issues.
+
+**Fallback on failure:** if the live call to any of these six endpoints errors, times out, or
+returns an empty/missing `data` array, your proxy route must serve the matching static snapshot
+from [`dropdown-fallbacks.json`](dropdown-fallbacks.json) instead of an empty result — see the
+`DROPDOWN_FALLBACKS` / `dropdownProxy()` implementation in `templates/integration-1/node-express.js`
+for the reference pattern. Never let a dropdown-API hiccup render an empty `<select>`.
 
 ---
 

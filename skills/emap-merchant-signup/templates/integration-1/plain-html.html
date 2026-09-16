@@ -1561,7 +1561,24 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
     document.addEventListener('DOMContentLoaded', function () {
       loadAllDropdowns();
       restoreSession();
+      setDOBBounds();
     });
+
+    // Owner must be 18-100 years old — constrain the native date picker too,
+    // as defense in depth alongside validateDOB() at submit time.
+    function setDOBBounds() {
+      var now = new Date();
+      var maxDob = new Date(now.getFullYear() - 18, now.getMonth(), now.getDate());
+      var minDob = new Date(now.getFullYear() - 100, now.getMonth(), now.getDate());
+      var toISODate = function (d) { return d.toISOString().slice(0, 10); };
+      ['dob_1', 'dob_2'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) {
+          el.setAttribute('max', toISODate(maxDob));
+          el.setAttribute('min', toISODate(minDob));
+        }
+      });
+    }
 
     // ── Conditional field logic ──────────────────────────────────────────────
     // Country-dependent label map for banking and SSN fields
@@ -1597,6 +1614,11 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
                             c === 'CA' ? 'CA: 5-digit transit number' :
                             c === 'AU' ? 'AU: 6-digit BSB code' :
                             c === 'GB' ? 'UK: 6-digit sort code (e.g. 12-34-56)' : '';
+      }
+      var rInput = document.getElementById('routing_number');
+      if (rInput) {
+        if (c === 'US') { rInput.setAttribute('maxlength', '9'); rInput.setAttribute('pattern', '[0-9]{9}'); }
+        else { rInput.setAttribute('maxlength', '20'); rInput.removeAttribute('pattern'); }
       }
 
       // Account Number label
@@ -2245,9 +2267,28 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       e.preventDefault();
       clearStepErrors(this);
 
+      // Country-specific bank field validation — HTML attributes alone can be bypassed
+      // (autofill, programmatic value set), so re-check here before submitting.
+      var bankCountry = (step1Country || '').toUpperCase();
+      var routingVal = (document.getElementById('routing_number').value || '').trim();
+      var accountVal = (document.getElementById('account_number').value || '').trim();
+      if (bankCountry === 'US') {
+        if (!/^[0-9]{9}$/.test(routingVal)) {
+          setError('routing_number', 'US routing number must be exactly 9 digits');
+          return;
+        }
+        if (accountVal.length < 8 || accountVal.length > 17) {
+          setError('account_number', 'US account number must be 8–17 characters');
+          return;
+        }
+      }
+
       var fd = new FormData(this);
       var payload = { uuid: appUUID, step_count: 5 };
       for (var pair of fd.entries()) payload[pair[0]] = pair[1];
+      // Sent so the backend can re-validate country-specific bank fields server-side;
+      // stripped by the backend before forwarding to EMAP.
+      payload.country_from_step1 = bankCountry;
 
       var btn = document.getElementById('btn-step5');
       var result = await submitStep(5, payload, btn, 'Continue — Final Details →');
