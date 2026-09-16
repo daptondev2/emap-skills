@@ -316,16 +316,6 @@
         "slug": "other"
       }
     ],
-    "bank_account_type": [
-      {
-        "label": "Checking",
-        "value": "checking"
-      },
-      {
-        "label": "Savings",
-        "value": "savings"
-      }
-    ],
     "customer_pay_currency": [
       {
         "label": "USD",
@@ -1945,21 +1935,6 @@
               "label": "IBAN / Account Number"
             }
           }
-        },
-        {
-          "key": "bank_name",
-          "label": "Bank Name",
-          "type": "text",
-          "required": false,
-          "placeholder": "Bank Name"
-        },
-        {
-          "key": "bank_account_type",
-          "label": "Bank Account Type",
-          "type": "select",
-          "required": false,
-          "optionsSource": "staticDropdowns.bank_account_type",
-          "sendField": "value"
         },
         {
           "key": "institution_number",

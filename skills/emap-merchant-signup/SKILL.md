@@ -106,10 +106,16 @@ Before generating any code, answer these questions:
 
 ## Step 0.5: Install the verify gate hook
 
-This wires up an automated Stop-hook so a build cannot be silently declared "done" after only
-manual curl/browser testing — it forces the [Verify loop](#verify-loop-schema-conformance) to
-actually run and pass before the session can end. Do this once per project, before writing any
-form or backend code.
+> **STOP. Do not write, edit, or generate a single form/backend file — in a brand-new project or
+> an existing one you're continuing — until all 3 steps below are done.** This applies even if
+> `merchant-signup/`, templates, or other build output already exist in this project from an
+> earlier session: existing code does not mean the hook was ever installed. Check for
+> `.claude/hooks/emap-verify-gate.py` first; if it's missing, treat this project as never having
+> done Step 0.5, regardless of what else is already built.
+>
+> This wires up an automated Stop-hook so a build cannot be silently declared "done" after only
+> manual curl/browser testing — it forces the [Verify loop](#verify-loop-schema-conformance) to
+> actually run and pass before the session can end.
 
 1. **Copy the hook script.** Create `.claude/hooks/emap-verify-gate.py` in the target project
    with the exact contents of [`hooks/emap-verify-gate.py`](hooks/emap-verify-gate.py) from this
@@ -130,6 +136,11 @@ form or backend code.
    (use `"2"` or `"3"` to match the mode being built). This is what activates the gate — from this
    point on, the session cannot Stop until the file is updated to `"status": "verified"` by a
    passing run of the [Verify loop](#verify-loop-schema-conformance).
+
+**Verify before proceeding:** confirm `.claude/hooks/emap-verify-gate.py` exists, is executable,
+and `.claude/settings.json` actually contains the `Stop` hook entry — don't just assume the writes
+succeeded. Only after all 3 files are confirmed on disk should you continue to
+[Step 1](#step-1-partner-attribution-optional) or begin generating code.
 
 If the target project cannot run Python 3 (rare), tell the developer the automated gate can't be
 installed and that they must run the Verify loop manually before accepting the build — do not
@@ -171,6 +182,10 @@ Ask the developer which mode they want, or recommend based on their setup from S
 ---
 
 ## Build Integration 1: Full form
+
+**Before writing any file below:** check that `.claude/hooks/emap-verify-gate.py` exists in this
+project. If it doesn't — even if `merchant-signup/` or other build output already exists here —
+go do [Step 0.5](#step-05-install-the-verify-gate-hook) first.
 
 Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before proceeding.
 
@@ -312,6 +327,10 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
 
 ## Build Integration 2: Redirect handoff
 
+**Before writing any file below:** check that `.claude/hooks/emap-verify-gate.py` exists in this
+project. If it doesn't — even if `merchant-signup/` or other build output already exists here —
+go do [Step 0.5](#step-05-install-the-verify-gate-hook) first.
+
 Read [`references/mode-2-redirect.md`](references/mode-2-redirect.md) before proceeding.
 
 ### Overview
@@ -395,6 +414,10 @@ merchant directly on step 2.
 ---
 
 ## Build Integration 3: Email-based signup
+
+**Before writing any file below:** check that `.claude/hooks/emap-verify-gate.py` exists in this
+project. If it doesn't — even if `merchant-signup/` or other build output already exists here —
+go do [Step 0.5](#step-05-install-the-verify-gate-hook) first.
 
 Read [`references/mode-3-api.md`](references/mode-3-api.md) before proceeding.
 
