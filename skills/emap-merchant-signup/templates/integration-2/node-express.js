@@ -118,6 +118,14 @@ function validateSignupFields(body) {
 // ── POST /api/build-redirect ─────────────────────────────────────────────────
 // Validates fields, builds the EMAP redirect URL, and returns it to the client.
 app.post('/api/build-redirect', function (req, res) {
+  // Honeypot — real users never fill this hidden field; bots often do.
+  // Reject silently (fake redirect, never built against EMAP) so the bot has no signal to adapt to.
+  if (req.body._hp) {
+    let base;
+    try { base = new URL(EMAP_BASE_URL); } catch { return res.status(500).json({ status: false, message: 'Server configuration error' }); }
+    return res.json({ status: true, redirectUrl: `${base.origin}/signup` });
+  }
+
   const errors = validateSignupFields(req.body);
 
   if (Object.keys(errors).length > 0) {

@@ -146,6 +146,12 @@ app.get('/api/industry-types', async function (req, res) {
 // ── POST /api/signup ──────────────────────────────────────────────────────────
 // Proxy to EMAP's external signup API.
 app.post('/api/signup', async function (req, res) {
+  // Honeypot — real users never fill this hidden field; bots often do.
+  // Reject silently (fake success, no EMAP call) so the bot has no signal to adapt to.
+  if (req.body._hp) {
+    return res.status(200).json({ status: true, message: 'Success', uuid: '' });
+  }
+
   // Validate server-side before touching EMAP
   const validationErrors = validateSignupPayload(req.body);
   if (Object.keys(validationErrors).length > 0) {

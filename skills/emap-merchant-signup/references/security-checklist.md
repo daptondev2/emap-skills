@@ -52,11 +52,25 @@ Complete every item before going live. Items marked **[CRITICAL]** are blockers.
   - Next.js: set `SameSite=Strict` on your session cookie plus a custom `X-Requested-With` header check.
   - PHP: session-based CSRF token (see `php-vanilla.php` template).
 
-- [ ] **Honeypot field.** Add a hidden field (e.g. `name="_hp"`) that real users never fill.
-  Reject submissions silently if it contains a value.
+- [x] **Honeypot field.** Built into all 3 integration templates: a hidden `_hp` field
+  (`name="_hp"`, `tabindex="-1"`, `autocomplete="off"`) that real users never fill.
   ```html
-  <input name="_hp" style="display:none" tabindex="-1" autocomplete="off">
+  <input class="hp-field" name="_hp" tabindex="-1" autocomplete="off">
   ```
+  Handled at every layer — nothing left for you to add:
+  - **Client** (`plain-html.html`, all 3 integrations): if `_hp` is non-empty on submit, the
+    JS returns silently without calling the backend at all.
+  - **Backend templates** (`node-express.js`, `nextjs-route.ts`, `php-vanilla.php`, all 3
+    integrations): if `_hp` arrives non-empty, return a fake success response
+    (`{ status: true, message: 'Success', uuid: '...' }` or a fake `redirectUrl` for
+    Integration 2) without calling EMAP.
+  - **EMAP API itself** (`/api/v1/signup`): accepts an optional `_hp` field and, if filled,
+    returns a fake success response with no database writes and no jobs dispatched. This
+    covers partners who call the EMAP API directly without a backend of their own (as in
+    Integration 3's direct-from-browser case).
+  If you write a custom backend instead of using these templates, keep the same behavior:
+  check `_hp` first, before any validation or downstream call, and never surface a
+  validation error for it (that would tip off the bot).
 
 - [ ] **Rate limiting on your endpoint.** Recommended: 10 submissions per hour per IP.
   Example (Express + `express-rate-limit`):

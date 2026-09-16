@@ -119,6 +119,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ status: false, message: 'Invalid JSON body' }, { status: 400 });
   }
 
+  // Honeypot — real users never fill this hidden field; bots often do.
+  // Reject silently (fake redirect, never built against EMAP) so the bot has no signal to adapt to.
+  if (body._hp) {
+    return NextResponse.json(
+      { status: true, redirectUrl: `${emapOrigin}/signup` },
+      { headers: { 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' } }
+    );
+  }
+
   const errors = validateFields(body);
   if (Object.keys(errors).length > 0) {
     return NextResponse.json({ status: false, errors }, { status: 422 });

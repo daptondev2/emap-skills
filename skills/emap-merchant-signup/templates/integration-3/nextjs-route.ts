@@ -150,6 +150,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
+  // Honeypot — real users never fill this hidden field; bots often do.
+  // Reject silently (fake success, no EMAP call) so the bot has no signal to adapt to.
+  if (body._hp) {
+    return NextResponse.json({ status: true, message: 'Success', uuid: '' });
+  }
+
   // Server-side validation
   const validationErrors = validatePayload(body);
   if (Object.keys(validationErrors).length > 0) {

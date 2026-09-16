@@ -188,6 +188,12 @@ export async function POST_step1(request: NextRequest): Promise<NextResponse> {
   try { body = await request.json(); }
   catch { return NextResponse.json({ status: false, message: 'Invalid JSON body' }, { status: 400 }); }
 
+  // Honeypot — real users never fill this hidden field; bots often do.
+  // Reject silently (fake success, no EMAP call) so the bot has no signal to adapt to.
+  if (body._hp) {
+    return NextResponse.json({ status: true, message: 'Success' }, { headers: NO_STORE });
+  }
+
   const { first_name, last_name, email, phone, name, company_name,
           website, country, annual_sales, business_state, industry_type,
           industry_type_other, promo_code } = body as Record<string, string>;

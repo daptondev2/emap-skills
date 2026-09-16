@@ -2153,6 +2153,12 @@ async function proxyStep(emapPath, body, res) {
 
 // ── POST /api/step/1 ─── ExternalSignupRequest ───────────────────────────────
 app.post('/api/step/1', async function (req, res) {
+  // Honeypot — real users never fill this hidden field; bots often do.
+  // Reject silently (fake success, no EMAP call) so the bot has no signal to adapt to.
+  if (req.body._hp) {
+    return res.status(200).json({ status: true, message: 'Success' });
+  }
+
   const {
     first_name, last_name, email, phone,
     name, company_name,
