@@ -22,6 +22,7 @@ with Integration 1, the partner hosts all 6 steps themselves.
 - [Before you start — Required questions](#before-you-start--required-questions) ← **start here, always**
 - [Reference files](#reference-files) — load only when implementing that feature
 - [Step 0: Detect project setup](#step-0-detect-project-setup)
+- [Step 0.5: Install the verify gate hook](#step-05-install-the-verify-gate-hook) ← **do this before writing any code**
 - [Step 1: Partner attribution (optional)](#step-1-partner-attribution-optional)
 - [Step 2: Choose integration mode](#step-2-choose-integration-mode)
 - [Build Integration 1: Full form](#build-integration-1-full-form)
@@ -100,6 +101,39 @@ Before generating any code, answer these questions:
 2. **What framework or language is in use?**
    - Use the matching template from `templates/integration-1/`, `templates/integration-2/`, or `templates/integration-3/`.
    - If no matching template exists, generate code following the pattern in `node-express.js`.
+
+---
+
+## Step 0.5: Install the verify gate hook
+
+This wires up an automated Stop-hook so a build cannot be silently declared "done" after only
+manual curl/browser testing — it forces the [Verify loop](#verify-loop-schema-conformance) to
+actually run and pass before the session can end. Do this once per project, before writing any
+form or backend code.
+
+1. **Copy the hook script.** Create `.claude/hooks/emap-verify-gate.py` in the target project
+   with the exact contents of [`hooks/emap-verify-gate.py`](hooks/emap-verify-gate.py) from this
+   skill. Make it executable (`chmod +x .claude/hooks/emap-verify-gate.py`).
+
+2. **Register the hook.** Read [`hooks/settings.snippet.json`](hooks/settings.snippet.json) and
+   merge its `hooks` key into the target project's `.claude/settings.json`:
+   - If `.claude/settings.json` doesn't exist, create it with just that `hooks` key.
+   - If it exists but has no `hooks.Stop`, add the `hooks.Stop` array from the snippet.
+   - If `hooks.Stop` already has entries, **append** the snippet's single entry to the existing
+     array — never overwrite another hook that's already registered there.
+
+3. **Mark the build in progress.** As soon as you start generating code for a chosen integration
+   mode, write `.claude/emap-build-state.json`:
+   ```json
+   { "status": "in_progress", "integration": "1" }
+   ```
+   (use `"2"` or `"3"` to match the mode being built). This is what activates the gate — from this
+   point on, the session cannot Stop until the file is updated to `"status": "verified"` by a
+   passing run of the [Verify loop](#verify-loop-schema-conformance).
+
+If the target project cannot run Python 3 (rare), tell the developer the automated gate can't be
+installed and that they must run the Verify loop manually before accepting the build — do not
+skip Step 0.5 silently.
 
 ---
 
@@ -268,8 +302,11 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
       `is_physical_address_same_as_legal_address` as labeled radios — not raw-value selects.
     - Confirm `routing_number` rejects a US value that isn't exactly 9 digits, and `account_number`
       rejects a US value outside 8–17 characters.
-    - **Run the verify step** in [Verify: security and coverage](#verify-security-and-coverage)
-      before telling the developer the form is done.
+    - **Run the [Verify loop: schema conformance](#verify-loop-schema-conformance)** and then
+      [Verify: security and coverage](#verify-security-and-coverage) before telling the developer
+      the form is done. Manual curl/browser testing above does not substitute for either — the
+      verify gate hook (Step 0.5) will block the session from ending until the loop has completed
+      with zero `CONFIRMED` findings.
 
 ---
 
@@ -349,6 +386,11 @@ merchant directly on step 2.
      EMAP shows the form prefilled; the merchant fills in the rest manually.
    - Full prefill (auto-submit): pass all non-excluded fields. EMAP auto-submits; merchant
      lands on step 2. See [`references/mode-2-redirect.md`](references/mode-2-redirect.md).
+   - **Run the [Verify loop: schema conformance](#verify-loop-schema-conformance)** and then
+     [Verify: security and coverage](#verify-security-and-coverage) before telling the developer
+     the form is done. Manual testing above does not substitute for either — the verify gate hook
+     (Step 0.5) will block the session from ending until the loop has completed with zero
+     `CONFIRMED` findings.
 
 ---
 
@@ -386,6 +428,11 @@ Read [`references/mode-3-api.md`](references/mode-3-api.md) before proceeding.
 
 5. **Test** by submitting with a unique email. Verify `{"status":true,"uuid":"..."}` is returned
    and the welcome email arrives.
+   - **Run the [Verify loop: schema conformance](#verify-loop-schema-conformance)** and then
+     [Verify: security and coverage](#verify-security-and-coverage) before telling the developer
+     the form is done. Manual testing above does not substitute for either — the verify gate hook
+     (Step 0.5) will block the session from ending until the loop has completed with zero
+     `CONFIRMED` findings.
 
 ---
 
@@ -419,6 +466,13 @@ Always proxy this through your backend — never call EMAP directly from the bro
 ---
 
 ## Verify loop: schema conformance
+
+> **Definition of done.** A build is not done until this loop has completed with zero `CONFIRMED`
+> findings. Your final response to the developer must include the verify agent's raw findings
+> JSON from the last round (or explicitly state it returned `[]`) — not a paraphrase, not a
+> summary of manual testing you did instead. If Step 0.5's hook is installed, the session cannot
+> Stop until `.claude/emap-build-state.json` says `"status": "verified"` (see step 6 below) —
+> treat that as the actual finish line for the build, not your own judgment that it "looks done."
 
 Do this for **every** integration mode, after the form and backend are written and before you tell
 the developer the build is done. Its purpose is to catch the exact class of bug this skill has
@@ -480,7 +534,12 @@ justify by inventing an item.
    is this finding real? Return `{finding, verdict: "CONFIRMED" | "REJECTED", reason}`."*
 5. **Build agent keeps only `CONFIRMED` findings**, discards `REJECTED` ones (a rejected finding is
    not reported to the developer and is not a reason to loop again).
-6. **If there are zero `CONFIRMED` findings** → conformance passed. Proceed to
+6. **If there are zero `CONFIRMED` findings** → conformance passed. If Step 0.5's hook is
+   installed, write `.claude/emap-build-state.json`:
+   ```json
+   { "status": "verified", "integration": "1", "rounds": 1, "confirmed_findings": [] }
+   ```
+   (match `integration` and `rounds` to what actually happened). Then proceed to
    [Verify: security and coverage](#verify-security-and-coverage), then hand off to the developer.
 7. **If there is at least one `CONFIRMED` finding** → the build agent fixes every one of them
    directly in the code (do not just re-read the docs and re-explain the rule — change the file),
@@ -489,7 +548,12 @@ justify by inventing an item.
    regress an unrelated field).
 8. **Cap at 5 verify→confirm→fix rounds.** If `CONFIRMED` findings remain after 5 rounds, stop
    looping, report exactly those remaining `CONFIRMED` findings to the developer, and do not claim
-   the build is done.
+   the build is done. If Step 0.5's hook is installed, write `.claude/emap-build-state.json` with
+   `"status": "blocked"` (not `"verified"`) plus the remaining findings, so the gate reflects that
+   the loop ran to its cap rather than was skipped:
+   ```json
+   { "status": "blocked", "integration": "1", "rounds": 5, "confirmed_findings": [ /* ... */ ] }
+   ```
 
 ---
 
