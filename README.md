@@ -56,16 +56,26 @@ There are three ways to integrate, depending on how your website is built:
 
 This skill is designed to be used with an AI coding assistant (Claude, Copilot, Cursor, Gemini, etc.). Load the skill file and ask the assistant to build the form for you.
 
-**Step 1: Download or clone this skill**
+**Step 1: Install the skill**
+
+From your project folder, run:
 ```bash
-git clone https://github.com/your-org/emap-signup-skill.git
-# or download the zip and extract it
+npx skills add daptondev2/emap-skills
 ```
 
-**Step 2: Tell your AI assistant to load the skill**
+This installs the `emap-merchant-signup` skill for your AI assistant. Useful options:
+- `-g` — install globally instead of just for the current project
+- `-a claude-code` (or `cursor`, `codex`, …) — install for a specific assistant
+
+Not using the `skills` CLI? Clone the repo instead and point your assistant at `skills/emap-merchant-signup/SKILL.md`:
+```bash
+git clone https://github.com/daptondev2/emap-skills.git
+```
+
+**Step 2: Ask your AI assistant to build the form**
 
 In your AI assistant chat, say:
-> "Load the skill at `signup-skills/merchant-signup/SKILL.md` and build me an EMAP partner signup form for my [PHP / Node.js / static HTML] project. My partner key is `YOUR_PARTNER_KEY_HERE`."
+> "Use the emap-merchant-signup skill to build me an EMAP partner signup form for my [PHP / Node.js / static HTML] project. My partner key is `YOUR_PARTNER_KEY_HERE`."
 
 The assistant will ask you a few questions and then generate the complete signup form for your tech stack.
 
@@ -88,7 +98,7 @@ Submit a test application using the staging URL from Easy Pay Direct, then go li
 If you'd rather skip the AI assistant, grab a template directly:
 
 ```
-templates/
+skills/emap-merchant-signup/templates/
   integration-1/        ← Full 6-step form on your site
     plain-html.html     → Copy this HTML file and style it
     php-vanilla.php     → Drop-in PHP backend (no framework needed)
