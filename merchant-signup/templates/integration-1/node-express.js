@@ -126,8 +126,8 @@ app.post('/api/step/1', async function (req, res) {
   } = req.body;
 
   // Basic server-side guard — EMAP validates fully; we just reject obviously empty calls
-  const required = { first_name, last_name, email, phone, website, country, annual_sales };
   const companyName = (name || company_name || '').trim();
+  const required = { first_name, last_name, email, phone, website, country, annual_sales, industry_type };
   if (!companyName) required.name = '';
 
   const missing = Object.entries(required)
@@ -141,19 +141,19 @@ app.post('/api/step/1', async function (req, res) {
   }
 
   const payload = {
-    first_name:   String(first_name).trim(),
-    last_name:    String(last_name).trim(),
-    email:        String(email).trim().toLowerCase(),
-    phone:        String(phone).trim(),
-    name:         companyName,
-    website:      String(website).trim(),
-    country:      String(country).trim().toUpperCase(),
-    annual_sales: Number(annual_sales),
+    first_name:    String(first_name).trim(),
+    last_name:     String(last_name).trim(),
+    email:         String(email).trim().toLowerCase(),
+    phone:         String(phone).trim(),
+    name:          companyName,
+    website:       String(website).trim(),
+    country:       String(country).trim().toUpperCase(),
+    annual_sales:  Number(annual_sales),
+    industry_type: String(industry_type).trim(),
   };
 
-  if (business_state)  payload.business_state  = String(business_state).trim().toUpperCase();
-  if (industry_type)   payload.industry_type   = String(industry_type).trim();
-  if (promo_code)      payload.promo_code       = String(promo_code).trim();
+  if (business_state)    payload.business_state    = String(business_state).trim().toUpperCase();
+  if (promo_code)        payload.promo_code        = String(promo_code).trim();
 
   // Partner key from env only — never from the request body
   if (process.env.EMAP_PARTNER_KEY) payload.partner_key = process.env.EMAP_PARTNER_KEY;

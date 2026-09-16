@@ -499,7 +499,6 @@
       </div>
 
       <div class="btn-row">
-        <button type="button" class="btn-back" onclick="goToStep(1)">← Back</button>
         <button type="submit" id="btn-step2">Continue — Products →</button>
       </div>
     </form>
@@ -623,7 +622,6 @@
       </div>
 
       <div class="btn-row">
-        <button type="button" class="btn-back" onclick="goToStep(2)">← Back</button>
         <button type="submit" id="btn-step3">Continue — Owners →</button>
       </div>
     </form>
@@ -945,7 +943,6 @@
       </div>
 
       <div class="btn-row">
-        <button type="button" class="btn-back" onclick="goToStep(3)">← Back</button>
         <button type="submit" id="btn-step4">Continue — Banking →</button>
       </div>
     </form>
@@ -1006,7 +1003,6 @@
       </div>
 
       <div class="btn-row">
-        <button type="button" class="btn-back" onclick="goToStep(4)">← Back</button>
         <button type="submit" id="btn-step5">Continue — Final Details →</button>
       </div>
     </form>
@@ -1264,7 +1260,6 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       <span class="field-error" id="err_terms_agreed" style="display:block;margin-top:-10px;margin-bottom:10px"></span>
 
       <div class="btn-row">
-        <button type="button" class="btn-back" onclick="goToStep(5)">← Back</button>
         <button type="submit" id="btn-step6">Submit Application</button>
       </div>
     </form>
@@ -2040,6 +2035,11 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         // Show CA banking if needed and update country-dependent labels
         document.getElementById('ca_banking_fields').style.display = step1Country === 'CA' ? 'block' : 'none';
         updateCountryLabels(step1Country);
+        // Pre-fill legal name and DBA from Step 1 company name (only if not already set)
+        var legalEl = document.getElementById('legal_name');
+        var dbaEl   = document.getElementById('dba_name');
+        if (legalEl && !legalEl.value) legalEl.value = d.company_name || '';
+        if (dbaEl   && !dbaEl.value)   dbaEl.value   = d.company_name || '';
       }
     });
 

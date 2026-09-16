@@ -144,24 +144,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // ── Step 1: ExternalSignupRequest ─────────────────────────────────────────
     if ($step === 1) {
-        $firstName   = trim((string)($input['first_name']   ?? ''));
-        $lastName    = trim((string)($input['last_name']    ?? ''));
-        $email       = trim((string)($input['email']        ?? ''));
-        $phone       = trim((string)($input['phone']        ?? ''));
-        $name        = trim((string)($input['name'] ?? $input['company_name'] ?? ''));
-        $website     = trim((string)($input['website']      ?? ''));
-        $country     = strtoupper(trim((string)($input['country'] ?? '')));
-        $annualSales = (float)($input['annual_sales'] ?? 0);
+        $firstName         = trim((string)($input['first_name']        ?? ''));
+        $lastName          = trim((string)($input['last_name']         ?? ''));
+        $email             = trim((string)($input['email']             ?? ''));
+        $phone             = trim((string)($input['phone']             ?? ''));
+        $name              = trim((string)($input['name'] ?? $input['company_name'] ?? ''));
+        $website           = trim((string)($input['website']           ?? ''));
+        $country           = strtoupper(trim((string)($input['country'] ?? '')));
+        $annualSales       = (float)($input['annual_sales'] ?? 0);
+        $industryType      = trim((string)($input['industry_type']      ?? ''));
+        $industryTypeOther = trim((string)($input['industry_type_other'] ?? ''));
 
         $missing = [];
-        if (!$firstName)   $missing['first_name']   = ['First name is required'];
-        if (!$lastName)    $missing['last_name']     = ['Last name is required'];
-        if (!$email)       $missing['email']         = ['Email is required'];
-        if (!$phone)       $missing['phone']         = ['Phone is required'];
-        if (!$name)        $missing['name']          = ['Company name is required'];
-        if (!$website)     $missing['website']       = ['Website is required'];
-        if (!$country)     $missing['country']       = ['Country is required'];
-        if ($annualSales < 1) $missing['annual_sales'] = ['Annual sales must be at least 1'];
+        if (!$firstName)      $missing['first_name']    = ['First name is required'];
+        if (!$lastName)       $missing['last_name']     = ['Last name is required'];
+        if (!$email)          $missing['email']         = ['Email is required'];
+        if (!$phone)          $missing['phone']         = ['Phone is required'];
+        if (!$name)           $missing['name']          = ['Company name is required'];
+        if (!$website)        $missing['website']       = ['Website is required'];
+        if (!$country)        $missing['country']       = ['Country is required'];
+        if ($annualSales < 1) $missing['annual_sales']  = ['Annual sales must be at least 1'];
+        if (!$industryType)   $missing['industry_type'] = ['Industry type is required'];
 
         if (!empty($missing)) {
             http_response_code(422);
@@ -170,25 +173,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $payload = [
-            'first_name'   => $firstName,
-            'last_name'    => $lastName,
-            'email'        => strtolower($email),
-            'phone'        => $phone,
-            'name'         => $name,
-            'website'      => $website,
-            'country'      => $country,
-            'annual_sales' => $annualSales,
+            'first_name'    => $firstName,
+            'last_name'     => $lastName,
+            'email'         => strtolower($email),
+            'phone'         => $phone,
+            'name'          => $name,
+            'website'       => $website,
+            'country'       => $country,
+            'annual_sales'  => $annualSales,
+            'industry_type' => $industryType,
         ];
 
-        $bizState          = strtoupper(trim((string)($input['business_state']     ?? '')));
-        $industryType      = trim((string)($input['industry_type']      ?? ''));
-        $industryTypeOther = trim((string)($input['industry_type_other'] ?? ''));
-        $promoCode         = trim((string)($input['promo_code']         ?? ''));
+        $bizState  = strtoupper(trim((string)($input['business_state'] ?? '')));
+        $promoCode = trim((string)($input['promo_code'] ?? ''));
 
-        if ($bizState)          $payload['business_state']     = $bizState;
-        if ($industryType)      $payload['industry_type']      = $industryType;
+        if ($bizState)          $payload['business_state']      = $bizState;
         if ($industryTypeOther) $payload['industry_type_other'] = $industryTypeOther;
-        if ($promoCode)         $payload['promo_code']         = $promoCode;
+        if ($promoCode)         $payload['promo_code']          = $promoCode;
         if ($emapPartnerKey)    $payload['partner_key']        = $emapPartnerKey;
 
         $result = emapPost($emapOrigin . '/api/v1/signup', $payload);

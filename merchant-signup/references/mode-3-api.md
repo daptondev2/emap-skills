@@ -25,8 +25,11 @@ Always call this endpoint from your backend. Never call it from browser-side Jav
   "country": "US",
   "annual_sales": 500000,
   "business_state": "CA",
+  "industry_type": "e-commerce",
+  "industry_type_other": "",
   "promo_code": "PARTNER20",
-  "partner_key": "YOUR_EMAP_PARTNER_KEY"
+  "partner_key": "YOUR_EMAP_PARTNER_KEY",
+  "trigger_email": true
 }
 ```
 
@@ -43,9 +46,12 @@ Always call this endpoint from your backend. Never call it from browser-side Jav
 | `country` | required, string, must match a valid entry in EMAP's country table (e.g. `US`, `CA`, `GB`) |
 | `annual_sales` | required, integer, min 1, max 999999999999 |
 | `business_state` | required when country=US, string, max 2 chars, valid US state code (e.g. `CA`, `TX`) |
+| `industry_type` | required, string — slug from `GET /api/partner/industry-types` (use the `slug` field, e.g. `e-commerce`) |
+| `industry_type_other` | required when `industry_type = other`, string, max 255 |
 | `promo_code` | optional, string, max 255 |
 | `partner_key` | optional, string — your partner `security_key` from EMAP |
 | `partner_id` | optional, integer — your partner user ID in EMAP (alternative to `partner_key`) |
+| `trigger_email` | optional, boolean, default `false` — when `true`, EMAP dispatches the welcome/verification email as part of this same call. **Required for the Integration 3 email-signup flow**; without it, the account/application is created but no email is sent, and you'd have to call `resume-link` separately to deliver it. |
 
 ---
 
@@ -136,8 +142,8 @@ Understanding this helps you set the right expectations with the merchant.
 3. **Deal assignment:** The rules engine assigns a sales rep (deal owner) based on the application data.
 4. **HubSpot sync:** Contact and deal objects are created/updated in HubSpot.
 5. **Partner webhook:** If `partner_id` / `partner_key` is set, a webhook fires to notify the partner.
-6. **Welcome email (new users):** `TriggerMerchantSignupEmail` dispatches with a password reset link.
-7. **Verification email (existing users):** `MerchantSignupVerificationEmail` dispatches with a secure token URL.
+6. **Welcome email (new users):** if `trigger_email: true` was sent, `TriggerMerchantSignupEmail` dispatches with a password reset link.
+7. **Verification email (existing users):** if `trigger_email: true` was sent, `MerchantSignupVerificationEmail` dispatches with a secure token URL.
 
 The merchant should expect:
 - **New user:** an email with their temporary password and a link to continue at step 2.
@@ -147,7 +153,8 @@ The merchant should expect:
 
 ## Resume link endpoint
 
-Use this to resend the "Finish Later" email when the merchant requests it.
+The initial email is sent via `trigger_email: true` on the `/api/v1/signup` call above. Use this
+endpoint only to resend the "Finish Later" email when the merchant requests it (e.g. it never arrived).
 
 ```
 POST {EMAP_BASE_URL}/api/v1/signup/resume-link
@@ -191,7 +198,9 @@ curl -X POST https://emap.epd.dev/api/v1/signup \
     "country": "US",
     "annual_sales": 500000,
     "business_state": "CA",
-    "partner_key": "YOUR_PARTNER_KEY"
+    "industry_type": "e-commerce",
+    "partner_key": "YOUR_PARTNER_KEY",
+    "trigger_email": true
   }'
 ```
 

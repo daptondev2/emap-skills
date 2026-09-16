@@ -148,6 +148,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                     $errors['business_state'] = ['Must be a valid 2-character US state code (e.g. CA, TX)'];
     }
 
+    if (!$industryType)     $errors['industry_type'] = ['Industry type is required'];
+
     if (!empty($errors)) {
         http_response_code(422);
         echo json_encode(['status' => false, 'message' => 'Validation failed', 'errors' => $errors]);
@@ -156,19 +158,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Build EMAP payload — only known fields; never forward raw user input wholesale
     $payload = [
-        'first_name'   => $firstName,
-        'last_name'    => $lastName,
-        'email'        => strtolower($email),
-        'phone'        => $phone,
-        'name'         => $name,
-        'website'      => $website,
-        'country'      => $country,
-        'annual_sales' => $annualSales,
+        'first_name'    => $firstName,
+        'last_name'     => $lastName,
+        'email'         => strtolower($email),
+        'phone'         => $phone,
+        'name'          => $name,
+        'website'       => $website,
+        'country'       => $country,
+        'annual_sales'  => $annualSales,
+        'industry_type' => $industryType,
     ];
-    if ($businessState)     $payload['business_state']     = $businessState;
-    if ($industryType)      $payload['industry_type']      = $industryType;
+    if ($businessState)     $payload['business_state']      = $businessState;
     if ($industryTypeOther) $payload['industry_type_other'] = $industryTypeOther;
-    if ($promoCode)         $payload['promo_code']         = $promoCode;
+    if ($promoCode)         $payload['promo_code']          = $promoCode;
 
     // Add partner key from env — never from the request
     if ($emapPartnerKey) {

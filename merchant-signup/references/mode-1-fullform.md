@@ -56,6 +56,8 @@ The `uuid` returned by Step 1 must be included in every subsequent request.
 | `country` | Yes | string | 2-char ISO code (`US`, `CA`, `GB`, …) |
 | `annual_sales` | Yes | integer | min 1, max 999 999 999 999 |
 | `business_state` | Required if country=US | string | 2-char US state code |
+| `industry_type` | Yes | string | Slug from `/api/partner/industry-types` — collected in Step 1, sent with signup |
+| `industry_type_other` | Required if industry_type=`other` | string | Max 255 |
 | `promo_code` | No | string | max 255 |
 | `partner_key` | No | string | inject from env; never from browser |
 
@@ -79,11 +81,9 @@ On success: `{ "status": true, "uuid": "<uuid>" }`. Store the `uuid` and `countr
 | `step_count` | Yes | Must be `2` |
 | `legal_name` | Yes | Legal company name, max 255 — pre-fill from Step 1 `name` |
 | `name` | Yes | Trading/DBA name, max 255 — pre-fill from Step 1 `name` |
-| `industry_type` | Yes | Slug from `/api/partner/industry-types` |
-| `industry_type_other` | Required if industry_type=`other` | Max 255 |
 | `customer_service_telephone_number` | Yes | Max 20; digits, `+`, `-`, `(`, `)`, spaces |
-| `business_organized` | Yes | Slug: `sole-proprietorship`, `llc`, `corporation`, `partnership`, `non-profit` |
-| `business_location` | Yes | Slug: `home`, `office`, `retail-store`, `online-only` |
+| `business_organized` | Yes | One of: `Corporation`, `LLC`, `Partnership`, `Government`, `Sole-Proprietorship`, `Non-Profit`, `Other` |
+| `business_location` | Yes | One of: `Home-Based`, `Co-Working`, `Corporate-Office`, `Storefront`, `Others` |
 | `business_formed` | Yes | Business formation date, format `YYYY-MM-DD` |
 | `federal_tax_id` | Required unless Step 1 country=`CA` or business_organized=`sole-proprietorship` | Max 20; alphanumeric and hyphens. Use `emap_country` from localStorage, not `address_country`. |
 | `business_register_number` | Required when Step 1 country ≠ `US` | Max 20. Use `emap_country` from localStorage, not `address_country`. |
@@ -100,7 +100,7 @@ On success: `{ "status": true, "uuid": "<uuid>" }`. Store the `uuid` and `countr
 | `physical_address_state` | Required if is_physical_address_same_as_legal_address=`0` | State/province |
 | `physical_address_postal_code` | Required if is_physical_address_same_as_legal_address=`0` | Max 20 |
 | `physical_address_country` | Required if is_physical_address_same_as_legal_address=`0` | 2-char ISO |
-| `marketingModel` | Yes | Array of marketing model IDs from `/api/partner/interest-details` |
+| `marketingModel` | Yes | Array of integer IDs — hardcoded: `1`=One Time Purchase, `2`=Recurring/Continuity/Subscription, `3`=Trial Offer + Subscription |
 | `subscription_frequency` | Required if `marketingModel` includes `2` | `1`=Weekly `2`=Monthly `3`=Other |
 | `subscription_frequency_other` | Required if subscription_frequency=`3` | Min 5, max 255 |
 
@@ -119,13 +119,13 @@ On success: `{ "status": true, "uuid": "<uuid>" }`. Store the `uuid` and `countr
 | `card_swiped` | Yes | Numeric 0–100; must be a multiple of 5 |
 | `customer_entered` | Yes | Numeric 0–100; must be a multiple of 5 |
 | `staff_entered` | Yes | Numeric 0–100; must be a multiple of 5 |
-| `fulfillment_by` | Yes | Slug from `service_fullfillment` table |
+| `fulfillment_by` | Yes | One of: `Direct-By-You`, `Vendor`, `Others` |
 | `fullfillment_company` | Required if fulfillment_by=`Vendor` or `Others` | Max 300 (note: two l's) |
 | `average_transaction_amount` | Yes | Numeric, min 1 |
 | `highest_transaction_amount` | Yes | Numeric, min 1 |
-| `shopping_cart` | Yes | Slug from `/api/partner/shopping-carts` |
-| `refund_policy` | Yes | Slug from refund options |
-| `customer_service_time` | Yes | Slug from customer service time options |
+| `shopping_cart` | Yes | Slug from `/api/partner/shopping-carts` (dynamic; load from API) |
+| `refund_policy` | Yes | One of: `Full-Refund`, `No-Refund`, `Exchange-Only`, `Partial-Refund` |
+| `customer_service_time` | Yes | One of: `0-7-days`, `7-30-days`, `31+days` |
 
 **Card percentage rule:** `card_swiped + customer_entered + staff_entered` must equal exactly 100. Each value must be a multiple of 5.
 
@@ -219,7 +219,7 @@ All Owner 2 fields use the `.2` suffix. Required fields mirror Owner 1:
 | `transaction_device` | No | Slug from transaction devices |
 | `bad_experience` | Yes | Boolean |
 | `bad_experience_happened` | Required if bad_experience=`true` | Max 500 |
-| `other_interests_capital` | No | Array |
+| `other_interests_capital` | No | Array of integer IDs — load options dynamically from `GET /api/partner/interest-details`; response is grouped by `group_name` |
 | `terms_and_conditions_agreed` | Yes | Boolean |
 
 On Step 6 success, EMAP finalises the application. Clear `localStorage` keys and show a success panel.
@@ -233,7 +233,7 @@ On Step 6 success, EMAP finalises the application. Clear `localStorage` keys and
 | `GET /api/partner/countries` | Step 1, Step 2 (address), Step 4 (owner address) | `{ data: [ { id, name, code } ] }` |
 | `GET /api/partner/states` | Step 1, Step 2, Step 4 | `{ data: [ { id, name, code } ] }` |
 | `GET /api/partner/industry-types` | Step 2 | `{ data: [ { id, name, slug } ] }` |
-| `GET /api/partner/interest-details` | Step 2 (`marketingModel`) | `{ data: [ { id, name, slug, group_name } ] }` |
+| `GET /api/partner/interest-details` | Step 6 (`other_interests_capital`) | `{ data: [ { id, name, slug, group_name } ] }` |
 | `GET /api/partner/shopping-carts` | Step 3 | `{ data: [ { id, name, slug } ] }` |
 | `GET /api/partner/referral-sources` | Step 6 | `{ data: [ { id, name, slug } ] }` |
 

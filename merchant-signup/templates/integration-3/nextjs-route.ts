@@ -29,7 +29,7 @@ interface SignupPayload {
   country: string;        // 2-char ISO code, e.g. 'US', 'CA'
   annual_sales: number;
   business_state?: string;
-  industry_type?: string;
+  industry_type: string;
   industry_type_other?: string;
   promo_code?: string;
   partner_key?: string;   // injected server-side from env; never from the client
@@ -114,6 +114,9 @@ function validatePayload(body: Record<string, unknown>): ValidationErrors {
     else if (!VALID_US_STATES.has(state)) errors.business_state = ['Must be a valid 2-character US state code (e.g. CA, TX)'];
   }
 
+  const industryType = typeof body.industry_type === 'string' ? body.industry_type.trim() : '';
+  if (!industryType) errors.industry_type = ['Industry type is required'];
+
   return errors;
 }
 
@@ -169,7 +172,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   };
 
   if (body.business_state)      payload.business_state      = String(body.business_state).trim().toUpperCase();
-  if (body.industry_type)       payload.industry_type       = String(body.industry_type).trim();
+  payload.industry_type = String(body.industry_type).trim();
   if (body.industry_type_other) payload.industry_type_other = String(body.industry_type_other).trim();
   if (body.promo_code)          payload.promo_code          = String(body.promo_code).trim();
 

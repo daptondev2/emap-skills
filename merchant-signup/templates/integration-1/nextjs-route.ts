@@ -194,14 +194,15 @@ export async function POST_step1(request: NextRequest): Promise<NextResponse> {
 
   const companyName = (name || company_name || '').trim();
   const missing: string[] = [];
-  if (!String(first_name || '').trim())  missing.push('first_name');
-  if (!String(last_name  || '').trim())  missing.push('last_name');
-  if (!String(email      || '').trim())  missing.push('email');
-  if (!String(phone      || '').trim())  missing.push('phone');
-  if (!companyName)                      missing.push('name');
-  if (!String(website    || '').trim())  missing.push('website');
-  if (!String(country    || '').trim())  missing.push('country');
-  if (!annual_sales)                     missing.push('annual_sales');
+  if (!String(first_name    || '').trim())  missing.push('first_name');
+  if (!String(last_name     || '').trim())  missing.push('last_name');
+  if (!String(email         || '').trim())  missing.push('email');
+  if (!String(phone         || '').trim())  missing.push('phone');
+  if (!companyName)                         missing.push('name');
+  if (!String(website       || '').trim())  missing.push('website');
+  if (!String(country       || '').trim())  missing.push('country');
+  if (!annual_sales)                        missing.push('annual_sales');
+  if (!String(industry_type || '').trim())  missing.push('industry_type');
 
   if (missing.length > 0) {
     const errors: Record<string, string[]> = {};
@@ -210,20 +211,20 @@ export async function POST_step1(request: NextRequest): Promise<NextResponse> {
   }
 
   const payload: Record<string, unknown> = {
-    first_name:   String(first_name).trim(),
-    last_name:    String(last_name).trim(),
-    email:        String(email).trim().toLowerCase(),
-    phone:        String(phone).trim(),
-    name:         companyName,
-    website:      String(website).trim(),
-    country:      String(country).trim().toUpperCase(),
-    annual_sales: Number(annual_sales),
+    first_name:    String(first_name).trim(),
+    last_name:     String(last_name).trim(),
+    email:         String(email).trim().toLowerCase(),
+    phone:         String(phone).trim(),
+    name:          companyName,
+    website:       String(website).trim(),
+    country:       String(country).trim().toUpperCase(),
+    annual_sales:  Number(annual_sales),
+    industry_type: String(industry_type).trim(),
   };
 
-  if (business_state)    payload.business_state    = String(business_state).trim().toUpperCase();
-  if (industry_type)     payload.industry_type     = String(industry_type).trim();
+  if (business_state)      payload.business_state      = String(business_state).trim().toUpperCase();
   if (industry_type_other) payload.industry_type_other = String(industry_type_other).trim();
-  if (promo_code)        payload.promo_code        = String(promo_code).trim();
+  if (promo_code)          payload.promo_code          = String(promo_code).trim();
   if (EMAP_PARTNER_KEY)  payload.partner_key       = EMAP_PARTNER_KEY;
 
   return proxyPost('/api/v1/signup', payload);

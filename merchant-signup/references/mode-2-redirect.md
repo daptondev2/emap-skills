@@ -29,7 +29,7 @@ These are the only fields collected in an Integration 2 form — the same set as
 | `country` | Yes | Full country name (e.g. `United States`), not a 2-char code |
 | `business_state` | When US | Only shown and sent when `country = United States` |
 | `annual_sales` | Yes | |
-| `industry_type` | Optional | **Name** (not slug) — e.g. `E-Commerce`, not `e-commerce` |
+| `industry_type` | Yes | **Name** (not slug) — e.g. `E-Commerce`, not `e-commerce` |
 | `industry_type_other` | Conditional | Required when `industry_type = other` |
 | `promo_code` | Optional | |
 
@@ -71,9 +71,9 @@ function buildEmapRedirectUrl(fields, emapBaseUrl, partnerSecretKey) {
     annual_sales:  fields.annualSales,
   };
 
-  if (fields.businessState)  fieldMap.business_state      = fields.businessState;
-  if (fields.industryType)   fieldMap.industry_type       = fields.industryType;
-  if (fields.industryTypeOther) fieldMap.industry_type_other = fields.industryTypeOther;
+  if (fields.businessState)     fieldMap.business_state       = fields.businessState;
+  fieldMap.industry_type                                       = fields.industryType;
+  if (fields.industryTypeOther) fieldMap.industry_type_other  = fields.industryTypeOther;
   if (fields.promoCode)      fieldMap.promo_code          = fields.promoCode;
 
   for (const [key, value] of Object.entries(fieldMap)) {

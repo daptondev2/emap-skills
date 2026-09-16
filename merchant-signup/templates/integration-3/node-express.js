@@ -107,6 +107,9 @@ function validateSignupPayload(body) {
     else if (!VALID_US_STATES.has(state)) errors.business_state = ['Must be a valid 2-character US state code (e.g. CA, TX)'];
   }
 
+  const industryType = body.industry_type?.trim() ?? '';
+  if (!industryType) errors.industry_type = ['Industry type is required'];
+
   return errors;
 }
 
@@ -173,7 +176,7 @@ app.post('/api/signup', async function (req, res) {
   };
 
   if (business_state)      payload.business_state      = business_state.trim().toUpperCase();
-  if (industry_type)       payload.industry_type       = industry_type.trim();
+  payload.industry_type = industry_type.trim();
   if (industry_type_other) payload.industry_type_other = industry_type_other.trim();
   if (promo_code)          payload.promo_code          = promo_code.trim();
 

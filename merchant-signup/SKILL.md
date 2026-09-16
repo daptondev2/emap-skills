@@ -152,14 +152,29 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
    ```
 
 3. **Understand the step flow:**
-   - Step 1 (`POST /api/v1/signup`) returns a `uuid`. Store it in `localStorage('emap_uuid')`.
+   - Step 1 (`POST /api/v1/signup`) returns a `uuid`. Collect: first name, last name, email, phone, company name, website, country, annual sales, **industry type**, and (if US) business state. Store the `uuid` in `localStorage('emap_uuid')`.
    - Steps 2, 3, 5, 6 call `POST /api/v1/application/step` with the `uuid` and the appropriate `step_count`.
    - Step 4 calls `POST /api/v1/ownership` (no `step_count`; uses dot-notation field names).
    - Step 6 success → clear `localStorage` and show a completion panel.
 
-4. **Handle conditional fields:**
+4. **Pre-fill Step 2 from Step 1 data:**
+   When Step 1 succeeds and the form advances to Step 2, automatically populate:
+   - `legal_name` ← value of `company_name` from Step 1
+   - `name` (DBA / "doing business as") ← value of `company_name` from Step 1
+   The merchant can edit these fields in Step 2 if the legal name differs from the trading name.
+   Only pre-fill when the fields are currently empty (do not overwrite if the merchant has already typed something or if the session was restored from localStorage).
+
+5. **No back-navigation between steps:**
+   Once a merchant submits a step successfully, they **cannot** return to a previous step.
+   - Do **not** render Back buttons on any step (steps 2–6).
+   - Do **not** call `goToStep(n)` with a lower step number from any UI action.
+   This is intentional — each step is persisted to EMAP's API on submit, and EMAP does not
+   support replaying an earlier step after it has been accepted.
+
+6. **Handle conditional fields:**
+   - `industry_type` is collected in **Step 1** (not Step 2) and submitted with `POST /api/v1/signup`. Show `industry_type_other` when `industry_type = other` (step 1).
    - `country=US` → show `business_state` (step 1) and `state.1` (step 4).
-   - `business_organized` is not `sole-proprietorship` and `emap_country` (Step 1) ≠ `CA` → show `federal_tax_id` (step 2).
+   - `business_organized` is not `Sole-Proprietorship` and `emap_country` (Step 1) ≠ `CA` → show `federal_tax_id` (step 2).
    - `emap_country` (Step 1) ≠ `US` → show `business_register_number` (step 2).
    - `is_physical_address_same_as_legal_address=0` → show the physical address block (step 2).
    - `marketingModel` includes `2` → show `subscription_frequency`; if frequency=`3` show `subscription_frequency_other` (step 2).
@@ -170,25 +185,27 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
    - `emap_country` (Step 1) = `CA` → show `institution_number` + `customer_pay_currency` (step 5).
    - `bad_experience=true` → show `bad_experience_happened` (step 6).
 
-5. **Card percentage (step 3):** `card_swiped + customer_entered + staff_entered` must equal 100.
+7. **Card percentage (step 3):** `card_swiped + customer_entered + staff_entered` must equal 100.
    Validate client-side and block submission if not.
 
-6. **SSN (step 4):** For US/CA owners, apply Cleave.js mask `blocks:[3,2,4] delimiters:["-","-"]`
+8. **SSN (step 4):** For US/CA owners, apply Cleave.js mask `blocks:[3,2,4] delimiters:["-","-"]`
    to format as `XXX-XX-XXXX`. Validate: `ssn.replace(/-/g,'').length >= 9`.
-   For other countries, show a plain text field labelled "Personal Tax ID".
+   For other countries, show a plain text field labelled "Personal Tax ID / Government ID Number".
 
-7. **DOB (step 4):** Owner must be between 18 and 100 years old.
+9. **DOB (step 4):** Owner must be between 18 and 100 years old.
    `maxDate = today − 18 years`, `minDate = today − 100 years`.
 
-8. **Handle all response shapes** on each step (see [`references/api-errors.md`](references/api-errors.md)):
+10. **Handle all response shapes** on each step (see [`references/api-errors.md`](references/api-errors.md)):
    - `{"status":true}` → advance to next step.
    - HTTP 422 → display per-field errors.
    - HTTP 429 → ask the merchant to wait and retry.
    - HTTP 5xx → show generic "please try again".
 
-9. **Test:**
+11. **Test:**
    - Complete all 6 steps with test data against the EMAP staging URL.
    - Verify Step 6 shows the success panel and `sessionStorage` is cleared.
+   - Verify `legal_name` and `name` (DBA) are pre-filled with the company name when Step 2 loads.
+   - Confirm no Back buttons appear on any step.
    - Test card percentage validator and Owner 2 conditional display.
    - Test SSN Cleave.js mask and DOB age gate.
 
@@ -220,7 +237,7 @@ merchant directly on step 2.
 | `country` | select | Required — pass **full country name** (e.g. `United States`), not a 2-char code |
 | `business_state` | select | Required only when `country = United States` |
 | `annual_sales` | number | Required |
-| `industry_type` | select | Optional — loaded from EMAP API; triggers auto-submit when present |
+| `industry_type` | select | Required — loaded from EMAP API (`/api/partner/industry-types`), use `name` as value |
 | `industry_type_other` | text | Conditional — shown when `industry_type = Other` |
 | `promo_code` | text | Optional |
 
@@ -245,7 +262,7 @@ merchant directly on step 2.
    params.set('country',    formData.get('country'));       // full name
    if (formData.get('business_state')) params.set('business_state', formData.get('business_state'));
    params.set('annual_sales', formData.get('annual_sales'));
-   if (formData.get('industry_type')) params.set('industry_type', formData.get('industry_type'));
+   params.set('industry_type', formData.get('industry_type'));
    if (formData.get('promo_code'))    params.set('promo_code', formData.get('promo_code'));
    // UTM pass-through (see step 3)
    window.location.href = EMAP_BASE_URL + '/signup?' + params.toString();
@@ -285,7 +302,9 @@ Read [`references/mode-3-api.md`](references/mode-3-api.md) before proceeding.
 2. **Create a backend endpoint** (e.g. `POST /api/signup`) that:
    - Receives and validates the form data server-side.
    - Reads `EMAP_PARTNER_KEY` and `EMAP_BASE_URL` from the environment.
-   - Calls `POST {EMAP_BASE_URL}/api/v1/signup` with the validated data plus `partner_key`.
+   - Calls `POST {EMAP_BASE_URL}/api/v1/signup` with the validated data plus `partner_key` and
+     `trigger_email: true`. This flag tells EMAP to dispatch the welcome/verification email as
+     part of this same call — without it, the account is created but no email is sent.
    - Returns the EMAP response (or a mapped version) to the browser.
    Use the matching template from `templates/integration-3/`.
 
@@ -310,9 +329,11 @@ Read [`references/mode-3-api.md`](references/mode-3-api.md) before proceeding.
 
 ## Integration 3: Resume link
 
-Use `POST {EMAP_BASE_URL}/api/v1/signup/resume-link` to email the merchant a link to continue
-their application. The merchant receives a "Finish Later" email with a direct link to their
-in-progress application on EMAP.
+This is for **resending** the email only — the initial email is triggered by `trigger_email: true`
+on the `/api/v1/signup` call itself (see step 2 above). Use
+`POST {EMAP_BASE_URL}/api/v1/signup/resume-link` to re-email the merchant a link to continue
+their application, e.g. if the first email never arrived. The merchant receives a "Finish Later"
+email with a direct link to their in-progress application on EMAP.
 
 **Request (from your backend, not the browser):**
 ```
