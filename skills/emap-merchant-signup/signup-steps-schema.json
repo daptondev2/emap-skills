@@ -588,6 +588,49 @@
           "pattern": "^[0-9A-Za-z\\-]+$",
           "placeholder": "XX-XXXXXXX",
           "hint": "Required unless country is Canada OR business is Sole Proprietorship",
+          "countryDependent": true,
+          "countryVariants": {
+            "US": {
+              "placeholder": "XXX-XX-XXXX",
+              "inputMask": {
+                "library": "Cleave.js",
+                "numericOnly": true,
+                "blocks": [3, 2, 4],
+                "delimiters": ["-", "-"]
+              },
+              "pattern": "^\\d{3}-\\d{2}-\\d{4}$",
+              "minLength": 11,
+              "maxLength": 11,
+              "validationNote": "US: 9 digits masked as XXX-XX-XXXX (blocks [3,2,4])."
+            },
+            "CA": {
+              "placeholder": "XXX-XX-XXXX",
+              "inputMask": {
+                "library": "Cleave.js",
+                "numericOnly": true,
+                "blocks": [3, 2, 4],
+                "delimiters": ["-", "-"]
+              },
+              "pattern": "^\\d{3}-\\d{2}-\\d{4}$",
+              "minLength": 11,
+              "maxLength": 11,
+              "validationNote": "CA: 9 digits masked as XXX-XX-XXXX (blocks [3,2,4])."
+            },
+            "default": {
+              "placeholder": "XX-XXXXXXX",
+              "inputMask": {
+                "library": "Cleave.js",
+                "numericOnly": true,
+                "blocks": [2, 7],
+                "delimiters": ["-"]
+              },
+              "pattern": "^\\d{2}-\\d{7}$",
+              "minLength": 10,
+              "maxLength": 10,
+              "validationNote": "All other countries: 9 digits masked as XX-XXXXXXX (blocks [2,7])."
+            }
+          },
+          "note": "Mask keyed off country_from_step1: US/CA use XXX-XX-XXXX (blocks [3,2,4]); every other country uses XX-XXXXXXX (blocks [2,7]).",
           "dependsOn": {
             "logic": "NOT (country == 'CA' OR business_organized == 'Sole-Proprietorship')",
             "effect": "required"
