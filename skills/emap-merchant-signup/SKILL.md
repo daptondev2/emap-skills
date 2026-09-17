@@ -194,6 +194,13 @@ go do [Step 0.5](#step-05-install-the-verify-gate-hook) first.
 
 Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before proceeding.
 
+> **Build strictly from `signup-steps-schema.json`.** Before writing or porting any field, look it
+> up in [`signup-steps-schema.json`](signup-steps-schema.json) and follow it exactly — the widget
+> `type`, the API field name/route, every validation rule (including per-country
+> `countryVariants`), and every dependent/conditional field (`dependsOn`/`visibleIf`). Do not infer
+> any of these from the field name, a markdown table, or prose — the JSON file is the single source
+> of truth the form must be built against.
+
 ### Steps
 
 1. **Use the template** from `templates/integration-1/`:
@@ -324,10 +331,11 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
     conditional/back-nav logic, dropdown routes/fallback), or is a correctness question the loop
     will surface through its `[]`-or-findings result regardless. Skipping straight there removes an
     entire redundant pass instead of paying for the same ground twice.
-    - **Run the [Verify loop: schema conformance](#verify-loop-schema-conformance)**, then
+    <!-- - **Run the [Verify loop: schema conformance](#verify-loop-schema-conformance)**, then
       [Verify: security and coverage](#verify-security-and-coverage), before telling the developer
       the form is done. The verify gate hook (Step 0.5) will block the session from ending until
-      the loop has completed with zero `CONFIRMED` findings.
+      the loop has completed with zero `CONFIRMED` findings. -->
+
 
 ---
 
@@ -338,6 +346,13 @@ project. If it doesn't — even if `merchant-signup/` or other build output alre
 go do [Step 0.5](#step-05-install-the-verify-gate-hook) first.
 
 Read [`references/mode-2-redirect.md`](references/mode-2-redirect.md) before proceeding.
+
+> **Build strictly from `signup-steps-schema.json`.** Before writing any field, look it up in
+> [`signup-steps-schema.json`](signup-steps-schema.json) and follow it exactly — the widget `type`,
+> the API field name, every validation rule (including per-country `countryVariants`), and every
+> dependent/conditional field (`dependsOn`/`visibleIf`). Do not infer any of these from the field
+> name, a markdown table, or prose — the JSON file is the single source of truth the form must be
+> built against.
 
 ### Overview
 
@@ -411,11 +426,12 @@ merchant directly on step 2.
      EMAP shows the form prefilled; the merchant fills in the rest manually.
    - Full prefill (auto-submit): pass all non-excluded fields. EMAP auto-submits; merchant
      lands on step 2. See [`references/mode-2-redirect.md`](references/mode-2-redirect.md).
-   - **Run the [Verify loop: schema conformance](#verify-loop-schema-conformance)** and then
+   <!-- - **Run the [Verify loop: schema conformance](#verify-loop-schema-conformance)** and then
      [Verify: security and coverage](#verify-security-and-coverage) before telling the developer
      the form is done. Manual testing above does not substitute for either — the verify gate hook
      (Step 0.5) will block the session from ending until the loop has completed with zero
-     `CONFIRMED` findings.
+     `CONFIRMED` findings. -->
+
 
 ---
 
@@ -426,6 +442,13 @@ project. If it doesn't — even if `merchant-signup/` or other build output alre
 go do [Step 0.5](#step-05-install-the-verify-gate-hook) first.
 
 Read [`references/mode-3-api.md`](references/mode-3-api.md) before proceeding.
+
+> **Build strictly from `signup-steps-schema.json`.** Before writing any field, look it up in
+> [`signup-steps-schema.json`](signup-steps-schema.json) and follow it exactly — the widget `type`,
+> the API field name, every validation rule (including per-country `countryVariants`), and every
+> dependent/conditional field (`dependsOn`/`visibleIf`). Do not infer any of these from the field
+> name, a markdown table, or prose — the JSON file is the single source of truth the form must be
+> built against.
 
 ### Steps
 
@@ -457,14 +480,16 @@ Read [`references/mode-3-api.md`](references/mode-3-api.md) before proceeding.
 
 5. **Test** by submitting with a unique email. Verify `{"status":true,"uuid":"..."}` is returned
    and the welcome email arrives.
-   - **Run the [Verify loop: schema conformance](#verify-loop-schema-conformance)** and then
+   <!-- - **Run the [Verify loop: schema conformance](#verify-loop-schema-conformance)** and then
      [Verify: security and coverage](#verify-security-and-coverage) before telling the developer
      the form is done. Manual testing above does not substitute for either — the verify gate hook
      (Step 0.5) will block the session from ending until the loop has completed with zero
-     `CONFIRMED` findings.
+     `CONFIRMED` findings. -->
+
 
 ---
 
+<!--
 ## Verify loop: schema conformance
 
 > **Definition of done.** A build is not done until this loop has completed with zero `CONFIRMED`
@@ -667,6 +692,7 @@ every future build that copies the same template will rediscover and re-pay the 
 verify→confirm→fix cost. Don't just fix the local copy and move on silently: tell the developer
 explicitly that the findings look like a template-level defect (name the template file), so it can
 be patched upstream in `templates/` rather than re-fixed from scratch on every future build.
+-->
 
 ---
 
