@@ -355,7 +355,7 @@
       </div>
 
       <div class="form-group" id="federal_tax_id_group">
-        <label for="federal_tax_id" id="federal_tax_id_label">Federal Tax ID <span class="required">*</span> <span class="hint" id="federal_tax_id_hint">(EIN)</span></label>
+        <label for="federal_tax_id" id="federal_tax_id_label"><span id="federal_tax_id_label_text">Federal Tax ID</span> <span class="required">*</span> <span class="hint" id="federal_tax_id_hint">(EIN)</span></label>
         <input id="federal_tax_id" name="federal_tax_id" type="text" maxlength="20" placeholder="XX-XXXXXXX" autocomplete="off">
         <span class="field-error" id="err_federal_tax_id"></span>
       </div>
@@ -1782,17 +1782,27 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       regGrp.style.display = (!isUSForRegNumber) ? 'block' : 'none';
       if (regInp) regInp.required = !isUSForRegNumber;
 
-      // Update EIN label and placeholder based on country
+      // Update EIN label and placeholder based on country.
+      // Label: "Federal Tax ID" for US; "Federal Tax ID (or Corporation Tax
+      // Number equivalent)" for every other country (CA included).
+      // Mask: US/CA use XXX-XX-XXXX (blocks 3-2-4); every other country
+      // uses XX-XXXXXXX (blocks 2-7). Kept in sync with the input-mask IIFE
+      // and the submit-time format check below.
       var lbl = document.getElementById('federal_tax_id_label');
+      var lblText = document.getElementById('federal_tax_id_label_text');
       var hint = document.getElementById('federal_tax_id_hint');
       var inp = document.getElementById('federal_tax_id');
-      if (lbl && hint && inp) {
+      if (lbl && lblText && hint && inp) {
+        lblText.textContent = isUS ? 'Federal Tax ID' : 'Federal Tax ID (or Corporation Tax Number equivalent)';
         if (isUS) {
           hint.textContent = '(EIN)';
-          inp.placeholder = 'XX-XXXXXXX';
+          inp.placeholder = 'XXX-XX-XXXX';
+        } else if (isCA) {
+          hint.textContent = '(Business Number)';
+          inp.placeholder = 'XXX-XX-XXXX';
         } else {
-          hint.textContent = '(EIN or equivalent Tax ID for your country)';
-          inp.placeholder = 'Your country\'s business tax ID';
+          hint.textContent = '(Tax ID for your country)';
+          inp.placeholder = 'XX-XXXXXXX';
         }
       }
     }
@@ -2078,23 +2088,26 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       return result;
     }
 
-    // ── Input masking: EIN (XX-XXXXXXX) ──────────────────────────────────────
-    // SSN masking (ssn_1 / ssn_2) is handled by updateSsnField(n) via Cleave.js,
-    // driven by each owner's own country.1 / country.2 — see above.
+    // ── Input masking: Federal Tax ID ────────────────────────────────────────
+    // US/CA: XXX-XX-XXXX (blocks 3-2-4). Every other country: XX-XXXXXXX
+    // (blocks 2-7). SSN masking (ssn_1 / ssn_2) is handled separately by
+    // updateSsnField(n) via Cleave.js, driven by each owner's own
+    // country.1 / country.2 — see above.
     (function () {
       var einInput = document.getElementById('federal_tax_id');
       if (einInput) {
         einInput.addEventListener('input', function () {
           var einMaskCountry = (step1Country || '').toUpperCase();
-          if (einMaskCountry === 'US' || einMaskCountry === '') {
-            // US-style forced XX-XXXXXXX digit grouping
-            var digits = this.value.replace(/\D/g, '').slice(0, 9);
+          var digits = this.value.replace(/\D/g, '').slice(0, 9);
+          if (einMaskCountry === 'US' || einMaskCountry === 'CA' || einMaskCountry === '') {
+            var out = digits.slice(0, 3);
+            if (digits.length > 3) out += '-' + digits.slice(3, 5);
+            if (digits.length > 5) out += '-' + digits.slice(5, 9);
+            this.value = out;
+          } else {
             this.value = digits.length > 2
               ? digits.slice(0, 2) + '-' + digits.slice(2)
               : digits;
-          } else {
-            // Non-US: free-form alphanumeric+dash (schema pattern ^[0-9A-Za-z\-]+$)
-            this.value = this.value.replace(/[^0-9A-Za-z\-]/g, '');
           }
         });
       }
@@ -2209,23 +2222,35 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       // EIN / Tax ID validation (field hidden for CA and sole-props; and even
       // when visible, not REQUIRED when country=CA OR org=Sole-Proprietorship —
       // separate OR-based dependsOn.logic, distinct from the AND-based
-      // visibleIf.logic used for taxGrp.style.display above)
+      // visibleIf.logic used for taxGrp.style.display above). Format is
+      // checked whenever a value is present, independent of required-ness,
+      // so e.g. an optional CA entry is still validated if the user fills it in.
       var einGrp = document.getElementById('federal_tax_id_group');
       var einVal = (payload.federal_tax_id || '').trim();
       var einCountry = (step1Country || '').toUpperCase();
       var einOrg = document.getElementById('business_organized').value;
       var einRequired = !(einCountry === 'CA' || einOrg === 'Sole-Proprietorship');
-      if (einGrp && window.getComputedStyle(einGrp).display !== 'none' && einRequired) {
-        if (!einVal) {
+      var einVisible = einGrp && window.getComputedStyle(einGrp).display !== 'none';
+      if (einVisible) {
+        if (einRequired && !einVal) {
           setError('federal_tax_id', 'Tax ID is required');
           return;
         }
-        // EIN format check only for US companies
-        if ((einCountry === 'US' || einCountry === '') && !/^\d{2}-\d{7}$/.test(einVal)) {
-          setError('federal_tax_id', 'EIN must be in the format XX-XXXXXXX (e.g. 12-3456789)');
-          return;
+        if (einVal) {
+          var einMaskedCountry = einCountry === 'US' || einCountry === 'CA' || einCountry === '';
+          var einPattern = einMaskedCountry ? /^\d{3}-\d{2}-\d{4}$/ : /^\d{2}-\d{7}$/;
+          var einFormatMsg = einMaskedCountry
+            ? 'Tax ID must be in the format XXX-XX-XXXX (e.g. 123-45-6789)'
+            : 'Tax ID must be in the format XX-XXXXXXX (e.g. 12-3456789)';
+          if (!einPattern.test(einVal)) {
+            setError('federal_tax_id', einFormatMsg);
+            return;
+          }
         }
       }
+      // Sent so the server can apply the same country-based format check;
+      // stripped server-side before proxying to EMAP (see /api/step/2).
+      payload.country_from_step1 = einCountry;
 
       // Business Registration Number (required whenever the group is visible,
       // i.e. non-US)

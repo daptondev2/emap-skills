@@ -2208,16 +2208,26 @@ app.post('/api/step/2', async function (req, res) {
   const { uuid } = req.body;
   if (!uuid) return res.status(422).json({ status: false, message: 'uuid is required' });
 
-  // EIN format — only present when the EIN group is visible (non-CA-sole-prop businesses)
+  // Federal Tax ID format — country_from_step1 is sent by the client for this
+  // check only; it is never forwarded to EMAP (stripped below). US/CA use
+  // XXX-XX-XXXX (blocks 3-2-4); every other country uses XX-XXXXXXX (blocks 2-7).
+  const einCountry = String(req.body.country_from_step1 || '').trim().toUpperCase();
   const ein = String(req.body.federal_tax_id || '').trim();
-  if (ein && !/^\d{2}-\d{7}$/.test(ein)) {
-    return res.status(422).json({
-      status: false, message: 'Validation failed',
-      errors: { federal_tax_id: ['EIN must be in the format XX-XXXXXXX (e.g. 12-3456789)'] },
-    });
+  if (ein) {
+    const isMaskedCountry = einCountry === 'US' || einCountry === 'CA' || einCountry === '';
+    const einPattern = isMaskedCountry ? /^\d{3}-\d{2}-\d{4}$/ : /^\d{2}-\d{7}$/;
+    if (!einPattern.test(ein)) {
+      return res.status(422).json({
+        status: false, message: 'Validation failed',
+        errors: { federal_tax_id: [isMaskedCountry
+          ? 'Tax ID must be in the format XXX-XX-XXXX (e.g. 123-45-6789)'
+          : 'Tax ID must be in the format XX-XXXXXXX (e.g. 12-3456789)'] },
+      });
+    }
   }
 
   const payload = Object.assign({}, req.body, { step_count: 2 });
+  delete payload.country_from_step1;
   return proxyStep('/api/v1/application/step', payload, res);
 });
 

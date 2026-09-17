@@ -250,16 +250,26 @@ export async function POST_step2(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ status: false, message: 'uuid is required' }, { status: 422, headers: NO_STORE });
   }
 
-  // EIN format — only present when the EIN group is visible
+  // Federal Tax ID format — country_from_step1 is sent by the client for this
+  // check only; it is never forwarded to EMAP (stripped below). US/CA use
+  // XXX-XX-XXXX (blocks 3-2-4); every other country uses XX-XXXXXXX (blocks 2-7).
+  const einCountry = String(body.country_from_step1 ?? '').trim().toUpperCase();
   const ein = String(body.federal_tax_id ?? '').trim();
-  if (ein && !/^\d{2}-\d{7}$/.test(ein)) {
-    return NextResponse.json(
-      { status: false, message: 'Validation failed', errors: { federal_tax_id: ['EIN must be in the format XX-XXXXXXX (e.g. 12-3456789)'] } },
-      { status: 422, headers: NO_STORE }
-    );
+  if (ein) {
+    const isMaskedCountry = einCountry === 'US' || einCountry === 'CA' || einCountry === '';
+    const einPattern = isMaskedCountry ? /^\d{3}-\d{2}-\d{4}$/ : /^\d{2}-\d{7}$/;
+    if (!einPattern.test(ein)) {
+      return NextResponse.json(
+        { status: false, message: 'Validation failed', errors: { federal_tax_id: [isMaskedCountry
+          ? 'Tax ID must be in the format XXX-XX-XXXX (e.g. 123-45-6789)'
+          : 'Tax ID must be in the format XX-XXXXXXX (e.g. 12-3456789)'] } },
+        { status: 422, headers: NO_STORE }
+      );
+    }
   }
 
-  return proxyPost('/api/v1/application/step', { ...body, step_count: 2 });
+  const { country_from_step1, ...rest } = body;
+  return proxyPost('/api/v1/application/step', { ...rest, step_count: 2 });
 }
 
 // ═════════════════════════════════════════════════════════════════════════════

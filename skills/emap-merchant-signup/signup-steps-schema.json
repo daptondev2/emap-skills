@@ -591,6 +591,7 @@
           "countryDependent": true,
           "countryVariants": {
             "US": {
+              "label": "Federal Tax ID",
               "placeholder": "XXX-XX-XXXX",
               "inputMask": {
                 "library": "Cleave.js",
@@ -604,6 +605,7 @@
               "validationNote": "US: 9 digits masked as XXX-XX-XXXX (blocks [3,2,4])."
             },
             "CA": {
+              "label": "Federal Tax ID (or Corporation Tax Number equivalent)",
               "placeholder": "XXX-XX-XXXX",
               "inputMask": {
                 "library": "Cleave.js",
@@ -617,6 +619,7 @@
               "validationNote": "CA: 9 digits masked as XXX-XX-XXXX (blocks [3,2,4])."
             },
             "default": {
+              "label": "Federal Tax ID (or Corporation Tax Number equivalent)",
               "placeholder": "XX-XXXXXXX",
               "inputMask": {
                 "library": "Cleave.js",
@@ -630,7 +633,7 @@
               "validationNote": "All other countries: 9 digits masked as XX-XXXXXXX (blocks [2,7])."
             }
           },
-          "note": "Mask keyed off country_from_step1: US/CA use XXX-XX-XXXX (blocks [3,2,4]); every other country uses XX-XXXXXXX (blocks [2,7]).",
+          "note": "Label keyed off country_from_step1: 'Federal Tax ID' for US; 'Federal Tax ID (or Corporation Tax Number equivalent)' for every other country (CA included). Mask keyed off country_from_step1 separately: US/CA use XXX-XX-XXXX (blocks [3,2,4]); every other country uses XX-XXXXXXX (blocks [2,7]).",
           "dependsOn": {
             "logic": "NOT (country == 'CA' OR business_organized == 'Sole-Proprietorship')",
             "effect": "required"
