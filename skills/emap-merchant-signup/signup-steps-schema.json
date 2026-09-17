@@ -588,7 +588,7 @@
           "pattern": "^[0-9]{2}-[0-9]{7}$",
           "placeholder": "XX-XXXXXXX",
           "hint": "Required unless country is Canada OR business is Sole Proprietorship",
-          "note": "Verified against EMAP's own variantA/step2 source (manageFederalTaxId / manageFederalTaxIdFormat in js.blade.php): visibleIf and dependsOn are the SAME OR condition there — the field is never actually removed from the DOM, it's disabled+cleared+non-required under one OR rule. A previous version of this schema had visibleIf use AND instead of dependsOn's OR, which is the exact bug SKILL.md's 'shipped broken twice' warning describes — do not reintroduce that divergence.",
+          "countryDependent": true,
           "dependsOn": {
             "logic": "NOT (country_from_step1 == 'CA' OR business_organized == 'Sole-Proprietorship')",
             "effect": "required"
@@ -598,30 +598,63 @@
           },
           "countryVariants": {
             "US": {
-              "pattern": "^[0-9]{3}-[0-9]{2}-[0-9]{4}$",
+              "label": "Federal Tax ID",
               "placeholder": "XXX-XX-XXXX",
+              "inputMask": {
+                "library": "Cleave.js",
+                "numericOnly": true,
+                "blocks": [3, 2, 4],
+                "delimiters": ["-", "-"]
+              },
+              "pattern": "^\\d{3}-\\d{2}-\\d{4}$",
+              "minLength": 11,
               "maxLength": 11,
-              "inputMask": { "blocks": [3, 2, 4], "delimiter": "-" }
+              "validationNote": "US: 9 digits masked as XXX-XX-XXXX (blocks [3,2,4])."
             },
             "CA": {
-              "pattern": "^[0-9]{3}-[0-9]{2}-[0-9]{4}$",
+              "label": "Federal Tax ID",
               "placeholder": "XXX-XX-XXXX",
+              "inputMask": {
+                "library": "Cleave.js",
+                "numericOnly": true,
+                "blocks": [3, 2, 4],
+                "delimiters": ["-", "-"]
+              },
+              "pattern": "^\\d{3}-\\d{2}-\\d{4}$",
+              "minLength": 11,
               "maxLength": 11,
-              "inputMask": { "blocks": [3, 2, 4], "delimiter": "-" }
+              "validationNote": "CA: 9 digits masked as XXX-XX-XXXX (blocks [3,2,4]). Label is plain 'Federal Tax ID', same as US — the '(or Corporation Tax Number equivalent)' wording applies to non-US/CA/PR countries only."
             },
             "PR": {
-              "pattern": "^[0-9]{3}-[0-9]{2}-[0-9]{4}$",
+              "label": "Federal Tax ID",
               "placeholder": "XXX-XX-XXXX",
+              "inputMask": {
+                "library": "Cleave.js",
+                "numericOnly": true,
+                "blocks": [3, 2, 4],
+                "delimiters": ["-", "-"]
+              },
+              "pattern": "^\\d{3}-\\d{2}-\\d{4}$",
+              "minLength": 11,
               "maxLength": 11,
-              "inputMask": { "blocks": [3, 2, 4], "delimiter": "-" }
+              "validationNote": "PR: same label/mask as US/CA — Puerto Rico groups with US/CA in EMAP's own isUSCanadaPR check. Omitting this variant silently falls through to 'default' and applies the WRONG mask (XX-XXXXXXX instead of XXX-XX-XXXX)."
             },
             "default": {
-              "pattern": "^[0-9]{2}-[0-9]{7}$",
+              "label": "Federal Tax ID (or Corporation Tax Number equivalent)",
               "placeholder": "XX-XXXXXXX",
+              "inputMask": {
+                "library": "Cleave.js",
+                "numericOnly": true,
+                "blocks": [2, 7],
+                "delimiters": ["-"]
+              },
+              "pattern": "^\\d{2}-\\d{7}$",
+              "minLength": 10,
               "maxLength": 10,
-              "inputMask": { "blocks": [2, 7], "delimiter": "-" }
+              "validationNote": "All other countries: 9 digits masked as XX-XXXXXXX (blocks [2,7])."
             }
-          }
+          },
+          "note": "Verified against EMAP's own variantA/step2 source (manageFederalTaxId / manageFederalTaxIdFormat / manageFederalTaxIdLabel in js.blade.php). Two things to get right: (1) visibleIf and dependsOn are the SAME OR condition — country_from_step1=='CA' OR business_organized=='Sole-Proprietorship' — the field is never actually removed from the DOM in the real form, it's disabled+cleared+non-required under one OR rule; an earlier version of this schema had visibleIf use AND instead, which is the exact bug SKILL.md's 'shipped broken twice' warning describes. (2) Label and mask both key off country_from_step1, grouping US/CA/PR together identically ('Federal Tax ID', XXX-XX-XXXX mask) versus every other country ('...or Corporation Tax Number equivalent', XX-XXXXXXX mask) — CA and PR are NOT part of the 'other countries' bucket for either the label or the mask."
         },
         {
           "key": "business_register_number",
