@@ -106,8 +106,8 @@ On success: `{ "status": true, "uuid": "<uuid>" }`. Store the `uuid` and `countr
 | `business_organized` | Yes | One of: `Corporation`, `LLC`, `Partnership`, `Government`, `Sole-Proprietorship`, `Non-Profit`, `Other` |
 | `business_location` | Yes | One of: `Home-Based`, `Co-Working`, `Corporate-Office`, `Storefront`, `Others` |
 | `business_formed` | Yes | Business formation date, format `YYYY-MM-DD` |
-| `federal_tax_id` | Required unless Step 1 country=`CA` or business_organized=`sole-proprietorship` | Max 20; alphanumeric and hyphens. Use `emap_country` from localStorage, not `address_country`. |
-| `business_register_number` | Required when Step 1 country ≠ `US` | Max 20. Use `emap_country` from localStorage, not `address_country`. |
+| `federal_tax_id` | Required unless Step 1 country=`CA` **OR** business_organized=`Sole-Proprietorship` | Numeric only, masked `XXX-XX-XXXX` (3-2-4) for US/CA/PR, `XX-XXXXXXX` (2-7) otherwise — never free-form alphanumeric, in any country. Use `country_from_step1` (the Step 1 formation country), not `address_country`. |
+| `business_register_number` | Required unless Step 1 country=`US`, country=`PR`, **OR** (country=`CA` **AND** business_organized=`Sole-Proprietorship`) — not simply "non-US" | Max 20 (11 for CA). Use `country_from_step1` (the Step 1 formation country), not `address_country`. |
 | `street_number` | Yes | Max 10 |
 | `street_address` | Yes | Max 255 |
 | `city` | Yes | Max 100 |
@@ -178,7 +178,7 @@ Owner 2 is required when `ownership_percentage.1 < 51`.
 | `title.1` | Yes | Slug from owner job title list |
 | `ownership_percentage.1` | Yes | Integer 1–100 |
 | `dob.1` | Yes | Format `YYYY-MM-DD`; owner must be 18–100 years old |
-| `ssn.1` | Yes | US/CA: `XXX-XX-XXXX`; other countries: plain tax ID |
+| `ssn.1` | Yes | US/CA/PR: `XXX-XX-XXXX` (Cleave blocks `[3,2,4]`); every other country: plain, unmasked tax ID. **Keyed off `country_from_step1` (the Step 1 formation country) — the SAME value drives `ssn.2` — not `country.1`** (see note below). |
 | `street_number.1` | Yes | Max 10 |
 | `street_address.1` | Yes | Max 255 |
 | `city.1` | Yes | Max 100 |
@@ -201,6 +201,11 @@ All Owner 2 fields use the `.2` suffix. Required fields mirror Owner 1:
 `bankruptcy_filed.2`, `bankruptcy_discharged.2` (if filed), `bankruptcy_discharged_date.2` (if discharged).
 
 **Combined ownership** (`ownership_percentage.1 + ownership_percentage.2`) must not exceed 100.
+
+**`ssn.2` uses the exact same `country_from_step1`-driven format/mask as `ssn.1`** (see its row
+above) — both owners share the one Step 1 formation country. `country.2` (Owner 2's own home
+address country) only gates `driver_license_state.2`/`driver_license_expiration_date.2`; it has no
+effect on SSN formatting.
 
 **SSN/DOB/bank data: never store or log these values. Send over HTTPS only.**
 

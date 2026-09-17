@@ -2208,16 +2208,50 @@ app.post('/api/step/2', async function (req, res) {
   const { uuid } = req.body;
   if (!uuid) return res.status(422).json({ status: false, message: 'uuid is required' });
 
-  // EIN format — only present when the EIN group is visible (non-CA-sole-prop businesses)
+  // country_from_step1 is sent by the client for this check only (same pattern
+  // as Step 5's bank validation below); it is never forwarded to EMAP (stripped
+  // before proxying).
+  const country = String(req.body.country_from_step1 || '').trim().toUpperCase();
+  const businessOrganized = String(req.body.business_organized || '').trim();
+  const isSoleProp = businessOrganized === 'Sole-Proprietorship';
+  const errors = {};
+
+  // federal_tax_id: required unless country=CA OR org=Sole-Proprietorship (OR —
+  // matches manageFederalTaxId in EMAP's own variantA/step2 js.blade.php; the
+  // schema's visibleIf.logic uses AND instead and is stale/wrong — see SKILL.md).
+  const einRequired = !(country === 'CA' || isSoleProp);
   const ein = String(req.body.federal_tax_id || '').trim();
-  if (ein && !/^\d{2}-\d{7}$/.test(ein)) {
-    return res.status(422).json({
-      status: false, message: 'Validation failed',
-      errors: { federal_tax_id: ['EIN must be in the format XX-XXXXXXX (e.g. 12-3456789)'] },
-    });
+  if (einRequired) {
+    if (!ein) {
+      errors.federal_tax_id = ['Tax ID is required'];
+    } else {
+      // US/CA/PR: XXX-XX-XXXX (3-2-4); every other country: XX-XXXXXXX (2-7) —
+      // matches Cleave.js formatConfig in manageFederalTaxIdFormat exactly.
+      const isUsCaPr = country === 'US' || country === 'CA' || country === 'PR';
+      const einPattern = isUsCaPr ? /^\d{3}-\d{2}-\d{4}$/ : /^\d{2}-\d{7}$/;
+      if (!einPattern.test(ein)) {
+        errors.federal_tax_id = [isUsCaPr
+          ? 'Tax ID must be in the format XXX-XX-XXXX (e.g. 123-45-6789)'
+          : 'Tax ID must be in the format XX-XXXXXXX (e.g. 12-3456789)'];
+      }
+    }
+  }
+
+  // business_register_number: required unless country=US, country=PR, OR
+  // (country=CA AND org=Sole-Proprietorship) — matches manageBusinessRegistrationNumber
+  // exactly (not just "non-US").
+  const regRequired = !(country === 'US' || country === 'PR' || (country === 'CA' && isSoleProp));
+  const regNumber = String(req.body.business_register_number || '').trim();
+  if (regRequired && !regNumber) {
+    errors.business_register_number = ['Business registration number is required'];
+  }
+
+  if (Object.keys(errors).length > 0) {
+    return res.status(422).json({ status: false, message: 'Validation failed', errors });
   }
 
   const payload = Object.assign({}, req.body, { step_count: 2 });
+  delete payload.country_from_step1;
   return proxyStep('/api/v1/application/step', payload, res);
 });
 
@@ -2235,18 +2269,26 @@ app.post('/api/step/4', async function (req, res) {
   const { uuid } = req.body;
   if (!uuid) return res.status(422).json({ status: false, message: 'uuid is required' });
 
-  // SSN format — nested as { ssn: { '1': '...', '2': '...' } } from the client toNestedDot helper
+  // SSN/SIN — nested as { ssn: { '1': '...', '2': '...' } } from the client toNestedDot
+  // helper. Format is keyed off country_from_step1 (the single Step 1 formation
+  // country, sent by the client for this check only and never forwarded to EMAP),
+  // applied identically to BOTH owners — NOT each owner's own country.1/country.2
+  // (home address/residence, used only for driver's license gating). Matches
+  // EMAP's own variantA/step4 js.blade.php exactly: selectedCountry = $company->country
+  // drives both owner_ssn Cleave masks and validateSSN() there.
   const SSN_RE = /^\d{3}-\d{2}-\d{4}$/;
   const ssnObj = req.body.ssn || {};
+  const ssnCountry = String(req.body.country_from_step1 || '').trim().toUpperCase();
+  const ssnNeedsFormat = ssnCountry === 'US' || ssnCountry === 'CA' || ssnCountry === 'PR';
   const errors = {};
 
   ['1', '2'].forEach(function (n) {
     if (ssnObj[n] !== undefined) {
       const val = String(ssnObj[n]).trim();
       if (!val) {
-        errors['ssn.' + n] = ['SSN / Tax ID is required'];
-      } else if (!SSN_RE.test(val)) {
-        errors['ssn.' + n] = ['SSN must be in the format XXX-XX-XXXX (e.g. 123-45-6789)'];
+        errors['ssn.' + n] = ['SSN/SIN is required'];
+      } else if (ssnNeedsFormat && !SSN_RE.test(val)) {
+        errors['ssn.' + n] = ['SSN/SIN must be in the format XXX-XX-XXXX (e.g. 123-45-6789)'];
       }
     }
   });
@@ -2274,7 +2316,9 @@ app.post('/api/step/4', async function (req, res) {
     return res.status(422).json({ status: false, message: 'Validation failed', errors });
   }
 
-  return proxyStep('/api/v1/ownership', req.body, res);
+  const ownershipPayload = Object.assign({}, req.body);
+  delete ownershipPayload.country_from_step1;
+  return proxyStep('/api/v1/ownership', ownershipPayload, res);
 });
 
 // ── POST /api/step/5 ─── ApplicationStepRequest (step_count=5) ───────────────

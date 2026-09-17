@@ -311,20 +311,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        // Step 2: EIN format validation only for US companies
+        // Step 2: federal_tax_id / business_register_number validation.
+        // country_from_step1 is sent by the client for this check only (the
+        // Step 1 formation country — NOT address_country, a separate Step 2
+        // legal-address field); it is never forwarded to EMAP (stripped below).
         if ($step === 2) {
-            $ein     = trim((string)($input['federal_tax_id'] ?? ''));
-            $addrCtry = strtoupper(trim((string)($input['address_country'] ?? '')));
-            $isUS    = ($addrCtry === 'US' || $addrCtry === '');
-            if ($ein !== '' && $isUS && !preg_match('/^\d{2}-\d{7}$/', $ein)) {
+            $country = strtoupper(trim((string)($input['country_from_step1'] ?? '')));
+            $businessOrganized = trim((string)($input['business_organized'] ?? ''));
+            $isSoleProp = $businessOrganized === 'Sole-Proprietorship';
+            $errors = [];
+
+            // federal_tax_id: required unless country=CA OR org=Sole-Proprietorship (OR —
+            // matches manageFederalTaxId in EMAP's own variantA/step2 js.blade.php; the
+            // schema's visibleIf.logic uses AND instead and is stale/wrong — see SKILL.md).
+            $einRequired = !($country === 'CA' || $isSoleProp);
+            $ein = trim((string)($input['federal_tax_id'] ?? ''));
+            if ($einRequired) {
+                if ($ein === '') {
+                    $errors['federal_tax_id'] = ['Tax ID is required'];
+                } else {
+                    // US/CA/PR: XXX-XX-XXXX (3-2-4); every other country: XX-XXXXXXX (2-7) —
+                    // matches Cleave.js formatConfig in manageFederalTaxIdFormat exactly.
+                    $isUsCaPr = in_array($country, ['US', 'CA', 'PR'], true);
+                    $einPattern = $isUsCaPr ? '/^\d{3}-\d{2}-\d{4}$/' : '/^\d{2}-\d{7}$/';
+                    if (!preg_match($einPattern, $ein)) {
+                        $errors['federal_tax_id'] = [$isUsCaPr
+                            ? 'Tax ID must be in the format XXX-XX-XXXX (e.g. 123-45-6789)'
+                            : 'Tax ID must be in the format XX-XXXXXXX (e.g. 12-3456789)'];
+                    }
+                }
+            }
+
+            // business_register_number: required unless country=US, country=PR, OR
+            // (country=CA AND org=Sole-Proprietorship) — matches
+            // manageBusinessRegistrationNumber exactly (not just "non-US").
+            $regRequired = !($country === 'US' || $country === 'PR' || ($country === 'CA' && $isSoleProp));
+            $regNumber = trim((string)($input['business_register_number'] ?? ''));
+            if ($regRequired && $regNumber === '') {
+                $errors['business_register_number'] = ['Business registration number is required'];
+            }
+
+            if (!empty($errors)) {
                 http_response_code(422);
                 echo json_encode([
                     'status'  => false,
                     'message' => 'Validation failed',
-                    'errors'  => ['federal_tax_id' => ['EIN must be in the format XX-XXXXXXX (e.g. 12-3456789)']],
+                    'errors'  => $errors,
                 ]);
                 exit;
             }
+
+            unset($input['country_from_step1']);
         }
 
         $input['step_count'] = $step;
@@ -343,20 +380,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        // SSN / Tax ID validation — format only enforced for US and CA
+        // SSN / SIN validation — format keyed off country_from_step1 (the single
+        // Step 1 formation country, sent by the client for this check only and
+        // never forwarded to EMAP), applied identically to BOTH owners. NOT each
+        // owner's own country.1/country.2 (home address/residence — a separate
+        // field used only for driver's license gating). Matches EMAP's own
+        // variantA/step4 js.blade.php exactly: selectedCountry = $company->country
+        // drives both owner_ssn Cleave masks and validateSSN() there.
         $errors = [];
-        $ssnFields  = $input['ssn'] ?? [];
-        $countryFields = $input['country'] ?? [];
+        $ssnFields = $input['ssn'] ?? [];
+        $ssnCountry = strtoupper(trim((string)($input['country_from_step1'] ?? '')));
+        $needsFmt = in_array($ssnCountry, ['US', 'CA', 'PR'], true);
         if (is_array($ssnFields)) {
             foreach (['1', '2'] as $n) {
                 if (isset($ssnFields[$n])) {
-                    $val     = trim((string)$ssnFields[$n]);
-                    $country = strtoupper(trim((string)($countryFields[$n] ?? '')));
-                    $needsFmt = ($country === 'US' || $country === 'CA' || $country === '');
+                    $val = trim((string)$ssnFields[$n]);
                     if ($val === '') {
-                        $errors['ssn.' . $n] = ['SSN / Tax ID is required'];
+                        $errors['ssn.' . $n] = ['SSN/SIN is required'];
                     } elseif ($needsFmt && !preg_match('/^\d{3}-\d{2}-\d{4}$/', $val)) {
-                        $errors['ssn.' . $n] = ['SSN must be in the format XXX-XX-XXXX (e.g. 123-45-6789)'];
+                        $errors['ssn.' . $n] = ['SSN/SIN must be in the format XXX-XX-XXXX (e.g. 123-45-6789)'];
                     }
                 }
             }
@@ -386,6 +428,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
+        unset($input['country_from_step1']);
         $result = emapPost($emapOrigin . '/api/v1/ownership', $input);
         http_response_code($result['status_code']);
         echo json_encode($result['body']);

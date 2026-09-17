@@ -355,8 +355,9 @@
       </div>
 
       <div class="form-group" id="federal_tax_id_group">
-        <label for="federal_tax_id" id="federal_tax_id_label">Federal Tax ID <span class="required">*</span> <span class="hint" id="federal_tax_id_hint">(EIN)</span></label>
-        <input id="federal_tax_id" name="federal_tax_id" type="text" maxlength="20" placeholder="XX-XXXXXXX" autocomplete="off">
+        <label for="federal_tax_id" id="federal_tax_id_label">Federal Tax ID <span class="required">*</span> <span class="hint" id="federal_tax_id_hint"></span></label>
+        <input id="federal_tax_id" name="federal_tax_id" type="text" inputmode="numeric" maxlength="11" placeholder="XXX-XX-XXXX" autocomplete="off">
+        <small class="hint" id="federal_tax_id_soleprop_hint" style="display:none">Sole proprietors: you'll be asked for your SSN in the Ownership step instead.</small>
         <span class="field-error" id="err_federal_tax_id"></span>
       </div>
 
@@ -702,7 +703,7 @@
           <div class="form-group">
             <label id="ssn_1_label" for="ssn_1">SSN / Tax ID <span class="required">*</span></label>
             <input id="ssn_1" name="ssn.1" type="text" maxlength="20" autocomplete="off" placeholder="XXX-XX-XXXX">
-            <span class="sensitive-note" id="ssn_1_hint">US/CA: enter 9 digits as XXX-XX-XXXX</span>
+            <span class="sensitive-note" id="ssn_1_hint">US/CA/PR: enter 9 digits as XXX-XX-XXXX</span>
             <span class="field-error" id="err_ssn_1"></span>
           </div>
           <div class="form-group">
@@ -1551,13 +1552,10 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         document.getElementById('ca_banking_fields').style.display = 'block';
       }
       setCaBankingRequired(step1Country === 'CA');
+      // Restores owner SSN/SIN masking + labels too (both keyed off step1Country
+      // — see updateSsnField(n)); step1Country is always set by the time Step 4
+      // is reachable (no back-nav, Step 1 is always submitted first).
       if (step1Country) updateCountryLabels(step1Country);
-
-      // Restore SSN masking/labels per-owner — country.1/country.2 selects may
-      // already have a browser-restored value on reload without a 'change'
-      // event ever firing, so re-sync explicitly here.
-      updateSsnField(1);
-      updateSsnField(2);
 
       // Restore marketingModel checkbox state
       try {
@@ -1609,10 +1607,6 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         US: 'Account Number', CA: 'Account Number',
         AU: 'Account Number', GB: 'Account Number',
         _default: 'IBAN / Account Number'
-      },
-      ssn: {
-        US: 'SSN / SIN', CA: 'SSN / SIN',
-        _default: 'Personal Tax ID / Government ID Number'
       }
     };
 
@@ -1654,28 +1648,56 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         else { aInput.setAttribute('maxlength', '20'); aInput.removeAttribute('minlength'); }
       }
 
-      // NOTE: SSN labels/masking are NOT driven by the business's country — see
-      // updateSsnField(n), which keys off each owner's OWN country.1 / country.2.
+      // Owner SSN/SIN labels and masking are driven by THIS SAME step1Country,
+      // applied identically to both owners — see updateSsnField(n) below.
+      updateSsnField(1);
+      updateSsnField(2);
     }
 
-    // ── SSN / Tax ID masking — keyed off each OWNER's own country, not the
-    // business's step1Country. US/CA owners get a Cleave.js XXX-XX-XXXX mask;
-    // every other country gets a plain, unmasked "Personal Tax ID / Government
-    // ID Number" text field. Re-run this whenever that owner's country changes
-    // and once on session restore, since select values can be restored by the
-    // browser without firing a 'change' event.
+    // ── SSN / Tax ID masking — matches EMAP's own variantA/step4 form exactly:
+    // `selectedCountry` in js.blade.php's manageFederalTaxId-adjacent SSN block
+    // is `$company->country` (the single Step 1 formation country), applied
+    // identically to BOTH Owner 1 and Owner 2 — never each owner's own country
+    // of residence (country.1/country.2, a separate field used only for home
+    // address + driver's license gating, see the country_1/country_2 change
+    // handlers below). US/CA/PR get a Cleave.js XXX-XX-XXXX (3-2-4) mask;
+    // every other country gets a plain, unmasked "SSN (or personal Tax ID
+    // equivalent)" text field. Re-run via updateCountryLabels() (called on
+    // restore, step1 country change, and post-step1-submit) so both owners
+    // stay in sync with step1Country automatically.
     var ssnCleave = { 1: null, 2: null };
 
-    function updateSsnField(n) {
-      var countryEl = document.getElementById('country_' + n);
-      var inp       = document.getElementById('ssn_' + n);
-      var label     = document.getElementById('ssn_' + n + '_label');
-      var hint      = document.getElementById('ssn_' + n + '_hint'); // only exists for Owner 1
-      if (!countryEl || !inp) return;
+    // federal_tax_id masking — matches EMAP's own variantA/step2 form exactly:
+    // US/CA/PR get a Cleave.js XXX-XX-XXXX (3-2-4) mask, every other country
+    // gets a XX-XXXXXXX (2-7) mask. Both are numeric-only — EMAP never accepts
+    // free-form alphanumeric here despite the schema's ^[0-9A-Za-z\-]+$ pattern.
+    // Driven by updateEinFormat(), called from updateFederalTaxVisibility()
+    // below so every call site (restore, country/org change, step1 submit)
+    // stays in sync automatically.
+    var einCleave = null;
 
-      var c = (countryEl.value || '').toUpperCase();
-      var isMasked = c === 'US' || c === 'CA';
-      var ssnText = isMasked ? COUNTRY_LABELS.ssn[c] : COUNTRY_LABELS.ssn._default;
+    function updateEinFormat(country) {
+      var inp = document.getElementById('federal_tax_id');
+      if (!inp) return;
+      var isUsCaPr = ['US', 'CA', 'PR'].indexOf((country || '').toUpperCase()) !== -1;
+      var blocks = isUsCaPr ? [3, 2, 4] : [2, 7];
+      if (einCleave) {
+        einCleave.destroy();
+        einCleave = null;
+      }
+      inp.value = inp.value.replace(/\D/g, '').slice(0, 9);
+      einCleave = new Cleave(inp, { blocks: blocks, delimiter: '-', numericOnly: true });
+    }
+
+    function updateSsnField(n) {
+      var inp   = document.getElementById('ssn_' + n);
+      var label = document.getElementById('ssn_' + n + '_label');
+      var hint  = document.getElementById('ssn_' + n + '_hint'); // only exists for Owner 1
+      if (!inp) return;
+
+      var c = (step1Country || '').toUpperCase();
+      var isMasked = c === 'US' || c === 'CA' || c === 'PR';
+      var ssnText = isMasked ? 'SSN/SIN' : 'SSN (or personal Tax ID equivalent)';
 
       if (label) label.innerHTML = 'Owner ' + n + ' ' + ssnText + ' <span class="required">*</span>';
       if (hint) {
@@ -1685,13 +1707,17 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       }
 
       if (isMasked) {
+        inp.maxLength = 11;
         if (!ssnCleave[n]) {
           inp.value = inp.value.replace(/\D/g, '').slice(0, 9);
           ssnCleave[n] = new Cleave(inp, { blocks: [3, 2, 4], delimiter: '-', numericOnly: true });
         }
-      } else if (ssnCleave[n]) {
-        ssnCleave[n].destroy();
-        ssnCleave[n] = null;
+      } else {
+        inp.maxLength = 20;
+        if (ssnCleave[n]) {
+          ssnCleave[n].destroy();
+          ssnCleave[n] = null;
+        }
       }
     }
 
@@ -1768,33 +1794,59 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       var country = step1Country;
       var isUS = country === 'US' || country === '';
       var isCA = country === 'CA';
+      var isPR = country === 'PR';
       var isSoleProp = org === 'Sole-Proprietorship';
       var taxGrp = document.getElementById('federal_tax_id_group');
+      var taxInp = document.getElementById('federal_tax_id');
       var regGrp = document.getElementById('business_register_number_group');
       var regInp = document.getElementById('business_register_number');
-      // EMAP requires federal_tax_id unless BOTH country=CA AND org=Sole-Proprietorship
-      taxGrp.style.display = (isCA && isSoleProp) ? 'none' : 'block';
-      // business_register_number: required for any non-US country. Uses a
-      // DEDICATED "is US" check (empty country is NOT treated as US here),
-      // unlike the shared `isUS` above which is used for federal_tax_id's
-      // own visibility/labeling rules where empty-as-US is correct.
-      var isUSForRegNumber = country === 'US';
-      regGrp.style.display = (!isUSForRegNumber) ? 'block' : 'none';
-      if (regInp) regInp.required = !isUSForRegNumber;
+      var solepropHint = document.getElementById('federal_tax_id_soleprop_hint');
 
-      // Update EIN label and placeholder based on country
-      var lbl = document.getElementById('federal_tax_id_label');
+      // EMAP's variantA/step2 source (manageFederalTaxId in js.blade.php) hides
+      // and un-requires federal_tax_id on an OR condition — country=CA OR
+      // org=Sole-Proprietorship — not the AND the schema's stale visibleIf.logic
+      // implies (see SKILL.md's "shipped broken twice" note). Verified against
+      // the live form: there the field isn't even removed from the DOM, it's
+      // just disabled+cleared+non-required under this same OR condition, so a
+      // single OR-based hide reproduces the real behavior faithfully.
+      var hideTax = isCA || isSoleProp;
+      taxGrp.style.display = hideTax ? 'none' : 'block';
+      if (taxInp) {
+        taxInp.disabled = hideTax;
+        taxInp.required = !hideTax;
+        if (hideTax) taxInp.value = '';
+      }
+      if (solepropHint) solepropHint.style.display = (isSoleProp && !isCA) ? 'inline' : 'none';
+
+      // business_register_number: hidden/non-required when country=US, country=PR,
+      // OR (country=CA AND org=Sole-Proprietorship) — mirrors manageBusinessRegistrationNumber
+      // in js.blade.php exactly (it also exempts Puerto Rico and CA sole props,
+      // not just US).
+      var hideReg = isUS || isPR || (isCA && isSoleProp);
+      regGrp.style.display = hideReg ? 'none' : 'block';
+      if (regInp) {
+        regInp.required = !hideReg;
+        if (hideReg) regInp.value = '';
+        regInp.maxLength = isCA ? 11 : 20;
+      }
+
+      // Update EIN label and placeholder based on country — matches
+      // manageFederalTaxIdLabel in js.blade.php: plain "Federal Tax ID" for
+      // US/CA/PR, "(or Corporation Tax Number equivalent)" for every other country.
       var hint = document.getElementById('federal_tax_id_hint');
-      var inp = document.getElementById('federal_tax_id');
-      if (lbl && hint && inp) {
-        if (isUS) {
-          hint.textContent = '(EIN)';
-          inp.placeholder = 'XX-XXXXXXX';
+      if (hint && taxInp) {
+        if (isUS || isCA || isPR) {
+          hint.textContent = '';
+          taxInp.placeholder = 'XXX-XX-XXXX';
+          taxInp.maxLength = 11;
         } else {
-          hint.textContent = '(EIN or equivalent Tax ID for your country)';
-          inp.placeholder = 'Your country\'s business tax ID';
+          hint.textContent = '(or Corporation Tax Number equivalent)';
+          taxInp.placeholder = 'XX-XXXXXXX';
+          taxInp.maxLength = 10;
         }
       }
+
+      updateEinFormat(country);
     }
 
     // Step 2: marketing model → subscription_frequency
@@ -1949,17 +2001,17 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       document.getElementById('owner2_section').style.display = show ? 'block' : 'none';
     });
 
-    // Step 4: owner 1 country → DL state/expiry
+    // Step 4: owner 1 country (home address/residence — separate from
+    // step1Country, which drives SSN masking above) → DL state/expiry only.
     document.getElementById('country_1').addEventListener('change', function () {
       var isUS = this.value === 'US';
       document.getElementById('dl_state_1_group').style.display = isUS ? 'block' : 'none';
       document.getElementById('dl_expiry_1_group').style.display = isUS ? 'block' : 'none';
       document.getElementById('driver_license_state_1').required = isUS;
       document.getElementById('driver_license_expiration_date_1').required = isUS;
-      updateSsnField(1);
     });
 
-    // Step 4: owner 2 country → DL state/expiry
+    // Step 4: owner 2 country (home address/residence) → DL state/expiry only.
     // Owner 2's DL state/expiry are only required when Owner 2 is actually
     // shown (ownership_percentage.1 < 51) AND their country is US.
     document.getElementById('country_2').addEventListener('change', function () {
@@ -1970,7 +2022,6 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       document.getElementById('dl_expiry_2_group').style.display = show ? 'block' : 'none';
       document.getElementById('driver_license_state_2').required = show;
       document.getElementById('driver_license_expiration_date_2').required = show;
-      updateSsnField(2);
     });
 
     // Step 4: bankruptcy owner 1
@@ -2078,27 +2129,8 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       return result;
     }
 
-    // ── Input masking: EIN (XX-XXXXXXX) ──────────────────────────────────────
-    // SSN masking (ssn_1 / ssn_2) is handled by updateSsnField(n) via Cleave.js,
-    // driven by each owner's own country.1 / country.2 — see above.
-    (function () {
-      var einInput = document.getElementById('federal_tax_id');
-      if (einInput) {
-        einInput.addEventListener('input', function () {
-          var einMaskCountry = (step1Country || '').toUpperCase();
-          if (einMaskCountry === 'US' || einMaskCountry === '') {
-            // US-style forced XX-XXXXXXX digit grouping
-            var digits = this.value.replace(/\D/g, '').slice(0, 9);
-            this.value = digits.length > 2
-              ? digits.slice(0, 2) + '-' + digits.slice(2)
-              : digits;
-          } else {
-            // Non-US: free-form alphanumeric+dash (schema pattern ^[0-9A-Za-z\-]+$)
-            this.value = this.value.replace(/[^0-9A-Za-z\-]/g, '');
-          }
-        });
-      }
-    })();
+    // federal_tax_id masking is handled by updateEinFormat(), called from
+    // updateFederalTaxVisibility() above (Cleave.js, same pattern as SSN masking).
 
     // ── Step form submissions ────────────────────────────────────────────────
 
@@ -2206,29 +2238,35 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         delete payload['marketingModel[]'];
       }
 
-      // EIN / Tax ID validation (field hidden for CA and sole-props; and even
-      // when visible, not REQUIRED when country=CA OR org=Sole-Proprietorship —
-      // separate OR-based dependsOn.logic, distinct from the AND-based
-      // visibleIf.logic used for taxGrp.style.display above)
+      // federal_tax_id: hidden+disabled+non-required whenever country=CA OR
+      // org=Sole-Proprietorship (OR, matching EMAP's real dependsOn/manageFederalTaxId
+      // logic — see the note in updateFederalTaxVisibility() above). Disabled
+      // fields are never in FormData, so this only fires when the group is visible.
       var einGrp = document.getElementById('federal_tax_id_group');
       var einVal = (payload.federal_tax_id || '').trim();
       var einCountry = (step1Country || '').toUpperCase();
-      var einOrg = document.getElementById('business_organized').value;
-      var einRequired = !(einCountry === 'CA' || einOrg === 'Sole-Proprietorship');
-      if (einGrp && window.getComputedStyle(einGrp).display !== 'none' && einRequired) {
+      if (einGrp && window.getComputedStyle(einGrp).display !== 'none') {
         if (!einVal) {
           setError('federal_tax_id', 'Tax ID is required');
           return;
         }
-        // EIN format check only for US companies
-        if ((einCountry === 'US' || einCountry === '') && !/^\d{2}-\d{7}$/.test(einVal)) {
-          setError('federal_tax_id', 'EIN must be in the format XX-XXXXXXX (e.g. 12-3456789)');
+        // US/CA/PR: XXX-XX-XXXX (3-2-4); every other country: XX-XXXXXXX (2-7) — matches
+        // Cleave.js formatConfig in js.blade.php's manageFederalTaxIdFormat exactly.
+        var einPattern = (einCountry === 'US' || einCountry === 'CA' || einCountry === 'PR')
+          ? /^\d{3}-\d{2}-\d{4}$/
+          : /^\d{2}-\d{7}$/;
+        if (!einPattern.test(einVal)) {
+          var einFormatMsg = (einCountry === 'US' || einCountry === 'CA' || einCountry === 'PR')
+            ? 'Tax ID must be in the format XXX-XX-XXXX (e.g. 123-45-6789)'
+            : 'Tax ID must be in the format XX-XXXXXXX (e.g. 12-3456789)';
+          setError('federal_tax_id', einFormatMsg);
           return;
         }
       }
 
-      // Business Registration Number (required whenever the group is visible,
-      // i.e. non-US)
+      // business_register_number: hidden+non-required when country=US, country=PR,
+      // OR (country=CA AND org=Sole-Proprietorship) — matches
+      // manageBusinessRegistrationNumber in js.blade.php exactly (not just "non-US").
       var regGrp = document.getElementById('business_register_number_group');
       if (regGrp && window.getComputedStyle(regGrp).display !== 'none') {
         var regVal = (payload.business_register_number || '').trim();
@@ -2237,6 +2275,12 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
           return;
         }
       }
+
+      // Sent only so the backend can independently re-derive the Step 1 country
+      // for server-side federal_tax_id/business_register_number validation —
+      // never forwarded to EMAP itself (stripped server-side), same pattern as
+      // country_from_step1 in the Step 5 banking payload below.
+      payload.country_from_step1 = einCountry;
 
       // Subscription Frequency (required whenever the group is visible)
       var freqGrp = document.getElementById('subscription_frequency_group');
@@ -2449,39 +2493,43 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         if (dobErr2) { setError('dob_2', dobErr2); return; }
       }
 
-      // SSN / Tax ID validation — format depends on EACH OWNER'S OWN country
-      // (country.1 / country.2), not the business's step1Country. This matches
-      // the PHP backend template, which keys off data_get($input, "country.$n").
+      // SSN / Tax ID validation — format depends on step1Country (the single
+      // Step 1 formation country), applied identically to BOTH owners, NOT
+      // each owner's own country.1/country.2 (home address/residence — a
+      // separate field used only for driver's license gating above). Matches
+      // manageFederalTaxId-adjacent SSN logic in EMAP's own variantA/step4
+      // js.blade.php (selectedCountry = $company->country, shared by both
+      // owner_ssn fields) — see updateSsnField(n) for the live masking.
       var SSN_RE = /^\d{3}-\d{2}-\d{4}$/;
-
-      var ssn1Country = (raw['country.1'] || '').toUpperCase();
-      var ssn1RequiresFormat = ssn1Country === 'US' || ssn1Country === 'CA' || ssn1Country === '';
-      var ssn1Label = ssn1RequiresFormat ? 'SSN / SIN' : 'Tax ID / Gov ID';
+      var ssnCountry = (step1Country || '').toUpperCase();
+      var ssnRequiresFormat = ssnCountry === 'US' || ssnCountry === 'CA' || ssnCountry === 'PR';
+      var ssnLabel = ssnRequiresFormat ? 'SSN/SIN' : 'SSN (or personal Tax ID equivalent)';
 
       var ssn1Val = (raw['ssn.1'] || '').trim();
       if (!ssn1Val) {
-        setError('ssn_1', ssn1Label + ' is required');
+        setError('ssn_1', ssnLabel + ' is required');
         return;
       }
-      if (ssn1RequiresFormat && !SSN_RE.test(ssn1Val)) {
-        setError('ssn_1', 'SSN / SIN must be in the format XXX-XX-XXXX (e.g. 123-45-6789)');
+      if (ssnRequiresFormat && !SSN_RE.test(ssn1Val)) {
+        setError('ssn_1', 'SSN/SIN must be in the format XXX-XX-XXXX (e.g. 123-45-6789)');
         return;
       }
       if (hasOwner2) {
-        var ssn2Country = (raw['country.2'] || '').toUpperCase();
-        var ssn2RequiresFormat = ssn2Country === 'US' || ssn2Country === 'CA' || ssn2Country === '';
-        var ssn2Label = ssn2RequiresFormat ? 'SSN / SIN' : 'Tax ID / Gov ID';
-
         var ssn2Val = (raw['ssn.2'] || '').trim();
         if (!ssn2Val) {
-          setError('ssn_2', ssn2Label + ' is required');
+          setError('ssn_2', ssnLabel + ' is required');
           return;
         }
-        if (ssn2RequiresFormat && !SSN_RE.test(ssn2Val)) {
-          setError('ssn_2', 'SSN / SIN must be in the format XXX-XX-XXXX (e.g. 123-45-6789)');
+        if (ssnRequiresFormat && !SSN_RE.test(ssn2Val)) {
+          setError('ssn_2', 'SSN/SIN must be in the format XXX-XX-XXXX (e.g. 123-45-6789)');
           return;
         }
       }
+
+      // Sent only so the backend can independently re-derive the Step 1 country
+      // for server-side SSN validation — never forwarded to EMAP itself
+      // (stripped server-side), same pattern as country_from_step1 in Steps 2 and 5.
+      payload.country_from_step1 = ssnCountry;
 
       // Convert flat dot-keys to nested objects so Laravel's data_get() can find them.
       // {"phone.1": "..."} → {"phone": {"1": "..."}}

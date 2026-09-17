@@ -264,16 +264,22 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
    > **`dependsOn` and `visibleIf` can be genuinely different boolean expressions for the same
    > field** — one controls whether the field is *required*, the other whether it's *shown*, and
    > they don't always match. `federal_tax_id` is a real example that has shipped broken twice:
-   > `visibleIf.logic` hides it only when country=CA **AND** business_organized=Sole-Proprietorship
-   > (AND), but `dependsOn.logic` makes it non-required when country=CA **OR**
-   > business_organized=Sole-Proprietorship (OR). Implementing only the visibility check and reusing
-   > its flag for the required-effect too silently over- or under-enforces the field. Always read
-   > both conditions from `signup-steps-schema.json` separately before wiring up a conditional
-   > field — never assume a field's required-effect follows the same expression as its visibility.
+   > an earlier `signup-steps-schema.json` had `visibleIf.logic` hide it only when country=CA
+   > **AND** business_organized=Sole-Proprietorship (AND), while `dependsOn.logic` made it
+   > non-required when country=CA **OR** business_organized=Sole-Proprietorship (OR) — two
+   > different conditions for the same field. That AND was verified against EMAP's own
+   > `resources/views/signup/mos/variantA/step2/js.blade.php` (`manageFederalTaxId`) and found
+   > stale/wrong: the real form uses the same OR condition for both effects (it never actually
+   > hides the field from the DOM — it disables + clears + un-requires it under one OR rule). The
+   > schema has since been corrected so `visibleIf` and `dependsOn` agree. The lesson still stands
+   > for every other conditional field: **never assume a field's required-effect follows the same
+   > expression as its visibility** — read both conditions from `signup-steps-schema.json`
+   > separately, and when EMAP's own Blade/JS source for that step is available, cross-check
+   > against it rather than trusting either schema field blindly.
    - `industry_type` is collected in **Step 1** (not Step 2) and submitted with `POST /api/v1/signup`. Show `industry_type_other` when `industry_type = other` (step 1).
    - `country=US` → show `business_state` (step 1) and `state.1` (step 4).
-   - `business_organized` is not `Sole-Proprietorship` and `emap_country` (Step 1) ≠ `CA` → show `federal_tax_id` (step 2).
-   - `emap_country` (Step 1) ≠ `US` → show `business_register_number` (step 2).
+   - `business_organized` is `Sole-Proprietorship` **OR** `emap_country` (Step 1) = `CA` → hide/disable & un-require `federal_tax_id` (step 2). Otherwise it's shown, required, and masked per `countryVariants` (see point 9).
+   - `emap_country` (Step 1) = `US`, `emap_country` = `PR`, **OR** (`emap_country` = `CA` **AND** `business_organized` = `Sole-Proprietorship`) → hide/un-require `business_register_number` (step 2). It is not simply "non-US" — Puerto Rico and the Canada+Sole-Proprietorship combination are also exempt.
    - `is_physical_address_same_as_legal_address=0` → show the physical address block (step 2).
    - `marketingModel` includes `2` → show `subscription_frequency`; if frequency=`3` show `subscription_frequency_other` (step 2).
    - `fulfillment_by` is `Vendor` or `Others` → show `fullfillment_company` (double-l, step 3).
@@ -302,14 +308,34 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
    "9 digits" does nothing on its own:
    - `routing_number` — US: exactly 9 digits (`^[0-9]{9}$`).
    - `account_number` — US: 8–17 characters.
-   - `federal_tax_id`, `institution_number` — see their `countryVariants`/`pattern` in the schema.
+   - `federal_tax_id` — numeric-only, masked as `XXX-XX-XXXX` (3-2-4 blocks) for US/CA/PR, or
+     `XX-XXXXXXX` (2-7 blocks) for every other country. This is the opposite of what the field's
+     generic `^[0-9A-Za-z\-]+$` pattern and "EIN" placeholder might suggest — it is never free-form
+     alphanumeric, in any country, even though the label reads "...or Corporation Tax Number
+     equivalent" for non-US/CA/PR. Confirmed against `manageFederalTaxIdFormat` in
+     `resources/views/signup/mos/variantA/step2/js.blade.php`; see the field's `countryVariants` in
+     `signup-steps-schema.json`.
+   - `institution_number` — see its `countryVariants`/`pattern` in the schema.
 
 10. **Card percentage (step 3):** `card_swiped + customer_entered + staff_entered` must equal 100.
     Validate client-side and block submission if not.
 
-11. **SSN (step 4):** For US/CA owners, apply Cleave.js mask `blocks:[3,2,4] delimiters:["-","-"]`
-    to format as `XXX-XX-XXXX`. Validate: `ssn.replace(/-/g,'').length >= 9`.
-    For other countries, show a plain text field labelled "Personal Tax ID / Government ID Number".
+11. **SSN/SIN (step 4):** For US/CA/PR, apply Cleave.js mask `blocks:[3,2,4] delimiters:["-","-"]`
+    to format as `XXX-XX-XXXX`, labelled "SSN/SIN". Validate: `ssn.replace(/-/g,'').length >= 9`.
+    For every other country, show a plain, unmasked text field labelled "SSN (or personal Tax ID
+    equivalent)" with no format check beyond required.
+    > **The country that drives this is `country_from_step1` (the single Step 1 formation
+    > country) — the SAME value applied to BOTH Owner 1's `ssn.1` and Owner 2's `ssn.2`.** It is
+    > **not** each owner's own `country.1`/`country.2` (their home-address country of residence,
+    > which is a separate field used only to gate `driver_license_state.1`/`.2`). Verified against
+    > EMAP's own `resources/views/signup/mos/variantA/step4/js.blade.php`: `selectedCountry =
+    > "{{ $company->country }}"` is declared once and reused for the Cleave mask applied to every
+    > `.owner_ssn` field and for `validateSSN()`, regardless of which owner. A per-owner-country
+    > implementation is the exact class of bug bullet 7's `federal_tax_id` warning describes —
+    > confirm which field actually drives a country-dependent rule against the live Blade/JS source
+    > rather than assuming the "obvious" per-owner field is the right one.
+    - Owner 1's SSN (`ssn.1`) is always required. Owner 2's SSN (`ssn.2`) is required only when
+      the Owner 2 section is shown (`ownership_percentage.1 < 51`).
 
 12. **DOB (step 4):** Owner must be between 18 and 100 years old.
     `maxDate = today − 18 years`, `minDate = today − 100 years`.
