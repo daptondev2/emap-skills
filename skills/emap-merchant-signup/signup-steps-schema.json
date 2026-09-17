@@ -1333,13 +1333,35 @@
                   "maxLength": 11,
                   "validationNote": "9-digit Canadian SIN in XXX-XX-XXXX format. Same mask as US SSN."
                 },
+                "PR": {
+                  "label": "Owner 1 Social Security Number (SSN)",
+                  "placeholder": "XXX-XX-XXXX",
+                  "inputMask": {
+                    "library": "Cleave.js",
+                    "numericOnly": true,
+                    "blocks": [
+                      3,
+                      2,
+                      4
+                    ],
+                    "delimiters": [
+                      "-",
+                      "-"
+                    ]
+                  },
+                  "pattern": "^\\d{3}-\\d{2}-\\d{4}$",
+                  "minLength": 11,
+                  "maxLength": 11,
+                  "validationNote": "Puerto Rico uses the US SSN in XXX-XX-XXXX format. Same mask as US SSN."
+                },
                 "default": {
                   "label": "Owner 1 Personal Tax ID / Government ID Number",
                   "placeholder": "Personal Tax ID",
-                  "validationNote": "For countries other than US/CA: accept plain-text tax identification or government ID number. No mask applied."
+                  "maxLength": 10,
+                  "validationNote": "For countries other than US/CA/PR: accept plain-text tax identification or government ID number. No input mask or pattern applied — only enforce length < 11 (maxLength 10)."
                 }
               },
-              "note": "Never store or log this value. Send over HTTPS only. For US and CA: 9 digits masked as XXX-XX-XXXX via Cleave.js (blocks [3,2,4]). The backend receives the masked value with dashes."
+              "note": "Never store or log this value. Send over HTTPS only. For US, CA, and PR: 9 digits masked as XXX-XX-XXXX via Cleave.js (blocks [3,2,4]). The backend receives the masked value with dashes. For all other countries: plain text, no mask/pattern, length must be < 11 characters (maxLength 10)."
             },
             {
               "key": "dob.1",
@@ -1652,13 +1674,35 @@
                   "maxLength": 11,
                   "validationNote": "9-digit Canadian SIN in XXX-XX-XXXX format. Same mask as US SSN."
                 },
+                "PR": {
+                  "label": "Owner 2 Social Security Number (SSN)",
+                  "placeholder": "XXX-XX-XXXX",
+                  "inputMask": {
+                    "library": "Cleave.js",
+                    "numericOnly": true,
+                    "blocks": [
+                      3,
+                      2,
+                      4
+                    ],
+                    "delimiters": [
+                      "-",
+                      "-"
+                    ]
+                  },
+                  "pattern": "^\\d{3}-\\d{2}-\\d{4}$",
+                  "minLength": 11,
+                  "maxLength": 11,
+                  "validationNote": "Puerto Rico uses the US SSN in XXX-XX-XXXX format. Same mask as US SSN."
+                },
                 "default": {
                   "label": "Owner 2 Personal Tax ID / Government ID Number",
                   "placeholder": "Personal Tax ID",
-                  "validationNote": "For countries other than US/CA: accept plain-text tax identification or government ID number."
+                  "maxLength": 10,
+                  "validationNote": "For countries other than US/CA/PR: accept plain-text tax identification or government ID number. No input mask or pattern applied — only enforce length < 11 (maxLength 10)."
                 }
               },
-              "note": "Never store or log. Send over HTTPS only. For US/CA: 9 digits masked as XXX-XX-XXXX via Cleave.js.",
+              "note": "Never store or log. Send over HTTPS only. For US, CA, and PR: 9 digits masked as XXX-XX-XXXX via Cleave.js. For all other countries: plain text, no mask/pattern, length must be < 11 characters (maxLength 10).",
               "conditionalRequired": {
                 "field": "ownership_percentage.1",
                 "operator": "lessThan",
@@ -1932,20 +1976,25 @@
           "countryVariants": {
             "US": {
               "label": "Routing Number",
+              "placeholder": "Routing Number",
               "exactLength": 9,
               "pattern": "^[0-9]{9}$"
             },
             "CA": {
-              "label": "Transit Number / Routing Number"
+              "label": "Transit Number / Routing Number",
+              "placeholder": "Transit Number / Routing Number"
             },
             "AU": {
-              "label": "BSB Code"
+              "label": "BSB Code",
+              "placeholder": "BSB Code"
             },
             "GB": {
-              "label": "Sort Code"
+              "label": "Sort Code",
+              "placeholder": "Sort Code"
             },
             "default": {
-              "label": "BIC Code / SWIFT Code / Routing Number"
+              "label": "BIC Code / SWIFT Code / Routing Number",
+              "placeholder": "BIC Code / SWIFT Code / Routing Number"
             }
           }
         },
