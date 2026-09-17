@@ -1,6 +1,6 @@
 # API Error Reference (Integration 3)
 
-Complete error handling guide for `POST /api/v1/signup` and `POST /api/v1/signup/resume-link`.
+Complete error handling guide for `POST /api/v1/signup`.
 
 ---
 
@@ -115,17 +115,3 @@ function displayFieldErrors(errors) {
   }
 }
 ```
-
----
-
-## Resume link endpoint errors
-
-| HTTP | Condition | Response body | Recommended action |
-|---|---|---|---|
-| 200 | Sent (or no account) | `{"status":true,"message":"Resume link sent"}` | Show "If an account exists, we sent a link. Check your inbox." |
-| 422 | Invalid email format | `{"status":false,"message":"The email field must be a valid email address."}` | Show email validation error on the field |
-| 429 | Rate limited (5/5min/IP) | `{"status":false,"message":"Too many attempts. Please try again later."}` | Show "Too many attempts. Please wait 5 minutes." |
-| 400 | Internal error | `{"status":false,"message":"Error","data":"Could not send the link. Please try again."}` | Show "Could not send the link. Please try again." |
-
-> The 200 response is always the same whether or not the email address has an EMAP account.
-> This is intentional — it prevents attackers from enumerating valid email addresses.

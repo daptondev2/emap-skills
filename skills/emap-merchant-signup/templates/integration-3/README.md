@@ -62,14 +62,6 @@ See `../../references/api-errors.md` for the complete table and detection code.
 
 ---
 
-## Resending the signup link
-
-If the merchant didn't receive the email, you can resend it by calling
-`POST {EMAP_BASE_URL}/api/v1/signup/resume-link` with `{ "email": "merchant@example.com" }`.
-See `node-express.js` for the `/api/signup/resume-link` proxy implementation.
-
----
-
 ## Testing
 
 1. Set `EMAP_BASE_URL` to the staging URL from Easy Pay Direct.

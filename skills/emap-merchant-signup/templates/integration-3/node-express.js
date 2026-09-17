@@ -16,8 +16,7 @@
  * Run: node node-express.js
  *
  * Endpoints:
- *   POST /api/signup              — proxy to EMAP /api/v1/signup; EMAP emails merchant a signup link
- *   POST /api/signup/resume-link  — resend the signup link to a merchant email
+ *   POST /api/signup  — proxy to EMAP /api/v1/signup; EMAP emails merchant a signup link
  */
 
 'use strict';
@@ -191,6 +190,9 @@ app.post('/api/signup', async function (req, res) {
     payload.partner_key = process.env.EMAP_PARTNER_KEY;
   }
 
+  // EMAP sends the merchant's signup email as part of this same call
+  payload.trigger_email = true;
+
   let emapResponse;
   let emapData;
 
@@ -239,48 +241,6 @@ app.post('/api/signup', async function (req, res) {
 
   // All other responses (200 — success, existing user, company exists) pass through as-is
   return res.status(emapResponse.status).json(emapData);
-});
-
-// ── POST /api/signup/resume-link ──────────────────────────────────────────────
-// Proxy to EMAP's resume-link endpoint.
-// Always returns the same response body (200) to prevent email enumeration.
-app.post('/api/signup/resume-link', async function (req, res) {
-  const email = req.body.email?.trim();
-
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return res.status(422).json({
-      status: false,
-      message: 'A valid email address is required',
-    });
-  }
-
-  try {
-    const emapResponse = await fetch(`${emapOrigin}/api/v1/signup/resume-link`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify({ email }),
-    });
-
-    const data = await emapResponse.json();
-
-    if (emapResponse.status === 429) {
-      return res.status(429).json({
-        status: false,
-        message: 'Too many resume link requests. Please try again in a few minutes.',
-      });
-    }
-
-    return res.status(emapResponse.status).json(data);
-  } catch (networkError) {
-    console.error('EMAP resume-link error:', networkError.message);
-    return res.status(502).json({
-      status: false,
-      message: 'Could not send the resume link. Please try again.',
-    });
-  }
 });
 
 // ── Serve the HTML form ───────────────────────────────────────────────────────

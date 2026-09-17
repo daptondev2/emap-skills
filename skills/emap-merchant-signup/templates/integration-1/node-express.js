@@ -2163,7 +2163,7 @@ app.post('/api/step/1', async function (req, res) {
     first_name, last_name, email, phone,
     name, company_name,
     website, country, annual_sales, business_state,
-    industry_type, promo_code,
+    industry_type, industry_type_other, promo_code,
   } = req.body;
 
   // Basic server-side guard — EMAP validates fully; we just reject obviously empty calls
@@ -2193,8 +2193,9 @@ app.post('/api/step/1', async function (req, res) {
     industry_type: String(industry_type).trim(),
   };
 
-  if (business_state)    payload.business_state    = String(business_state).trim().toUpperCase();
-  if (promo_code)        payload.promo_code        = String(promo_code).trim();
+  if (business_state)      payload.business_state      = String(business_state).trim().toUpperCase();
+  if (industry_type_other) payload.industry_type_other = String(industry_type_other).trim();
+  if (promo_code)          payload.promo_code          = String(promo_code).trim();
 
   // Partner key from env only — never from the request body
   if (process.env.EMAP_PARTNER_KEY) payload.partner_key = process.env.EMAP_PARTNER_KEY;

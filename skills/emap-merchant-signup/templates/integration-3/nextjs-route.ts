@@ -33,6 +33,7 @@ interface SignupPayload {
   industry_type_other?: string;
   promo_code?: string;
   partner_key?: string;   // injected server-side from env; never from the client
+  trigger_email?: boolean; // set true so EMAP emails the merchant a signup link in this same call
 }
 
 interface ValidationErrors {
@@ -187,6 +188,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     payload.partner_key = EMAP_PARTNER_KEY;
   }
 
+  // EMAP sends the merchant's signup email as part of this same call
+  payload.trigger_email = true;
+
   let emapResponse: Response;
   let emapData: unknown;
 
@@ -228,52 +232,3 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // Pass through 200 (success, existing user, company exists) and 422 (validation) as-is
   return NextResponse.json(emapData, { status: emapResponse.status });
 }
-
-/**
- * ─────────────────────────────────────────────────────────────────────────────
- * Resume Link Route: app/api/signup/resume-link/route.ts
- *
- * Create this file at: app/api/signup/resume-link/route.ts
- * ─────────────────────────────────────────────────────────────────────────────
- *
- * import { NextRequest, NextResponse } from 'next/server';
- *
- * const EMAP_BASE_URL = process.env.EMAP_BASE_URL!;
- * const emapOrigin = new URL(EMAP_BASE_URL).origin;
- *
- * export async function POST(request: NextRequest): Promise<NextResponse> {
- *   let body: { email?: string };
- *   try { body = await request.json(); } catch { body = {}; }
- *
- *   const email = body.email?.trim();
- *   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
- *     return NextResponse.json(
- *       { status: false, message: 'A valid email address is required' },
- *       { status: 422 }
- *     );
- *   }
- *
- *   try {
- *     const emapResponse = await fetch(`${emapOrigin}/api/v1/signup/resume-link`, {
- *       method: 'POST',
- *       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
- *       body: JSON.stringify({ email }),
- *     });
- *     const data = await emapResponse.json();
- *
- *     if (emapResponse.status === 429) {
- *       return NextResponse.json(
- *         { status: false, message: 'Too many attempts. Please try again in a few minutes.' },
- *         { status: 429 }
- *       );
- *     }
- *     return NextResponse.json(data, { status: emapResponse.status });
- *   } catch (err) {
- *     console.error('EMAP resume-link error:', (err as Error).message);
- *     return NextResponse.json(
- *       { status: false, message: 'Could not send the resume link. Please try again.' },
- *       { status: 502 }
- *     );
- *   }
- * }
- */

@@ -51,7 +51,7 @@ Always call this endpoint from your backend. Never call it from browser-side Jav
 | `promo_code` | optional, string, max 255 |
 | `partner_key` | optional, string — your partner `security_key` from EMAP |
 | `partner_id` | optional, integer — your partner user ID in EMAP (alternative to `partner_key`) |
-| `trigger_email` | optional, boolean, default `false` — when `true`, EMAP dispatches the welcome/verification email as part of this same call. **Required for the Integration 3 email-signup flow**; without it, the account/application is created but no email is sent, and you'd have to call `resume-link` separately to deliver it. |
+| `trigger_email` | optional, boolean, default `false` — when `true`, EMAP dispatches the welcome/verification email as part of this same call. **Required for the Integration 3 email-signup flow**; without it, the account/application is created but no email is sent. |
 
 ---
 
@@ -151,37 +151,6 @@ The merchant should expect:
 
 ---
 
-## Resume link endpoint
-
-The initial email is sent via `trigger_email: true` on the `/api/v1/signup` call above. Use this
-endpoint only to resend the "Finish Later" email when the merchant requests it (e.g. it never arrived).
-
-```
-POST {EMAP_BASE_URL}/api/v1/signup/resume-link
-Content-Type: application/json
-
-{ "email": "merchant@example.com" }
-```
-
-**Response (always the same, whether or not the email exists):**
-```json
-{ "status": true, "message": "Resume link sent" }
-```
-
-EMAP always returns the same response to prevent email enumeration attacks. The email is sent
-only if an account with that address exists and has an in-progress application.
-
-**Rate limit:** 5 requests per 5 minutes per IP (on EMAP's side).
-Implement your own rate limiting on your backend endpoint as well.
-
-**Validation error (invalid email format):**
-```json
-{ "status": false, "message": "The email field must be a valid email address." }
-```
-HTTP 422.
-
----
-
 ## Example: cURL
 
 ```bash
@@ -202,16 +171,6 @@ curl -X POST https://emap.epd.dev/api/v1/signup \
     "partner_key": "YOUR_PARTNER_KEY",
     "trigger_email": true
   }'
-```
-
----
-
-## Example: resume link cURL
-
-```bash
-curl -X POST https://emap.epd.dev/api/v1/signup/resume-link \
-  -H "Content-Type: application/json" \
-  -d '{"email": "jane@acme.com"}'
 ```
 
 ---

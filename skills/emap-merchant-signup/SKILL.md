@@ -28,7 +28,6 @@ with Integration 1, the partner hosts all 6 steps themselves.
 - [Build Integration 1: Full form](#build-integration-1-full-form)
 - [Build Integration 2: Redirect handoff](#build-integration-2-redirect-handoff)
 - [Build Integration 3: Email-based signup](#build-integration-3-email-based-signup)
-- [Integration 3: Resume link](#integration-3-resume-link)
 - [Verify loop: schema conformance](#verify-loop-schema-conformance) ← **run before calling any build done**
 - [Verify: security and coverage](#verify-security-and-coverage)
 - [Guardrails](#guardrails)
@@ -456,35 +455,6 @@ Read [`references/mode-3-api.md`](references/mode-3-api.md) before proceeding.
      the form is done. Manual testing above does not substitute for either — the verify gate hook
      (Step 0.5) will block the session from ending until the loop has completed with zero
      `CONFIRMED` findings.
-
----
-
-## Integration 3: Resume link
-
-This is for **resending** the email only — the initial email is triggered by `trigger_email: true`
-on the `/api/v1/signup` call itself (see step 2 above). Use
-`POST {EMAP_BASE_URL}/api/v1/signup/resume-link` to re-email the merchant a link to continue
-their application, e.g. if the first email never arrived. The merchant receives a "Finish Later"
-email with a direct link to their in-progress application on EMAP.
-
-**Request (from your backend, not the browser):**
-```
-POST /api/v1/signup/resume-link
-Content-Type: application/json
-
-{ "email": "merchant@example.com" }
-```
-
-**Response:** Always `{"status":true,"message":"Resume link sent"}` regardless of whether
-the email address exists — this prevents account enumeration.
-
-**Rate limit:** 5 requests per 5 minutes per IP on your backend's outbound call.
-
-**When to call it:**
-- The merchant says "I didn't get the email" and requests it again.
-- You want to add a "Resend link" button to your confirmation page.
-
-Always proxy this through your backend — never call EMAP directly from the browser.
 
 ---
 

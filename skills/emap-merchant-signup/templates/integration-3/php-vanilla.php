@@ -75,20 +75,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // Handle resume-link request
-    if (isset($input['_action']) && $input['_action'] === 'resume-link') {
-        $email = trim((string)($input['email'] ?? ''));
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            http_response_code(422);
-            echo json_encode(['status' => false, 'message' => 'A valid email address is required']);
-            exit;
-        }
-        $result = emapPost($emapBaseUrl . '/api/v1/signup/resume-link', ['email' => $email], '');
-        http_response_code($result['status_code']);
-        echo json_encode($result['body']);
-        exit;
-    }
-
     // ── Validation constants ──────────────────────────────────────────────────
     $phoneRegex   = '/^[0-9+\-()\s]+$/';
     $websiteRegex = '/^(https?:\/\/)?[a-zA-Z0-9]([a-zA-Z0-9\-]*\.)+[a-zA-Z]{2,}(\/[^\s]*)?$/i';
@@ -176,6 +162,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($emapPartnerKey) {
         $payload['partner_key'] = $emapPartnerKey;
     }
+
+    // EMAP sends the merchant's signup email as part of this same call
+    $payload['trigger_email'] = true;
 
     $result = emapPost($emapBaseUrl . '/api/v1/signup', $payload, $emapPartnerKey);
 
