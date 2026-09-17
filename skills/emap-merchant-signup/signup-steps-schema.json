@@ -1933,20 +1933,25 @@
           "countryVariants": {
             "US": {
               "label": "Routing Number",
+              "placeholder": "Routing Number",
               "exactLength": 9,
               "pattern": "^[0-9]{9}$"
             },
             "CA": {
-              "label": "Transit Number / Routing Number"
+              "label": "Transit Number / Routing Number",
+              "placeholder": "Transit Number / Routing Number"
             },
             "AU": {
-              "label": "BSB Code"
+              "label": "BSB Code",
+              "placeholder": "BSB Code"
             },
             "GB": {
-              "label": "Sort Code"
+              "label": "Sort Code",
+              "placeholder": "Sort Code"
             },
             "default": {
-              "label": "BIC Code / SWIFT Code / Routing Number"
+              "label": "BIC Code / SWIFT Code / Routing Number",
+              "placeholder": "BIC Code / SWIFT Code / Routing Number"
             }
           }
         },
