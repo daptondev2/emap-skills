@@ -203,6 +203,9 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
      type per field, same validation, same conditional logic, same backend routes — rather than
      regenerating the form from the prose reference alone. Use `signup-steps-schema.json` as the
      field-by-field spec while porting.
+   - **Don't re-read a template file you've already opened this session** unless you have a
+     concrete reason to think it changed on disk since — reuse the content already in context
+     instead of paying for a second full read of a 2,000+ line file.
 
 2. **Configure environment variables:**
    ```
@@ -251,6 +254,15 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
    support replaying an earlier step after it has been accepted.
 
 7. **Handle conditional fields:**
+   > **`dependsOn` and `visibleIf` can be genuinely different boolean expressions for the same
+   > field** — one controls whether the field is *required*, the other whether it's *shown*, and
+   > they don't always match. `federal_tax_id` is a real example that has shipped broken twice:
+   > `visibleIf.logic` hides it only when country=CA **AND** business_organized=Sole-Proprietorship
+   > (AND), but `dependsOn.logic` makes it non-required when country=CA **OR**
+   > business_organized=Sole-Proprietorship (OR). Implementing only the visibility check and reusing
+   > its flag for the required-effect too silently over- or under-enforces the field. Always read
+   > both conditions from `signup-steps-schema.json` separately before wiring up a conditional
+   > field — never assume a field's required-effect follows the same expression as its visibility.
    - `industry_type` is collected in **Step 1** (not Step 2) and submitted with `POST /api/v1/signup`. Show `industry_type_other` when `industry_type = other` (step 1).
    - `country=US` → show `business_state` (step 1) and `state.1` (step 4).
    - `business_organized` is not `Sole-Proprietorship` and `emap_country` (Step 1) ≠ `CA` → show `federal_tax_id` (step 2).
@@ -463,10 +475,12 @@ Read [`references/mode-3-api.md`](references/mode-3-api.md) before proceeding.
 > treat that as the actual finish line for the build, not your own judgment that it "looks done."
 
 > **Performance target.** When the build agent used the matching template verbatim (see "Use the
-> template" in each Build section) instead of regenerating from prose, round 1 below should return
+> template" in each Build section) instead of regenerating from prose, round 1 below *should* return
 > `[]` or close to it, and the whole loop — build through `"status": "verified"` — should complete
 > in well under 10 minutes. Regenerating the form/backend from the reference docs instead of copying
 > the template means more rounds; only do that when the project's stack has no matching template.
+> This assumes the template itself is currently clean — see "Recurring template defects" below for
+> what to do when a verbatim copy still produces real findings.
 
 Do this for **every** integration mode, after the form and backend are written and before you tell
 the developer the build is done. Its purpose is to catch the exact class of bug this skill has
@@ -488,11 +502,12 @@ is itself parallelizable — it doesn't have to be the build agent doing every f
    "Category split" below) — each reads only its own slice of the schema/reference docs and the
    generated files, and proposes findings for that slice only. Proposes only — does not decide
    what's real.
-3. **Confirm agent** (fresh agent **per individual finding**, spawned in parallel, on the fastest
-   available model — see "Confirm agent model" below) — independently re-derives the same finding
-   from the primary source (the exact schema field and the exact file/line cited) without trusting
-   the verify agent's description of it, and returns a verdict. Only `CONFIRMED` findings ever
-   reach the build agent.
+3. **Confirm agent** (fresh agent **per individual finding, or per small cluster of findings that
+   share the same category and bug pattern** — see "Clustering confirm agents" below — spawned in
+   parallel, on the fastest available model — see "Confirm agent model" below) — independently
+   re-derives each finding from the primary source (the exact schema field and the exact file/line
+   cited) without trusting the verify agent's description of it, and returns a verdict per finding.
+   Only `CONFIRMED` findings ever reach the build agent.
 4. **Fix agent** (fresh agent **per distinct file with confirmed findings**, spawned in parallel —
    see step 8 in the Loop below) — applies every confirmed finding scoped to its one file. Two fix
    agents never touch the same file at once (that's the one real constraint on parallelizing this
@@ -515,12 +530,26 @@ categories B, C, and the widget-type list in A — point each agent at that enum
 telling it to scan the whole schema for candidates. For Integration 2/3, derive the equivalent field
 list from `field-catalog.md` before spawning.
 
-**Split an oversized category further.** 4 parallel agents only run as fast as the slowest one —
-if a category's enumerated field list is large (rule of thumb: more than ~25 fields; `conditional_logic`
-is the usual culprit, since it covers every `dependsOn`/`visibleIf` rule across all 6 steps), that
-one agent becomes the long pole while the other 3 finish and sit idle waiting on it. Split it into 2
-sub-agents by step range instead (e.g. steps 1–3 vs 4–6), run both in parallel alongside A/B/D, and
-merge their findings — same `category` value on both, just half the field list each.
+**Split an oversized category further.** 4 parallel agents only run as fast as the slowest one — if
+a category's field list is large, that one agent becomes the long pole while the other 3 finish and
+sit idle waiting on it. Field *count* alone is a weak proxy for how long a category takes:
+`conditional_logic` checks 3 things per field (visibility trigger, required-toggle, presence-check)
+where `country_validation` checks essentially 1 (the constraint is enforced), so it runs ~3x heavier
+per field — in practice it's been the long pole even at ~22 fields, well under a naive "25+" cutoff.
+So: **always split `conditional_logic` into 2 sub-agents by step range** (e.g. steps 1–3 vs 4–6) for
+Integration 1 regardless of field count; for the other categories, use the ~25-field rule of thumb.
+Run all sub-agents in parallel alongside A/B/D, and merge their findings — same `category` value on
+both, just half the field list each.
+
+**Steps 4–6 stays the long pole even after the step-range split.** In practice, the steps 4–6 half
+(~17 fields: primary-contact fields, driver-license fields for both owners, bankruptcy history,
+SSN/DOB, banking) has been the single slowest verify agent in every round of every real run so far —
+heavier than steps 1–3 despite the even step-count split, because it clusters almost all the
+owner/ownership conditional logic in one place. When it's still the long pole after the 1–3/4–6
+split, split it a second time by field-type group instead of step-count: (a) primary-contact +
+driver-license fields, (b) bankruptcy + SSN/DOB fields, (c) banking fields (institution_number /
+customer_pay_currency). Run all sub-agents alongside the rest, same `category` value on each, merge
+their findings.
 
 **Pre-slice the schema before spawning — don't make the agent filter it.** Before round 1, extract
 each category's relevant entries from `signup-steps-schema.json` into a small temp file per category
@@ -534,6 +563,19 @@ match rule Y in the schema) — this doesn't need a heavyweight model. Spawn con
 fast/lightweight model override (e.g. `model: "haiku"`) rather than the default. Keep verify agents
 (categories A–D) on the default model — judging "does this conditional logic actually match the
 spec" benefits from more reasoning than a single-fact lookup does.
+
+**Clustering confirm agents.** Strict one-agent-per-finding is safe but not always necessary — when
+several findings in the same round share the same category *and* the same underlying bug pattern
+(e.g. six `physical_address_*` fields all missing the identical required-toggle-on-visibility-change
+bug, or four `bankruptcy_discharged*` fields all missing the same submit-time check), spawn one
+confirm agent per cluster instead of one per field, and have it return a JSON array of verdicts (one
+per field) rather than a single verdict. Each field in the cluster must still be independently
+re-derived from its own primary-source schema entry — the agent is checking N fields, not
+rubber-stamping one check across N labels. In practice this has roughly halved confirm-phase agent
+count with no observed loss of accuracy (every clustered `CONFIRMED` verdict was later independently
+re-confirmed clean in the next round's re-audit). Don't cluster findings from different categories or
+different bug patterns into one agent — the savings only apply when the check is genuinely the same
+shape repeated across fields.
 
 **Findings contract.** Each verify agent must return a JSON array — not prose — each item shaped as:
 ```json
@@ -592,6 +634,12 @@ justify by inventing an item.
    once — that's the only real constraint; different files don't conflict). Each fix agent's brief:
    *"Apply every one of these confirmed findings to `<file>`: `<that file's confirmed findings>`.
    Change the code directly for each — do not just re-read the docs and re-explain the rule."*
+   - **File-level splitting alone doesn't help when findings are lopsided.** If most confirmed
+     findings for this round land in one file (rule of thumb: one file holds more than ~60–70% of
+     the round's total), splitting "by file" just means one agent does almost everything while the
+     other finishes early and idles. When that happens, split *that file's* findings further into 2
+     fix agents by non-overlapping region (e.g. by step number, so each agent's edits land in
+     different functions/sections of the same file) instead of handing them all to one agent.
    - **Do not curl-test or manually re-verify each fix as you apply it.** That duplicates the
      scoped re-audit you're about to run in step 3 — paying for the same check twice. At most, run
      one syntax/lint check per file (e.g. `node -c`, `php -l`) after all of that file's fixes are
@@ -612,19 +660,37 @@ longer wanted — write `{"status": "cancelled", "integration": "<n>"}` to
 `.claude/emap-build-state.json` rather than leaving it `"in_progress"` (which would leave the Stop
 hook blocking forever) or deleting/hand-editing it to fake a pass.
 
+**Recurring template defects.** If round 1 comes back with `CONFIRMED` findings despite the build
+agent having copied the matching template **verbatim** (not ported, not regenerated from prose),
+those findings are not this build's mistake — they're defects shipped in the template itself, and
+every future build that copies the same template will rediscover and re-pay the exact same
+verify→confirm→fix cost. Don't just fix the local copy and move on silently: tell the developer
+explicitly that the findings look like a template-level defect (name the template file), so it can
+be patched upstream in `templates/` rather than re-fixed from scratch on every future build.
+
 ---
 
 ## Verify: security and coverage
 
 Before going live, run through [`references/security-checklist.md`](references/security-checklist.md).
 
-Quick self-check:
+Quick self-check — **the verify loop above (categories A–D) checks schema conformance only; it does
+not check deployment/config wiring, so the last two items here need a manual look, not just a clean
+loop result**:
 - [ ] HTTPS on your site — form page and backend endpoint.
 - [ ] Partner key in env only — not in client-side code, not in the form HTML, not in git.
 - [ ] `Referrer-Policy: no-referrer` on the form page (critical for Integration 2).
 - [ ] Backend validation before forwarding to EMAP.
 - [ ] Submit button disabled on first click (double-submit prevention).
 - [ ] Generic user-facing errors — do not expose EMAP's raw error messages.
+- [ ] **Config actually loads for this stack.** If you wrote a `.env` file, confirm the backend
+  genuinely reads it — e.g. PHP has no built-in dotenv support; bare `getenv()`/`$_ENV` will never
+  see a `.env` file without an explicit loader or server-level `SetEnv`. Test by clearing any
+  shell/process-level env vars and confirming `EMAP_BASE_URL`/`EMAP_PARTNER_KEY` still resolve.
+- [ ] **Dropdown-fallback file is actually deployed and reachable.** If the backend falls back to
+  `dropdown-fallbacks.json` on API failure, confirm that file exists alongside the *deployed* backend
+  (not just in this skill's `references/` folder) and that the fallback code path is genuinely
+  called on a simulated failure, not merely defined and never invoked.
 
 ---
 

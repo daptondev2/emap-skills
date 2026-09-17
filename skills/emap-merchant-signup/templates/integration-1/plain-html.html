@@ -356,7 +356,7 @@
 
       <div class="form-group" id="federal_tax_id_group">
         <label for="federal_tax_id" id="federal_tax_id_label">Federal Tax ID <span class="required">*</span> <span class="hint" id="federal_tax_id_hint">(EIN)</span></label>
-        <input id="federal_tax_id" name="federal_tax_id" type="text" maxlength="30" placeholder="XX-XXXXXXX" autocomplete="off">
+        <input id="federal_tax_id" name="federal_tax_id" type="text" maxlength="20" placeholder="XX-XXXXXXX" autocomplete="off">
         <span class="field-error" id="err_federal_tax_id"></span>
       </div>
 
@@ -793,6 +793,7 @@
               <div class="radio-item"><input type="radio" id="bkd1_no" name="bankruptcy_discharged.1" value="0"><label for="bkd1_no">No</label></div>
               <div class="radio-item"><input type="radio" id="bkd1_yes" name="bankruptcy_discharged.1" value="1"><label for="bkd1_yes">Yes</label></div>
             </div>
+            <span class="field-error" id="err_bankruptcy_discharged_1"></span>
           </div>
           <div class="form-group" id="bkd_date_1_group" style="display:none">
             <label for="bankruptcy_discharged_date_1">Discharge Date <span class="required">*</span></label>
@@ -910,12 +911,14 @@
               <select id="driver_license_state_2" name="driver_license_state.2">
                 <option value="">Select…</option>
               </select>
+              <span class="field-error" id="err_driver_license_state_2"></span>
             </div>
           </div>
           <div class="form-group" id="dl_expiry_2_group" style="display:none">
             <label for="driver_license_expiration_date_2">License Expiration Date <span class="required">*</span></label>
             <input id="driver_license_expiration_date_2" name="driver_license_expiration_date.2" type="date" autocomplete="off">
             <span class="sensitive-note">Must be today or a future date</span>
+            <span class="field-error" id="err_driver_license_expiration_date_2"></span>
           </div>
 
           <div class="form-group">
@@ -932,11 +935,13 @@
                 <div class="radio-item"><input type="radio" id="bkd2_no" name="bankruptcy_discharged.2" value="0"><label for="bkd2_no">No</label></div>
                 <div class="radio-item"><input type="radio" id="bkd2_yes" name="bankruptcy_discharged.2" value="1"><label for="bkd2_yes">Yes</label></div>
               </div>
+              <span class="field-error" id="err_bankruptcy_discharged_2"></span>
             </div>
             <div class="form-group" id="bkd_date_2_group" style="display:none">
               <label for="bankruptcy_discharged_date_2">Discharge Date</label>
               <input id="bankruptcy_discharged_date_2" name="bankruptcy_discharged_date.2" type="date">
               <span class="sensitive-note">Must be today or a past date</span>
+              <span class="field-error" id="err_bankruptcy_discharged_date_2"></span>
             </div>
           </div>
         </div>
@@ -1274,6 +1279,9 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
 
   </div><!-- .card -->
 
+  <!-- Cleave.js: used to mask ssn.1 / ssn.2 as XXX-XX-XXXX for US/CA owners only -->
+  <script src="https://cdn.jsdelivr.net/npm/cleave.js@1.6.0/dist/cleave.min.js"></script>
+
   <script>
     /*
      * This form calls YOUR backend (node-express.js) which proxies each step to EMAP.
@@ -1495,6 +1503,9 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         (j.data || []).forEach(function (s) {
           var o = document.createElement('option');
           o.value = s.slug; o.textContent = s.name;
+          // Carry the referral source's real ID so the "tell us more" field
+          // can be shown/hidden by ID rather than by matching option text.
+          if (s.id !== undefined && s.id !== null) o.setAttribute('data-id', s.id);
           sel.appendChild(o);
         });
       } catch (_) {
@@ -1539,7 +1550,14 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       if (step1Country === 'CA') {
         document.getElementById('ca_banking_fields').style.display = 'block';
       }
+      setCaBankingRequired(step1Country === 'CA');
       if (step1Country) updateCountryLabels(step1Country);
+
+      // Restore SSN masking/labels per-owner — country.1/country.2 selects may
+      // already have a browser-restored value on reload without a 'change'
+      // event ever firing, so re-sync explicitly here.
+      updateSsnField(1);
+      updateSsnField(2);
 
       // Restore marketingModel checkbox state
       try {
@@ -1549,8 +1567,7 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
             var cb = document.querySelector('[name="marketingModel[]"][value="' + v + '"]');
             if (cb) cb.checked = true;
           });
-          var hasRecurring = document.getElementById('mm2').checked || document.getElementById('mm3').checked;
-          document.getElementById('subscription_frequency_group').style.display = hasRecurring ? 'block' : 'none';
+          updateSubscriptionFrequencyVisibility();
         }
       } catch (_) {}
 
@@ -1631,20 +1648,77 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       if (aHint) {
         aHint.textContent = c === 'US' ? 'US: 8–17 digits' : '';
       }
+      var aInput = document.getElementById('account_number');
+      if (aInput) {
+        if (c === 'US') { aInput.setAttribute('maxlength', '17'); aInput.setAttribute('minlength', '8'); }
+        else { aInput.setAttribute('maxlength', '20'); aInput.removeAttribute('minlength'); }
+      }
 
-      // SSN labels (Owner 1 and Owner 2)
-      var ssnText = COUNTRY_LABELS.ssn[c] || COUNTRY_LABELS.ssn._default;
-      var ssnReq  = ' <span class="required">*</span>';
-      var ssn1Label = document.getElementById('ssn_1_label');
-      var ssn2Label = document.getElementById('ssn_2_label');
-      var ssn1Hint  = document.getElementById('ssn_1_hint');
-      if (ssn1Label) ssn1Label.innerHTML = 'Owner 1 ' + ssnText + ssnReq;
-      if (ssn2Label) ssn2Label.innerHTML = 'Owner 2 ' + ssnText + ssnReq;
-      if (ssn1Hint) {
-        ssn1Hint.textContent = (c === 'US' || c === 'CA')
+      // NOTE: SSN labels/masking are NOT driven by the business's country — see
+      // updateSsnField(n), which keys off each owner's OWN country.1 / country.2.
+    }
+
+    // ── SSN / Tax ID masking — keyed off each OWNER's own country, not the
+    // business's step1Country. US/CA owners get a Cleave.js XXX-XX-XXXX mask;
+    // every other country gets a plain, unmasked "Personal Tax ID / Government
+    // ID Number" text field. Re-run this whenever that owner's country changes
+    // and once on session restore, since select values can be restored by the
+    // browser without firing a 'change' event.
+    var ssnCleave = { 1: null, 2: null };
+
+    function updateSsnField(n) {
+      var countryEl = document.getElementById('country_' + n);
+      var inp       = document.getElementById('ssn_' + n);
+      var label     = document.getElementById('ssn_' + n + '_label');
+      var hint      = document.getElementById('ssn_' + n + '_hint'); // only exists for Owner 1
+      if (!countryEl || !inp) return;
+
+      var c = (countryEl.value || '').toUpperCase();
+      var isMasked = c === 'US' || c === 'CA';
+      var ssnText = isMasked ? COUNTRY_LABELS.ssn[c] : COUNTRY_LABELS.ssn._default;
+
+      if (label) label.innerHTML = 'Owner ' + n + ' ' + ssnText + ' <span class="required">*</span>';
+      if (hint) {
+        hint.textContent = isMasked
           ? 'Enter 9 digits — formatted as XXX-XX-XXXX'
           : 'Enter your government-issued tax or ID number';
       }
+
+      if (isMasked) {
+        if (!ssnCleave[n]) {
+          inp.value = inp.value.replace(/\D/g, '').slice(0, 9);
+          ssnCleave[n] = new Cleave(inp, { blocks: [3, 2, 4], delimiter: '-', numericOnly: true });
+        }
+      } else if (ssnCleave[n]) {
+        ssnCleave[n].destroy();
+        ssnCleave[n] = null;
+      }
+    }
+
+    // CA-only banking fields (institution_number, customer_pay_currency) are
+    // required only when the Step 1 country is CA — keep .required in sync
+    // wherever CA visibility is toggled (live change, session restore, post-step1-submit).
+    function setCaBankingRequired(isCA) {
+      var inst = document.getElementById('institution_number');
+      if (inst) inst.required = isCA;
+      var curUsd = document.getElementById('cur_usd');
+      var curCad = document.getElementById('cur_cad');
+      if (curUsd) curUsd.required = isCA;
+      if (curCad) curCad.required = isCA;
+    }
+
+    // subscription_frequency is shown/required only when marketingModel includes
+    // value 2 (mm2) — keep this single source of truth wherever that visibility
+    // is toggled (live checkbox change, session restore) so the two call sites
+    // can't drift out of sync (they previously did: one used mm2-only, the other
+    // mm2||mm3, until both were fixed to key off this one function).
+    function updateSubscriptionFrequencyVisibility() {
+      var hasRecurring = document.getElementById('mm2').checked;
+      var freqGrp = document.getElementById('subscription_frequency_group');
+      var freqSel = document.getElementById('subscription_frequency');
+      freqGrp.style.display = hasRecurring ? 'block' : 'none';
+      freqSel.required = hasRecurring;
+      return hasRecurring;
     }
 
     // Step 1: country → state
@@ -1662,6 +1736,7 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       if (caFields) {
         var isCA = this.value === 'CA';
         caFields.style.display = isCA ? 'block' : 'none';
+        setCaBankingRequired(isCA);
       }
       // Update banking and SSN labels based on selected country
       updateCountryLabels(this.value);
@@ -1687,15 +1762,25 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
 
     function updateFederalTaxVisibility() {
       var org = document.getElementById('business_organized').value;
-      var country = document.getElementById('address_country').value || step1Country;
+      // Schema keys federal_tax_id/business_register_number conditions on
+      // country_from_step1 (the Step 1 formation country) exclusively —
+      // do NOT blend in address_country (a separate Step 2 legal-address field).
+      var country = step1Country;
       var isUS = country === 'US' || country === '';
       var isCA = country === 'CA';
       var isSoleProp = org === 'Sole-Proprietorship';
       var taxGrp = document.getElementById('federal_tax_id_group');
       var regGrp = document.getElementById('business_register_number_group');
-      // EMAP requires federal_tax_id for all non-CA, non-sole-prop companies
-      taxGrp.style.display = (isCA || isSoleProp) ? 'none' : 'block';
-      regGrp.style.display = (!isUS) ? 'block' : 'none';
+      var regInp = document.getElementById('business_register_number');
+      // EMAP requires federal_tax_id unless BOTH country=CA AND org=Sole-Proprietorship
+      taxGrp.style.display = (isCA && isSoleProp) ? 'none' : 'block';
+      // business_register_number: required for any non-US country. Uses a
+      // DEDICATED "is US" check (empty country is NOT treated as US here),
+      // unlike the shared `isUS` above which is used for federal_tax_id's
+      // own visibility/labeling rules where empty-as-US is correct.
+      var isUSForRegNumber = country === 'US';
+      regGrp.style.display = (!isUSForRegNumber) ? 'block' : 'none';
+      if (regInp) regInp.required = !isUSForRegNumber;
 
       // Update EIN label and placeholder based on country
       var lbl = document.getElementById('federal_tax_id_label');
@@ -1723,12 +1808,11 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
 
     document.querySelectorAll('[name="marketingModel[]"]').forEach(function (cb) {
       cb.addEventListener('change', function () {
-        var hasRecurring = document.getElementById('mm2').checked || document.getElementById('mm3').checked;
-        var freqGrp = document.getElementById('subscription_frequency_group');
-        freqGrp.style.display = hasRecurring ? 'block' : 'none';
+        var hasRecurring = updateSubscriptionFrequencyVisibility();
         if (!hasRecurring) {
           document.getElementById('subscription_frequency').value = '';
           document.getElementById('subscription_frequency_other_group').style.display = 'none';
+          document.getElementById('subscription_frequency_other').required = false;
         }
         saveMarketingModel();
       });
@@ -1742,10 +1826,19 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
     });
 
     // Step 2: physical address toggle
+    var physicalAddressFieldIds = [
+      'physical_address_street_number', 'physical_address_street_address',
+      'physical_address_city', 'physical_address_state',
+      'physical_address_postal_code', 'physical_address_country'
+    ];
     document.querySelectorAll('[name="is_physical_address_same_as_legal_address"]').forEach(function (r) {
       r.addEventListener('change', function () {
         var isDiff = this.value === '0';
         document.getElementById('physical_address_section').style.display = isDiff ? 'block' : 'none';
+        physicalAddressFieldIds.forEach(function (id) {
+          var el = document.getElementById(id);
+          if (el) el.required = isDiff;
+        });
       });
     });
 
@@ -1841,13 +1934,18 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         jobGrp.style.display = isRep ? 'block' : 'none';
         document.getElementById('primary_contact_job_title').required = isRep;
         nameGrp.style.display = isRep ? 'block' : 'none';
+        // Owner 1 identity fields are only required when the applicant is a
+        // representative (i.e. not the primary contact themself).
+        document.getElementById('first_name_1').required = isRep;
+        document.getElementById('last_name_1').required = isRep;
+        document.getElementById('email_1').required = isRep;
       });
     });
 
     // Step 4: owner 1 ownership → show owner 2
     document.getElementById('ownership_percentage_1').addEventListener('input', function () {
       var pct = parseInt(this.value, 10) || 0;
-      var show = pct > 0 && pct < 51;
+      var show = !isNaN(pct) && pct < 51;
       document.getElementById('owner2_section').style.display = show ? 'block' : 'none';
     });
 
@@ -1856,13 +1954,23 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       var isUS = this.value === 'US';
       document.getElementById('dl_state_1_group').style.display = isUS ? 'block' : 'none';
       document.getElementById('dl_expiry_1_group').style.display = isUS ? 'block' : 'none';
+      document.getElementById('driver_license_state_1').required = isUS;
+      document.getElementById('driver_license_expiration_date_1').required = isUS;
+      updateSsnField(1);
     });
 
     // Step 4: owner 2 country → DL state/expiry
+    // Owner 2's DL state/expiry are only required when Owner 2 is actually
+    // shown (ownership_percentage.1 < 51) AND their country is US.
     document.getElementById('country_2').addEventListener('change', function () {
       var isUS = this.value === 'US';
-      document.getElementById('dl_state_2_group').style.display = isUS ? 'block' : 'none';
-      document.getElementById('dl_expiry_2_group').style.display = isUS ? 'block' : 'none';
+      var owner2Visible = document.getElementById('owner2_section').style.display !== 'none';
+      var show = isUS && owner2Visible;
+      document.getElementById('dl_state_2_group').style.display = show ? 'block' : 'none';
+      document.getElementById('dl_expiry_2_group').style.display = show ? 'block' : 'none';
+      document.getElementById('driver_license_state_2').required = show;
+      document.getElementById('driver_license_expiration_date_2').required = show;
+      updateSsnField(2);
     });
 
     // Step 4: bankruptcy owner 1
@@ -1870,23 +1978,35 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       r.addEventListener('change', function () {
         var filed = this.value === '1';
         document.getElementById('bankruptcy1_details').style.display = filed ? 'block' : 'none';
+        document.querySelectorAll('[name="bankruptcy_discharged.1"]').forEach(function (radio) {
+          radio.required = filed;
+        });
+        if (!filed) document.getElementById('bankruptcy_discharged_date_1').required = false;
       });
     });
     document.querySelectorAll('[name="bankruptcy_discharged.1"]').forEach(function (r) {
       r.addEventListener('change', function () {
         var discharged = this.value === '1';
         document.getElementById('bkd_date_1_group').style.display = discharged ? 'block' : 'none';
+        document.getElementById('bankruptcy_discharged_date_1').required = discharged;
       });
     });
     // Step 4: bankruptcy owner 2
     document.querySelectorAll('[name="bankruptcy_filed.2"]').forEach(function (r) {
       r.addEventListener('change', function () {
-        document.getElementById('bankruptcy2_details').style.display = this.value === '1' ? 'block' : 'none';
+        var filed = this.value === '1';
+        document.getElementById('bankruptcy2_details').style.display = filed ? 'block' : 'none';
+        document.querySelectorAll('[name="bankruptcy_discharged.2"]').forEach(function (radio) {
+          radio.required = filed;
+        });
+        if (!filed) document.getElementById('bankruptcy_discharged_date_2').required = false;
       });
     });
     document.querySelectorAll('[name="bankruptcy_discharged.2"]').forEach(function (r) {
       r.addEventListener('change', function () {
-        document.getElementById('bkd_date_2_group').style.display = this.value === '1' ? 'block' : 'none';
+        var discharged = this.value === '1';
+        document.getElementById('bkd_date_2_group').style.display = discharged ? 'block' : 'none';
+        document.getElementById('bankruptcy_discharged_date_2').required = discharged;
       });
     });
 
@@ -1910,9 +2030,14 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
     });
 
     // Step 6: howdidyouhear → hear_about_us_other
+    // Shown when the selected referral source's underlying ID (from
+    // /api/referral-sources, carried on each <option> as data-id) is one of
+    // these — matching on option text is unreliable since copy can change.
+    var HEAR_ABOUT_US_OTHER_IDS = [50, 14, 8];
     document.getElementById('howdidyouhear').addEventListener('change', function () {
-      var txt = this.options[this.selectedIndex] ? this.options[this.selectedIndex].textContent.toLowerCase() : '';
-      var needsDetail = txt.includes('other') || txt.includes('friend') || txt.includes('referral');
+      var opt = this.options[this.selectedIndex];
+      var selectedId = opt ? Number(opt.getAttribute('data-id')) : NaN;
+      var needsDetail = HEAR_ABOUT_US_OTHER_IDS.indexOf(selectedId) !== -1;
       var grp = document.getElementById('hear_other_group');
       var inp = document.getElementById('hear_about_us_other');
       grp.style.display = needsDetail ? 'block' : 'none';
@@ -1953,32 +2078,26 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       return result;
     }
 
-    // ── Input masking: EIN (XX-XXXXXXX) and SSN (XXX-XX-XXXX) ───────────────
+    // ── Input masking: EIN (XX-XXXXXXX) ──────────────────────────────────────
+    // SSN masking (ssn_1 / ssn_2) is handled by updateSsnField(n) via Cleave.js,
+    // driven by each owner's own country.1 / country.2 — see above.
     (function () {
       var einInput = document.getElementById('federal_tax_id');
       if (einInput) {
         einInput.addEventListener('input', function () {
-          var digits = this.value.replace(/\D/g, '').slice(0, 9);
-          this.value = digits.length > 2
-            ? digits.slice(0, 2) + '-' + digits.slice(2)
-            : digits;
-        });
-      }
-
-      ['ssn_1', 'ssn_2'].forEach(function (id) {
-        var inp = document.getElementById(id);
-        if (!inp) return;
-        inp.addEventListener('input', function () {
-          var digits = this.value.replace(/\D/g, '').slice(0, 9);
-          if (digits.length > 5) {
-            this.value = digits.slice(0, 3) + '-' + digits.slice(3, 5) + '-' + digits.slice(5);
-          } else if (digits.length > 3) {
-            this.value = digits.slice(0, 3) + '-' + digits.slice(3);
+          var einMaskCountry = (step1Country || '').toUpperCase();
+          if (einMaskCountry === 'US' || einMaskCountry === '') {
+            // US-style forced XX-XXXXXXX digit grouping
+            var digits = this.value.replace(/\D/g, '').slice(0, 9);
+            this.value = digits.length > 2
+              ? digits.slice(0, 2) + '-' + digits.slice(2)
+              : digits;
           } else {
-            this.value = digits;
+            // Non-US: free-form alphanumeric+dash (schema pattern ^[0-9A-Za-z\-]+$)
+            this.value = this.value.replace(/[^0-9A-Za-z\-]/g, '');
           }
         });
-      });
+      }
     })();
 
     // ── Step form submissions ────────────────────────────────────────────────
@@ -2056,6 +2175,7 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         updateFederalTaxVisibility();
         // Show CA banking if needed and update country-dependent labels
         document.getElementById('ca_banking_fields').style.display = step1Country === 'CA' ? 'block' : 'none';
+        setCaBankingRequired(step1Country === 'CA');
         updateCountryLabels(step1Country);
         // Pre-fill legal name and DBA from Step 1 company name (only if not already set)
         var legalEl = document.getElementById('legal_name');
@@ -2086,11 +2206,16 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         delete payload['marketingModel[]'];
       }
 
-      // EIN / Tax ID validation (field hidden for CA and sole-props)
+      // EIN / Tax ID validation (field hidden for CA and sole-props; and even
+      // when visible, not REQUIRED when country=CA OR org=Sole-Proprietorship —
+      // separate OR-based dependsOn.logic, distinct from the AND-based
+      // visibleIf.logic used for taxGrp.style.display above)
       var einGrp = document.getElementById('federal_tax_id_group');
       var einVal = (payload.federal_tax_id || '').trim();
-      var einCountry = (document.getElementById('address_country').value || step1Country || '').toUpperCase();
-      if (einGrp && window.getComputedStyle(einGrp).display !== 'none') {
+      var einCountry = (step1Country || '').toUpperCase();
+      var einOrg = document.getElementById('business_organized').value;
+      var einRequired = !(einCountry === 'CA' || einOrg === 'Sole-Proprietorship');
+      if (einGrp && window.getComputedStyle(einGrp).display !== 'none' && einRequired) {
         if (!einVal) {
           setError('federal_tax_id', 'Tax ID is required');
           return;
@@ -2100,6 +2225,56 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
           setError('federal_tax_id', 'EIN must be in the format XX-XXXXXXX (e.g. 12-3456789)');
           return;
         }
+      }
+
+      // Business Registration Number (required whenever the group is visible,
+      // i.e. non-US)
+      var regGrp = document.getElementById('business_register_number_group');
+      if (regGrp && window.getComputedStyle(regGrp).display !== 'none') {
+        var regVal = (payload.business_register_number || '').trim();
+        if (!regVal) {
+          setError('business_register_number', 'Business registration number is required');
+          return;
+        }
+      }
+
+      // Subscription Frequency (required whenever the group is visible)
+      var freqGrp = document.getElementById('subscription_frequency_group');
+      if (freqGrp && window.getComputedStyle(freqGrp).display !== 'none') {
+        var freqVal = (payload.subscription_frequency || '').trim();
+        if (!freqVal) {
+          setError('subscription_frequency', 'Subscription frequency is required');
+          return;
+        }
+      }
+
+      // Subscription Frequency — "Other" description (required whenever its
+      // group is visible)
+      var freqOtherGrp = document.getElementById('subscription_frequency_other_group');
+      if (freqOtherGrp && window.getComputedStyle(freqOtherGrp).display !== 'none') {
+        var freqOtherVal = (payload.subscription_frequency_other || '').trim();
+        if (!freqOtherVal) {
+          setError('subscription_frequency_other', 'Please describe the frequency');
+          return;
+        }
+      }
+
+      // Physical Address (required whenever the "different address" section
+      // is visible)
+      var physSection = document.getElementById('physical_address_section');
+      if (physSection && window.getComputedStyle(physSection).display !== 'none') {
+        var physFields = ['physical_address_street_number', 'physical_address_street_address',
+          'physical_address_city', 'physical_address_state', 'physical_address_postal_code',
+          'physical_address_country'];
+        var physMissing = false;
+        physFields.forEach(function (f) {
+          var v = (payload[f] || '').trim();
+          if (!v) {
+            setError(f, 'This field is required');
+            physMissing = true;
+          }
+        });
+        if (physMissing) return;
       }
 
       var btn = document.getElementById('btn-step2');
@@ -2140,7 +2315,7 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
 
       var isPrimaryContact = raw['primary_contact'] === '1';
       var pct1 = parseInt(raw['ownership_percentage.1'], 10) || 0;
-      var hasOwner2 = pct1 > 0 && pct1 < 51;
+      var hasOwner2 = !isNaN(pct1) && pct1 < 51;
 
       // Build payload with only the fields the API expects
       var payload = { uuid: appUUID };
@@ -2153,6 +2328,19 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         payload['first_name.1'] = (raw['first_name.1'] || '').trim();
         payload['last_name.1']  = (raw['last_name.1']  || '').trim();
         payload['email.1']      = (raw['email.1']      || '').trim();
+
+        if (!payload['first_name.1']) {
+          setError('first_name_1', 'First name is required');
+          return;
+        }
+        if (!payload['last_name.1']) {
+          setError('last_name_1', 'Last name is required');
+          return;
+        }
+        if (!payload['email.1'] || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload['email.1'])) {
+          setError('email_1', 'A valid email address is required');
+          return;
+        }
       }
       // When primary_contact=1, first_name/last_name/email must NOT be sent —
       // EMAP uses the Step 1 contact data for the owner identity.
@@ -2176,13 +2364,29 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       if (raw['country.1'] === 'US') {
         payload['driver_license_state.1']           = raw['driver_license_state.1'] || '';
         payload['driver_license_expiration_date.1'] = raw['driver_license_expiration_date.1'] || '';
+        if (!payload['driver_license_state.1']) {
+          setError('driver_license_state_1', 'License state is required');
+          return;
+        }
+        if (!payload['driver_license_expiration_date.1']) {
+          setError('driver_license_expiration_date_1', 'License expiration date is required');
+          return;
+        }
       }
 
       // Bankruptcy cascade for Owner 1
       if (raw['bankruptcy_filed.1'] === '1') {
         payload['bankruptcy_discharged.1'] = raw['bankruptcy_discharged.1'] || '';
+        if (!payload['bankruptcy_discharged.1']) {
+          setError('bankruptcy_discharged_1', 'Please indicate whether the bankruptcy was discharged');
+          return;
+        }
         if (raw['bankruptcy_discharged.1'] === '1') {
           payload['bankruptcy_discharged_date.1'] = raw['bankruptcy_discharged_date.1'] || '';
+          if (!payload['bankruptcy_discharged_date.1']) {
+            setError('bankruptcy_discharged_date_1', 'Discharge date is required');
+            return;
+          }
         }
       }
 
@@ -2205,15 +2409,34 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         payload['license.2']             = (raw['license.2'] || '').trim();
         payload['bankruptcy_filed.2']    = raw['bankruptcy_filed.2'] || '0';
 
+        // Owner 2 is only visible/required here because hasOwner2 is true
+        // (ownership_percentage.1 < 51) — the US DL check below only applies
+        // to this branch, so it's implicitly gated on Owner 2 being shown.
         if (raw['country.2'] === 'US') {
           payload['driver_license_state.2']           = raw['driver_license_state.2'] || '';
           payload['driver_license_expiration_date.2'] = raw['driver_license_expiration_date.2'] || '';
+          if (!payload['driver_license_state.2']) {
+            setError('driver_license_state_2', 'License state is required');
+            return;
+          }
+          if (!payload['driver_license_expiration_date.2']) {
+            setError('driver_license_expiration_date_2', 'License expiration date is required');
+            return;
+          }
         }
 
         if (raw['bankruptcy_filed.2'] === '1') {
           payload['bankruptcy_discharged.2'] = raw['bankruptcy_discharged.2'] || '';
+          if (!payload['bankruptcy_discharged.2']) {
+            setError('bankruptcy_discharged_2', 'Please indicate whether the bankruptcy was discharged');
+            return;
+          }
           if (raw['bankruptcy_discharged.2'] === '1') {
             payload['bankruptcy_discharged_date.2'] = raw['bankruptcy_discharged_date.2'] || '';
+            if (!payload['bankruptcy_discharged_date.2']) {
+              setError('bankruptcy_discharged_date_2', 'Discharge date is required');
+              return;
+            }
           }
         }
       }
@@ -2226,28 +2449,35 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         if (dobErr2) { setError('dob_2', dobErr2); return; }
       }
 
-      // SSN / Tax ID validation — format depends on country
+      // SSN / Tax ID validation — format depends on EACH OWNER'S OWN country
+      // (country.1 / country.2), not the business's step1Country. This matches
+      // the PHP backend template, which keys off data_get($input, "country.$n").
       var SSN_RE = /^\d{3}-\d{2}-\d{4}$/;
-      var ssnCountry = (step1Country || '').toUpperCase();
-      var ssnRequiresFormat = ssnCountry === 'US' || ssnCountry === 'CA';
-      var ssnLabel = ssnRequiresFormat ? 'SSN / SIN' : 'Tax ID / Gov ID';
+
+      var ssn1Country = (raw['country.1'] || '').toUpperCase();
+      var ssn1RequiresFormat = ssn1Country === 'US' || ssn1Country === 'CA' || ssn1Country === '';
+      var ssn1Label = ssn1RequiresFormat ? 'SSN / SIN' : 'Tax ID / Gov ID';
 
       var ssn1Val = (raw['ssn.1'] || '').trim();
       if (!ssn1Val) {
-        setError('ssn_1', ssnLabel + ' is required');
+        setError('ssn_1', ssn1Label + ' is required');
         return;
       }
-      if (ssnRequiresFormat && !SSN_RE.test(ssn1Val)) {
+      if (ssn1RequiresFormat && !SSN_RE.test(ssn1Val)) {
         setError('ssn_1', 'SSN / SIN must be in the format XXX-XX-XXXX (e.g. 123-45-6789)');
         return;
       }
       if (hasOwner2) {
+        var ssn2Country = (raw['country.2'] || '').toUpperCase();
+        var ssn2RequiresFormat = ssn2Country === 'US' || ssn2Country === 'CA' || ssn2Country === '';
+        var ssn2Label = ssn2RequiresFormat ? 'SSN / SIN' : 'Tax ID / Gov ID';
+
         var ssn2Val = (raw['ssn.2'] || '').trim();
         if (!ssn2Val) {
-          setError('ssn_2', ssnLabel + ' is required');
+          setError('ssn_2', ssn2Label + ' is required');
           return;
         }
-        if (ssnRequiresFormat && !SSN_RE.test(ssn2Val)) {
+        if (ssn2RequiresFormat && !SSN_RE.test(ssn2Val)) {
           setError('ssn_2', 'SSN / SIN must be in the format XXX-XX-XXXX (e.g. 123-45-6789)');
           return;
         }
@@ -2279,6 +2509,28 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         }
         if (accountVal.length < 8 || accountVal.length > 17) {
           setError('account_number', 'US account number must be 8–17 characters');
+          return;
+        }
+      } else {
+        if (!/^[0-9A-Za-z]+$/.test(routingVal)) {
+          setError('routing_number', 'Routing number may only contain letters and numbers');
+          return;
+        }
+        if (!/^[0-9A-Za-z]+$/.test(accountVal)) {
+          setError('account_number', 'Account number may only contain letters and numbers');
+          return;
+        }
+      }
+
+      if (bankCountry === 'CA') {
+        var instVal = (document.getElementById('institution_number').value || '').trim();
+        if (!/^[0-9]{3}$/.test(instVal)) {
+          setError('institution_number', 'Institution number must be exactly 3 digits');
+          return;
+        }
+        var curVal = (document.querySelector('[name="customer_pay_currency"]:checked') || {}).value;
+        if (!curVal) {
+          setError('customer_pay_currency', 'Please select which currency the customer pays in');
           return;
         }
       }

@@ -33,6 +33,51 @@ declare(strict_types=1);
 
 session_start();
 
+// ── .env loader ──────────────────────────────────────────────────────────────
+// PHP has no built-in dotenv support (unlike node-express.js's `require('dotenv').config()`),
+// so a .env file dropped next to this script is never read on its own. If one exists in
+// __DIR__, parse it line-by-line and populate $_ENV / putenv() so getenv() below picks it
+// up. Missing .env is fine — env vars may instead be set via the server/Apache config.
+function loadDotEnv(string $path): void
+{
+    if (!is_readable($path)) {
+        return;
+    }
+    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    if ($lines === false) {
+        return;
+    }
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line === '' || str_starts_with($line, '#')) {
+            continue;
+        }
+        $eqPos = strpos($line, '=');
+        if ($eqPos === false) {
+            continue;
+        }
+        $name  = trim(substr($line, 0, $eqPos));
+        $value = trim(substr($line, $eqPos + 1));
+        if ($name === '') {
+            continue;
+        }
+        // Strip a single pair of matching surrounding quotes, if present.
+        if (strlen($value) >= 2) {
+            $first = $value[0];
+            $last  = $value[strlen($value) - 1];
+            if (($first === '"' && $last === '"') || ($first === "'" && $last === "'")) {
+                $value = substr($value, 1, -1);
+            }
+        }
+        // Don't clobber values already set in the real environment.
+        if (getenv($name) === false && !isset($_ENV[$name])) {
+            putenv($name . '=' . $value);
+            $_ENV[$name] = $value;
+        }
+    }
+}
+loadDotEnv(__DIR__ . '/.env');
+
 // ── Config ────────────────────────────────────────────────────────────────────
 $emapBaseUrl    = rtrim((string)(getenv('EMAP_BASE_URL') ?: $_ENV['EMAP_BASE_URL'] ?? ''), '/');
 $emapPartnerKey = (string)(getenv('EMAP_PARTNER_KEY')  ?: $_ENV['EMAP_PARTNER_KEY']  ?? '');
@@ -83,6 +128,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($pathToKey[$requestPath])) {
     $_GET['_dropdown'] = $pathToKey[$requestPath];
 }
 
+// Maps dropdown-proxy keys above (hyphenated) to the corresponding key in
+// dropdown-fallbacks.json (underscored), mirroring node-express.js's FALLBACK_KEY_BY_PATH.
+$dropdownFallbackKeyMap = [
+    'countries'        => 'countries',
+    'states'           => 'states',
+    'industry-types'   => 'industry_types',
+    'shopping-carts'   => 'shopping_carts',
+    'referral-sources' => 'referral_sources',
+    'interest-details' => 'interest_details',
+];
+
+// Loads and caches references/dropdown-fallbacks.json (static snapshot of EMAP's
+// /api/partner/* dropdown endpoints), used only when the live EMAP call fails or
+// returns no usable options — mirrors node-express.js's DROPDOWN_FALLBACKS.
+//
+// NOTE: a copy of dropdown-fallbacks.json must be deployed alongside this file
+// (i.e. next to index.php) at __DIR__ . '/dropdown-fallbacks.json' — same as the
+// skill's SKILL.md already documents for other reference files copied during a build.
+function getDropdownFallback(string $fallbackKey): array
+{
+    static $fallbacks = null;
+    if ($fallbacks === null) {
+        $fallbacks = [];
+        $path = __DIR__ . '/dropdown-fallbacks.json';
+        if (is_readable($path)) {
+            $raw     = file_get_contents($path);
+            $decoded = $raw !== false ? json_decode($raw, true) : null;
+            if (is_array($decoded)) {
+                $fallbacks = $decoded;
+            }
+        }
+    }
+    return $fallbacks[$fallbackKey] ?? ['data' => []];
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['_dropdown'])) {
     $key = (string)$_GET['_dropdown'];
     if (!isset($dropdownMap[$key])) {
@@ -91,7 +171,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['_dropdown'])) {
         exit;
     }
     header('Content-Type: application/json; charset=utf-8');
-    header('Cache-Control: public, max-age=3600');
 
     $ch = curl_init($emapOrigin . $dropdownMap[$key]);
     curl_setopt_array($ch, [
@@ -101,10 +180,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['_dropdown'])) {
         CURLOPT_SSL_VERIFYPEER => true,
         CURLOPT_SSL_VERIFYHOST => 2,
     ]);
-    $body = curl_exec($ch);
+    $body       = curl_exec($ch);
+    $statusCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError  = curl_error($ch);
     curl_close($ch);
 
-    echo $body ?: json_encode(['data' => []]);
+    $decoded  = ($body !== false && $body !== '') ? json_decode($body, true) : null;
+    $isUsable = !$curlError
+        && $statusCode >= 200 && $statusCode < 300
+        && is_array($decoded)
+        && isset($decoded['data'])
+        && is_array($decoded['data'])
+        && count($decoded['data']) > 0;
+
+    if ($isUsable) {
+        header('Cache-Control: public, max-age=3600');
+        echo json_encode($decoded);
+        exit;
+    }
+
+    if ($curlError) {
+        error_log('[EMAP] Dropdown proxy cURL error for ' . $key . ': ' . $curlError);
+    } else {
+        error_log('[EMAP] Dropdown proxy: EMAP ' . $key . ' returned unusable data (status ' . $statusCode . '); serving fallback.');
+    }
+
+    // Live call failed or returned no usable options — serve the static fallback
+    // snapshot instead of an empty dropdown, with a normal 200 status. Do not cache this.
+    header('Cache-Control: no-store');
+    echo json_encode(getDropdownFallback($dropdownFallbackKeyMap[$key] ?? $key));
     exit;
 }
 
@@ -240,7 +344,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // SSN / Tax ID validation — format only enforced for US and CA
-        $ssnErrors = [];
+        $errors = [];
         $ssnFields  = $input['ssn'] ?? [];
         $countryFields = $input['country'] ?? [];
         if (is_array($ssnFields)) {
@@ -250,16 +354,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $country = strtoupper(trim((string)($countryFields[$n] ?? '')));
                     $needsFmt = ($country === 'US' || $country === 'CA' || $country === '');
                     if ($val === '') {
-                        $ssnErrors['ssn.' . $n] = ['SSN / Tax ID is required'];
+                        $errors['ssn.' . $n] = ['SSN / Tax ID is required'];
                     } elseif ($needsFmt && !preg_match('/^\d{3}-\d{2}-\d{4}$/', $val)) {
-                        $ssnErrors['ssn.' . $n] = ['SSN must be in the format XXX-XX-XXXX (e.g. 123-45-6789)'];
+                        $errors['ssn.' . $n] = ['SSN must be in the format XXX-XX-XXXX (e.g. 123-45-6789)'];
                     }
                 }
             }
         }
-        if (!empty($ssnErrors)) {
+
+        // DOB — owner must be between 18 and 100 years old (nested as dob[1], dob[2]),
+        // mirroring node-express.js's /api/step/4 DOB check.
+        $dobFields = $input['dob'] ?? [];
+        if (is_array($dobFields)) {
+            foreach (['1', '2'] as $n) {
+                if (isset($dobFields[$n]) && $dobFields[$n] !== '') {
+                    $age = emapAgeFromDob((string)$dobFields[$n]);
+                    if ($age === null) {
+                        $errors['dob.' . $n] = ['Date of birth is invalid'];
+                    } elseif ($age < 18) {
+                        $errors['dob.' . $n] = ['Owner must be at least 18 years old'];
+                    } elseif ($age > 100) {
+                        $errors['dob.' . $n] = ['Please enter a valid date of birth'];
+                    }
+                }
+            }
+        }
+
+        if (!empty($errors)) {
             http_response_code(422);
-            echo json_encode(['status' => false, 'message' => 'Validation failed', 'errors' => $ssnErrors]);
+            echo json_encode(['status' => false, 'message' => 'Validation failed', 'errors' => $errors]);
             exit;
         }
 
@@ -268,6 +391,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         echo json_encode($result['body']);
         exit;
     }
+}
+
+// ── Helper: compute age in years from a submitted DOB string ──────────────────
+// Mirrors node-express.js's /api/step/4 DOB check: ageYears = (now - dob) / 365.25 days.
+// Returns null if the date string cannot be parsed.
+function emapAgeFromDob(string $value): ?float
+{
+    $value = trim($value);
+    if ($value === '') {
+        return null;
+    }
+    $timestamp = strtotime($value);
+    if ($timestamp === false) {
+        return null;
+    }
+    $seconds = time() - $timestamp;
+    return $seconds / (365.25 * 24 * 60 * 60);
 }
 
 // ── Helper: POST to EMAP via cURL ─────────────────────────────────────────────
