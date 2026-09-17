@@ -305,26 +305,17 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
     - HTTP 429 → ask the merchant to wait and retry.
     - HTTP 5xx → show generic "please try again".
 
-14. **Test — end-to-end/runtime only.** The Verify loop below already independently re-checks
-    widget-type rendering, hardcoded labels, country-validation enforcement, conditional/back-nav
-    logic, and dropdown-route/fallback behavior — field by field, with a separate confirm pass. Do
-    **not** manually re-check those same things here; it's redundant with a loop that runs anyway
-    and is more rigorous. This list is only for things that require an actual running server/browser
-    that the loop's static+live checks don't cover:
-    - Complete all 6 steps with test data against the EMAP staging URL.
-    - Verify Step 6 shows the success panel and `localStorage` is cleared.
-    - Verify `legal_name` and `name` (DBA) are pre-filled with the company name when Step 2 loads.
-    - Test card percentage validator (`card_swiped + customer_entered + staff_entered = 100`) — not
-      covered by any Verify loop category, so keep this manual check.
-    - Test SSN Cleave.js mask and DOB age gate — confirm both the browser form AND a direct
-      `POST /api/step/4` call with an underage/over-100 DOB are rejected with a 422.
-    - **Run the [Verify loop: schema conformance](#verify-loop-schema-conformance)** — covers
-      widget types, hardcoded labels, per-country validation, conditional logic (including no-Back
-      navigation), and dropdown routes/fallback — then
-      [Verify: security and coverage](#verify-security-and-coverage) before telling the developer
-      the form is done. Manual curl/browser testing above does not substitute for either — the
-      verify gate hook (Step 0.5) will block the session from ending until the loop has completed
-      with zero `CONFIRMED` findings.
+14. **No manual test pass — go straight to the automated loop.** Do not run any manual
+    curl/browser test scenarios here (not a smoke run of the 6 steps, not a spot-check of any
+    field, none of it) — every one of those either duplicates a check the Verify loop already runs
+    independently and more rigorously (widget types, hardcoded labels, country validation,
+    conditional/back-nav logic, dropdown routes/fallback), or is a correctness question the loop
+    will surface through its `[]`-or-findings result regardless. Skipping straight there removes an
+    entire redundant pass instead of paying for the same ground twice.
+    - **Run the [Verify loop: schema conformance](#verify-loop-schema-conformance)**, then
+      [Verify: security and coverage](#verify-security-and-coverage), before telling the developer
+      the form is done. The verify gate hook (Step 0.5) will block the session from ending until
+      the loop has completed with zero `CONFIRMED` findings.
 
 ---
 
@@ -485,11 +476,14 @@ required, a country-specific length limit shown as a hint but not enforced, a dr
 proxy route that doesn't return data, etc. Do not rely on having "read the schema earlier" — the
 generated code is the thing being graded, not your memory of the instructions.
 
-**Roles** — three, not two. A single verify agent's own findings are not trustworthy enough to act
+**Roles** — four, not two. A single verify agent's own findings are not trustworthy enough to act
 on directly (it can hallucinate a mismatch or misread the schema); they must be independently
-confirmed before the build agent spends a fix cycle on them.
+confirmed before anyone spends a fix cycle on them. And once findings are confirmed, applying them
+is itself parallelizable — it doesn't have to be the build agent doing every fix serially.
 
-1. **Build agent** — you. Writes the code, applies fixes. Never grades its own output.
+1. **Build agent** — you. Coordinates the loop, writes the initial code. Never grades its own
+   output, and — once there's more than one file to fix — delegates the actual fixing (see "Fix
+   agents" below) rather than doing every file itself in sequence.
 2. **Verify agents** (fresh `general-purpose` agents, **4 spawned in parallel per round** — see
    "Category split" below) — each reads only its own slice of the schema/reference docs and the
    generated files, and proposes findings for that slice only. Proposes only — does not decide
@@ -499,6 +493,10 @@ confirmed before the build agent spends a fix cycle on them.
    from the primary source (the exact schema field and the exact file/line cited) without trusting
    the verify agent's description of it, and returns a verdict. Only `CONFIRMED` findings ever
    reach the build agent.
+4. **Fix agent** (fresh agent **per distinct file with confirmed findings**, spawned in parallel —
+   see step 8 in the Loop below) — applies every confirmed finding scoped to its one file. Two fix
+   agents never touch the same file at once (that's the one real constraint on parallelizing this
+   step); different files have no such conflict, so there's no reason to fix them one at a time.
 
 **Category split.** Instead of one verify agent reading the entire schema and every generated file
 for all 5 checks, split the same 5 checks across 4 agents spawned **in a single message** so they
@@ -516,6 +514,13 @@ For Integration 1, steps 7–9 of "Build Integration 1" already enumerate the ex
 categories B, C, and the widget-type list in A — point each agent at that enumerated list instead of
 telling it to scan the whole schema for candidates. For Integration 2/3, derive the equivalent field
 list from `field-catalog.md` before spawning.
+
+**Split an oversized category further.** 4 parallel agents only run as fast as the slowest one —
+if a category's enumerated field list is large (rule of thumb: more than ~25 fields; `conditional_logic`
+is the usual culprit, since it covers every `dependsOn`/`visibleIf` rule across all 6 steps), that
+one agent becomes the long pole while the other 3 finish and sit idle waiting on it. Split it into 2
+sub-agents by step range instead (e.g. steps 1–3 vs 4–6), run both in parallel alongside A/B/D, and
+merge their findings — same `category` value on both, just half the field list each.
 
 **Pre-slice the schema before spawning — don't make the agent filter it.** Before round 1, extract
 each category's relevant entries from `signup-steps-schema.json` into a small temp file per category
@@ -582,9 +587,17 @@ justify by inventing an item.
    ```
    (match `integration` and `rounds` to what actually happened). Then proceed to
    [Verify: security and coverage](#verify-security-and-coverage), then hand off to the developer.
-8. **If there is at least one `CONFIRMED` finding** → the build agent fixes every one of them
-   directly in the code (do not just re-read the docs and re-explain the rule — change the file),
-   then returns to step 3 (scoped re-audit) for the next round.
+8. **If there is at least one `CONFIRMED` finding** → group the confirmed findings by `file`, then
+   **spawn one fix agent per distinct file, in parallel** (never two agents on the same file at
+   once — that's the only real constraint; different files don't conflict). Each fix agent's brief:
+   *"Apply every one of these confirmed findings to `<file>`: `<that file's confirmed findings>`.
+   Change the code directly for each — do not just re-read the docs and re-explain the rule."*
+   - **Do not curl-test or manually re-verify each fix as you apply it.** That duplicates the
+     scoped re-audit you're about to run in step 3 — paying for the same check twice. At most, run
+     one syntax/lint check per file (e.g. `node -c`, `php -l`) after all of that file's fixes are
+     in, to catch a typo before spawning verify agents again; the actual correctness check is the
+     next round's re-audit, not a manual pass here.
+   - Once every fix agent returns, go to step 3 (scoped re-audit) for the next round.
 9. **Cap at 5 verify→confirm→fix rounds.** If `CONFIRMED` findings remain after 5 rounds, stop
    looping, report exactly those remaining `CONFIRMED` findings to the developer, and do not claim
    the build is done. If Step 0.5's hook is installed, write `.claude/emap-build-state.json` with
