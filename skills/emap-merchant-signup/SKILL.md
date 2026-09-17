@@ -116,6 +116,10 @@ Before generating any code, answer these questions:
 > manual curl/browser testing — it forces the [Verify loop](#verify-loop-schema-conformance) to
 > actually run and pass before the session can end.
 
+These 3 steps touch 3 different files and none depends on another's *output* (step 3's content is
+fixed regardless of what 1/2 wrote) — do them as **parallel tool calls in the same message** rather
+than one at a time:
+
 1. **Copy the hook script.** Create `.claude/hooks/emap-verify-gate.py` in the target project
    with the exact contents of [`hooks/emap-verify-gate.py`](hooks/emap-verify-gate.py) from this
    skill. Make it executable (`chmod +x .claude/hooks/emap-verify-gate.py`).
@@ -134,12 +138,14 @@ Before generating any code, answer these questions:
    ```
    (use `"2"` or `"3"` to match the mode being built). This is what activates the gate — from this
    point on, the session cannot Stop until the file is updated to `"status": "verified"` by a
-   passing run of the [Verify loop](#verify-loop-schema-conformance).
+   passing run of the [Verify loop](#verify-loop-schema-conformance) (or to `"blocked"` /
+   `"cancelled"` — see the Verify loop section for when those apply).
 
 **Verify before proceeding:** confirm `.claude/hooks/emap-verify-gate.py` exists, is executable,
 and `.claude/settings.json` actually contains the `Stop` hook entry — don't just assume the writes
-succeeded. Only after all 3 files are confirmed on disk should you continue to
-[Step 1](#step-1-partner-attribution-optional) or begin generating code.
+succeeded. This check does have to come *after* the parallel writes above complete. Only after all
+3 files are confirmed on disk should you continue to [Step 1](#step-1-partner-attribution-optional)
+or begin generating code.
 
 If the target project cannot run Python 3 (rare), tell the developer the automated gate can't be
 installed and that they must run the Verify loop manually before accepting the build — do not
@@ -299,24 +305,22 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
     - HTTP 429 → ask the merchant to wait and retry.
     - HTTP 5xx → show generic "please try again".
 
-14. **Test:**
+14. **Test — end-to-end/runtime only.** The Verify loop below already independently re-checks
+    widget-type rendering, hardcoded labels, country-validation enforcement, conditional/back-nav
+    logic, and dropdown-route/fallback behavior — field by field, with a separate confirm pass. Do
+    **not** manually re-check those same things here; it's redundant with a loop that runs anyway
+    and is more rigorous. This list is only for things that require an actual running server/browser
+    that the loop's static+live checks don't cover:
     - Complete all 6 steps with test data against the EMAP staging URL.
     - Verify Step 6 shows the success panel and `localStorage` is cleared.
     - Verify `legal_name` and `name` (DBA) are pre-filled with the company name when Step 2 loads.
-    - Confirm no Back buttons appear on any step.
-    - Test card percentage validator and Owner 2 conditional display.
+    - Test card percentage validator (`card_swiped + customer_entered + staff_entered = 100`) — not
+      covered by any Verify loop category, so keep this manual check.
     - Test SSN Cleave.js mask and DOB age gate — confirm both the browser form AND a direct
       `POST /api/step/4` call with an underage/over-100 DOB are rejected with a 422.
-    - Confirm all dropdown-backed selects (`country`, `state`, `industry_type`, `shopping_cart`,
-      `howdidyouhear`) actually populate with options at runtime.
-    - Simulate an EMAP dropdown-API outage (point `EMAP_BASE_URL` at an unreachable host) and
-      confirm each dropdown still populates from `references/dropdown-fallbacks.json` instead of
-      rendering empty.
-    - Confirm `marketingModel` renders as labeled checkboxes and
-      `is_physical_address_same_as_legal_address` as labeled radios — not raw-value selects.
-    - Confirm `routing_number` rejects a US value that isn't exactly 9 digits, and `account_number`
-      rejects a US value outside 8–17 characters.
-    - **Run the [Verify loop: schema conformance](#verify-loop-schema-conformance)** and then
+    - **Run the [Verify loop: schema conformance](#verify-loop-schema-conformance)** — covers
+      widget types, hardcoded labels, per-country validation, conditional logic (including no-Back
+      navigation), and dropdown routes/fallback — then
       [Verify: security and coverage](#verify-security-and-coverage) before telling the developer
       the form is done. Manual curl/browser testing above does not substitute for either — the
       verify gate hook (Step 0.5) will block the session from ending until the loop has completed
@@ -461,11 +465,17 @@ Read [`references/mode-3-api.md`](references/mode-3-api.md) before proceeding.
 ## Verify loop: schema conformance
 
 > **Definition of done.** A build is not done until this loop has completed with zero `CONFIRMED`
-> findings. Your final response to the developer must include the verify agent's raw findings
+> findings. Your final response to the developer must include the verify agents' raw findings
 > JSON from the last round (or explicitly state it returned `[]`) — not a paraphrase, not a
 > summary of manual testing you did instead. If Step 0.5's hook is installed, the session cannot
-> Stop until `.claude/emap-build-state.json` says `"status": "verified"` (see step 6 below) —
+> Stop until `.claude/emap-build-state.json` says `"status": "verified"` (see step 7 below) —
 > treat that as the actual finish line for the build, not your own judgment that it "looks done."
+
+> **Performance target.** When the build agent used the matching template verbatim (see "Use the
+> template" in each Build section) instead of regenerating from prose, round 1 below should return
+> `[]` or close to it, and the whole loop — build through `"status": "verified"` — should complete
+> in well under 10 minutes. Regenerating the form/backend from the reference docs instead of copying
+> the template means more rounds; only do that when the project's stack has no matching template.
 
 Do this for **every** integration mode, after the form and backend are written and before you tell
 the developer the build is done. Its purpose is to catch the exact class of bug this skill has
@@ -480,14 +490,47 @@ on directly (it can hallucinate a mismatch or misread the schema); they must be 
 confirmed before the build agent spends a fix cycle on them.
 
 1. **Build agent** — you. Writes the code, applies fixes. Never grades its own output.
-2. **Verify agent** (fresh `general-purpose` agent per round) — reads the schema/reference docs and
-   the generated files, proposes findings. Proposes only — does not decide what's real.
-3. **Confirm agent** (fresh `general-purpose` agent **per individual finding**, spawned in parallel)
-   — independently re-derives the same finding from the primary source (the exact schema field and
-   the exact file/line cited) without trusting the verify agent's description of it, and returns a
-   verdict. Only `CONFIRMED` findings ever reach the build agent.
+2. **Verify agents** (fresh `general-purpose` agents, **4 spawned in parallel per round** — see
+   "Category split" below) — each reads only its own slice of the schema/reference docs and the
+   generated files, and proposes findings for that slice only. Proposes only — does not decide
+   what's real.
+3. **Confirm agent** (fresh agent **per individual finding**, spawned in parallel, on the fastest
+   available model — see "Confirm agent model" below) — independently re-derives the same finding
+   from the primary source (the exact schema field and the exact file/line cited) without trusting
+   the verify agent's description of it, and returns a verdict. Only `CONFIRMED` findings ever
+   reach the build agent.
 
-**Findings contract.** The verify agent must return a JSON array — not prose — each item shaped as:
+**Category split.** Instead of one verify agent reading the entire schema and every generated file
+for all 5 checks, split the same 5 checks across 4 agents spawned **in a single message** so they
+run concurrently — this is the main lever for wall-clock time, since the checks are independent of
+each other and each agent now only has to read the fields relevant to its own category:
+
+| Agent | Category | Checks |
+|---|---|---|
+| A | `widget_type` + `hardcoded_label` | rendered widget matches schema `type`; `staticDropdowns` fields render the label, not the raw `value`/`slug` |
+| B | `country_validation` | every `countryVariants` constraint (`pattern`/`exactLength`/`minLength`/`maxLength`) is enforced in actual validation code, not just shown as a hint |
+| C | `conditional_logic` | every `dependsOn`/`visibleIf` conditional is implemented, the shown/hidden field's required/optional state matches, **and** no Back button/`goToStep(n)`-to-a-lower-step exists on any step (SKILL.md's no-back-navigation rule) |
+| D | `dropdown_route` | all 6 dropdown-proxy routes return non-empty data for a live test country, and fall back to `references/dropdown-fallbacks.json` when the live call fails |
+
+For Integration 1, steps 7–9 of "Build Integration 1" already enumerate the exact field list for
+categories B, C, and the widget-type list in A — point each agent at that enumerated list instead of
+telling it to scan the whole schema for candidates. For Integration 2/3, derive the equivalent field
+list from `field-catalog.md` before spawning.
+
+**Pre-slice the schema before spawning — don't make the agent filter it.** Before round 1, extract
+each category's relevant entries from `signup-steps-schema.json` into a small temp file per category
+(a `jq`/grep one-liner against the enumerated field lists above, saved under the scratchpad) and hand
+each verify agent that slice's path instead of the full ~2,000-line schema. This is strictly faster
+than handing over the whole file and trusting the agent to skim to the right entries — it's a few
+seconds of build-agent work that saves each of the 4 agents from reading everything else.
+
+**Confirm agent model.** Confirm agents do a narrow, deterministic lookup (does field X in the code
+match rule Y in the schema) — this doesn't need a heavyweight model. Spawn confirm agents with a
+fast/lightweight model override (e.g. `model: "haiku"`) rather than the default. Keep verify agents
+(categories A–D) on the default model — judging "does this conditional logic actually match the
+spec" benefits from more reasoning than a single-fact lookup does.
+
+**Findings contract.** Each verify agent must return a JSON array — not prose — each item shaped as:
 ```json
 {
   "file": "relative/path/to/file",
@@ -504,42 +547,45 @@ justify by inventing an item.
 **Loop:**
 
 1. **Build agent** finishes the form + backend for the chosen integration mode.
-2. **Build agent** spawns a **verify agent** with this brief: *"Read `signup-steps-schema.json`
-   (and, for Integration 2/3, `references/field-catalog.md`). Read the generated form/backend files
-   at `<paths>`. For every field in scope, check: (a) the rendered widget type matches the schema's
-   `type` (select vs. radio vs. checkbox-group vs. checkbox vs. text) — do not accept a `<select>`
-   for a field whose schema entry is `radio` or `checkbox-group`; (b) hardcoded-option fields
-   (`staticDropdowns`) render the human-readable `label`, not the raw `value`/`slug`; (c) every
-   `countryVariants` constraint (`pattern`/`exactLength`/`minLength`/`maxLength`) is enforced by
-   actual validation code (HTML attribute AND/OR a submit-time check), not only shown as label/hint
-   text; (d) every `dependsOn`/`visibleIf` conditional is implemented and the shown/hidden field is
-   also required/optional to match; (e) all 6 dropdown-proxy routes exist, return non-empty data for
-   a live test country, AND fall back to `references/dropdown-fallbacks.json` (not an empty array)
-   when the live EMAP call is made to fail/timeout. Return findings strictly as the JSON array
-   defined in the Findings contract above — no prose, no markdown. Return `[]` if none exist — do
-   not invent findings to justify the pass."*
-3. **Verify agent** returns its findings array. **If the array is empty, skip straight to step 6**
-   (there is nothing to confirm).
-4. **Build agent spawns one confirm agent per finding, in parallel**, with this brief per finding:
-   *"A verify agent claims: `<the single finding JSON>`. Do not trust this description. Independently
-   open `<file>` at the cited location and independently look up `<field>` in
-   `signup-steps-schema.json` (or `field-catalog.md`) yourself. Decide from the primary sources only:
-   is this finding real? Return `{finding, verdict: "CONFIRMED" | "REJECTED", reason}`."*
-5. **Build agent keeps only `CONFIRMED` findings**, discards `REJECTED` ones (a rejected finding is
+2. **Round 1 only — full audit.** Build agent extracts the 4 pre-sliced scope files (see "Pre-slice
+   the schema" above), then spawns **all 4 category verify agents in parallel** (single message,
+   multiple Agent tool calls), each with this brief: *"Read `<pre-sliced schema-scope file for this
+   category>` — this is already filtered to the fields relevant to `<category>`, you do not need to
+   open the full `signup-steps-schema.json`. Read the generated form/backend files at `<paths>`.
+   Check only: `<the one check row for this category from the table above>`. Return findings
+   strictly as the JSON array defined in the Findings contract above, `category` fixed to
+   `<category>` — no prose, no markdown. Return `[]` if none exist — do not invent findings to
+   justify the pass."*
+3. **Rounds 2–5 — scoped re-audit.** After a fix, spawn only the category agent(s) whose fields were
+   touched by that fix (still parallel if more than one), using the same pre-sliced scope file. This
+   is a deliberate speed/rigor trade-off: a fix could in principle regress a field outside the
+   categories re-run — accept that risk in exchange for not re-reading everything every round. If you
+   want the stricter behavior instead, run all 4 categories on every round.
+4. **Merge** all returned findings arrays into one list. **If the merged list is empty, skip straight
+   to step 7** (there is nothing to confirm).
+5. **Build agent spawns one confirm agent per finding, in parallel**, on the fast/lightweight model
+   (see "Confirm agent model" above). Extract the finding's exact schema entry (a single `jq`/grep
+   lookup by `field`, cheap since you already know the field name) and paste it verbatim into the
+   brief, so the confirm agent doesn't have to open the full schema file for a one-field check: *"A
+   verify agent claims: `<the single finding JSON>`. Do not trust the verify agent's description —
+   independently open `<file>` at the cited location and check it yourself. Here is the exact,
+   unedited entry for `<field>` from `signup-steps-schema.json` (or `field-catalog.md`), copied
+   verbatim — treat it as the primary source, not the verify agent's `expected`/`actual` summary:
+   `<literal JSON excerpt>`. Decide from these primary sources only: is this finding real? Return
+   `{finding, verdict: "CONFIRMED" | "REJECTED", reason}`."*
+6. **Build agent keeps only `CONFIRMED` findings**, discards `REJECTED` ones (a rejected finding is
    not reported to the developer and is not a reason to loop again).
-6. **If there are zero `CONFIRMED` findings** → conformance passed. If Step 0.5's hook is
+7. **If there are zero `CONFIRMED` findings** → conformance passed. If Step 0.5's hook is
    installed, write `.claude/emap-build-state.json`:
    ```json
    { "status": "verified", "integration": "1", "rounds": 1, "confirmed_findings": [] }
    ```
    (match `integration` and `rounds` to what actually happened). Then proceed to
    [Verify: security and coverage](#verify-security-and-coverage), then hand off to the developer.
-7. **If there is at least one `CONFIRMED` finding** → the build agent fixes every one of them
+8. **If there is at least one `CONFIRMED` finding** → the build agent fixes every one of them
    directly in the code (do not just re-read the docs and re-explain the rule — change the file),
-   then returns to step 2 with a **fresh** verify agent for a full re-check (do not reuse the prior
-   verify agent instance, and do not skip re-verification of fields that already passed — a fix can
-   regress an unrelated field).
-8. **Cap at 5 verify→confirm→fix rounds.** If `CONFIRMED` findings remain after 5 rounds, stop
+   then returns to step 3 (scoped re-audit) for the next round.
+9. **Cap at 5 verify→confirm→fix rounds.** If `CONFIRMED` findings remain after 5 rounds, stop
    looping, report exactly those remaining `CONFIRMED` findings to the developer, and do not claim
    the build is done. If Step 0.5's hook is installed, write `.claude/emap-build-state.json` with
    `"status": "blocked"` (not `"verified"`) plus the remaining findings, so the gate reflects that
@@ -547,6 +593,11 @@ justify by inventing an item.
    ```json
    { "status": "blocked", "integration": "1", "rounds": 5, "confirmed_findings": [ /* ... */ ] }
    ```
+
+**Abandoning a build.** If the developer decides to stop partway through — not "done", just no
+longer wanted — write `{"status": "cancelled", "integration": "<n>"}` to
+`.claude/emap-build-state.json` rather than leaving it `"in_progress"` (which would leave the Stop
+hook blocking forever) or deleting/hand-editing it to fake a pass.
 
 ---
 

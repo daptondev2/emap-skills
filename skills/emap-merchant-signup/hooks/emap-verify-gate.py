@@ -4,10 +4,10 @@ Stop-hook gate for the emap-merchant-signup skill.
 
 Blocks the session from ending while an EMAP integration build is marked
 in_progress in .claude/emap-build-state.json but has not been marked
-"verified" by the Verify loop (see SKILL.md: "Verify loop: schema
-conformance"). This exists because a build agent can otherwise declare a
-build "done" after only manual curl/browser smoke testing, silently
-skipping the documented verify -> confirm -> fix loop.
+"verified" (or "blocked"/"cancelled") by the Verify loop (see SKILL.md:
+"Verify loop: schema conformance"). This exists because a build agent can
+otherwise declare a build "done" after only manual curl/browser smoke
+testing, silently skipping the documented verify -> confirm -> fix loop.
 
 Installed via Step 0.5 in SKILL.md. Registered as a Stop hook in
 .claude/settings.json.
@@ -51,11 +51,12 @@ def main() -> None:
         )
         return
 
-    if state.get("status") in ("verified", "blocked"):
+    if state.get("status") in ("verified", "blocked", "cancelled"):
         # "verified" = loop passed with zero findings. "blocked" = loop ran to its
         # 5-round cap and the remaining CONFIRMED findings were reported to the
-        # developer — both are legitimate terminal states, unlike a silently
-        # abandoned "in_progress".
+        # developer. "cancelled" = the developer explicitly abandoned this build
+        # rather than finishing it. All three are legitimate terminal states,
+        # unlike a silently abandoned "in_progress".
         sys.exit(0)
 
     integration = state.get("integration", "unknown")
@@ -63,11 +64,16 @@ def main() -> None:
     block(
         f"An EMAP Integration {integration} build is in progress (status: \"{status}\") but "
         "the Verify loop (SKILL.md section 'Verify loop: schema conformance') has not "
-        "completed with zero CONFIRMED findings. Spawn a fresh verify agent, then a confirm "
-        "agent per finding, fix any CONFIRMED findings, and write "
-        "{\"status\": \"verified\", ...} to .claude/emap-build-state.json when the loop "
-        "passes with zero remaining findings. Manual curl or browser testing is not a "
-        "substitute for this loop and does not satisfy this gate."
+        "completed with zero CONFIRMED findings. Run this round's verify agents (4 parallel "
+        "category agents — widget_type/hardcoded_label, country_validation, "
+        "conditional_logic, dropdown_route — on round 1, a scoped re-audit of only the "
+        "categories touched by the last fix on later rounds), then a confirm agent per "
+        "finding, fix any CONFIRMED findings, and write {\"status\": \"verified\", ...} to "
+        ".claude/emap-build-state.json when the loop passes with zero remaining findings. "
+        "Manual curl or browser testing is not a substitute for this loop and does not "
+        "satisfy this gate. If this build is being abandoned rather than finished, write "
+        "{\"status\": \"cancelled\"} to .claude/emap-build-state.json instead of leaving it "
+        "\"in_progress\" — do not delete or hand-edit this file to fake a pass."
     )
 
 
