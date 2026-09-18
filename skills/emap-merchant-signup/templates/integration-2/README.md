@@ -1,7 +1,9 @@
 # Integration 2 Templates
 
-Pure client-side. No backend, server, or `.env` file is used or needed — the redirect URL
-is built entirely in the browser.
+Works in any tech stack. No server-side code is involved: the redirect URL is built and
+followed entirely in the merchant's browser.
+Keep it that way. EMAP rate-limits signups by the caller's IP, so the requests must come from
+the merchant's browser, not from a server proxy.
 
 ## Templates
 
@@ -13,19 +15,31 @@ client-side.
 **Use when:** you have a static site, a CMS with no custom server code, or you want the
 simplest possible integration.
 
-**Setup:** Set `EMAP_BASE_URL` at the top of the `<script>` block. Optionally set
-`EMAP_PARTNER_SECRET_KEY` if you have a partner key — see the Partner key visibility
-section below for the client-visibility tradeoff.
+**Setup:** Set `EMAP_BASE_URL` at the top of the `<script>` block. The template ships with
+`https://emap.epd.dev`, EMAP's **test server**; switch to the production URL at launch. Optionally
+set `EMAP_PARTNER_KEY` if you have a partner key. See the Partner key visibility section below for
+the client-visibility tradeoff.
 
 ### `SignupForm.tsx`
-A Next.js **Client Component** (`'use client'`) wrapping the exact same tested markup,
-styles, and logic as `plain-html.html`. There is no `app/api/*/route.ts` file — the
-redirect URL is built and followed entirely in the browser, same as the plain HTML version.
+A **React component** wrapping the exact same tested markup, styles, and logic as
+`plain-html.html`. It makes no server-side calls: the redirect URL is built and followed
+entirely in the browser, same as the plain HTML version.
 
-**Use when:** you're building on Next.js and want to drop the form into an existing app.
+**Use when:** the site is built with React. That covers Next.js (App or Pages Router), Vite,
+Remix / React Router, Gatsby, and Astro (`client:only="react"`). For a JavaScript project,
+rename it to `.jsx` and delete the type annotations. It is safe under StrictMode and repeated
+mount/unmount, and its CSS is scoped under `.emap-signup`.
 
 **Setup:** Import and render `<SignupForm />` anywhere in your app. Set the same
-`EMAP_BASE_URL` / `EMAP_PARTNER_SECRET_KEY` constants inside the component's embedded script.
+`EMAP_BASE_URL` / `EMAP_PARTNER_KEY` constants inside the component's embedded script.
+
+### Any other stack
+Vue / Nuxt, Angular, Svelte, PHP / WordPress, Rails, Django, ASP.NET, static site generators,
+site builders, and mobile WebViews all work. `plain-html.html` is built to be embedded: its CSS
+is scoped under `.emap-signup`, and its script is IIFE-wrapped and starts via `onReady()`, so it
+runs correctly even when injected after page load. See
+[`../../references/stack-guide.md`](../../references/stack-guide.md) for how to deliver it in each
+stack, and for the porting rules if you rewrite it natively.
 
 ---
 
@@ -34,27 +48,31 @@ redirect URL is built and followed entirely in the browser, same as the plain HT
 1. **Styling:** Replace the inline CSS with your own classes. The templates use minimal styles only.
 2. **Fields:** Add or remove optional fields. Required fields (`first_name`, `last_name`, `email`,
    `phone`, `company_name`, `website`, `country`, `annual_sales`) must stay.
-3. **Auto-submit:** To trigger EMAP's auto-submit, include all the optional fields listed in
-   [`../../references/field-catalog.md`](../../references/field-catalog.md) under "Auto-submit fields".
+3. **Auto-submit:** EMAP submits the prefilled form for the merchant when `first_name`,
+   `last_name`, `company_name`, `phone` and `email` are all present and its own checks on the
+   prefilled data pass. Otherwise the merchant reviews the form and submits it. Keep those five
+   fields. See [`../../references/mode-2-redirect.md`](../../references/mode-2-redirect.md#how-it-works).
 
 ---
 
 ## Partner key visibility
 
-`EMAP_PARTNER_SECRET_KEY` is a plain constant in client-side JS — it's visible to anyone
-who views the page source, and it also appears in the redirect URL itself (address bar,
-browser history, referrer headers). EMAP treats it as a low-risk referral code, not a
-secret API key — the same value is already used in EMAP's public `/go/{code}` referral
-links. See `references/security-checklist.md` for the full tradeoff and mitigations
-(e.g. `Referrer-Policy: no-referrer`). Never commit a real partner key to a public repo
-or log it to a third-party service.
+`EMAP_PARTNER_KEY` is a plain constant in client-side JS, so anyone who views the page source can
+see it. It also appears in the redirect URL. EMAP names that URL param `secretKey`, but the value
+is the partner key: an attribution value, not a credential. The realistic risk of it being seen is
+another site's signups being mis-attributed. See `references/security-checklist.md` for the full
+tradeoff. Never log the redirect URL: it also contains the merchant's name, email and phone.
 
 ---
 
 ## Testing
 
-1. Set `EMAP_BASE_URL` to the EMAP staging URL.
-2. Fill in the form and submit.
-3. Verify you are redirected to EMAP with the fields pre-filled.
-4. For full auto-submit: include all non-excluded fields, verify EMAP auto-submits and you
-   land on step 2.
+Test against EMAP's **test server** (`https://emap.epd.dev`) only, with an email address you
+control.
+
+1. Keep `EMAP_BASE_URL` set to the test server.
+2. Fill in every field with valid data and submit.
+3. Verify EMAP submits the prefilled form for you and you land on step 2.
+4. Submit again with an unrecognisable website. Verify EMAP shows its form prefilled and waits
+   for you to fix it and submit.
+5. Leave the promo code empty and verify `promo_code` isn't in the redirect URL.
