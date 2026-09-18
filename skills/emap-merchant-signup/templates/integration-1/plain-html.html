@@ -1284,13 +1284,50 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
 
   <script>
     /*
-     * This form calls YOUR backend (node-express.js) which proxies each step to EMAP.
-     * Never call EMAP's API directly from this page.
+     * Pure client-side form — no backend of any kind. Every step is POSTed
+     * directly from this page to EMAP's API using fetch(). EMAP's API sets
+     * CORS headers that allow this (Access-Control-Allow-Origin reflects any
+     * Origin), so no server-side proxy is required.
      *
-     * After step 1 succeeds, the UUID returned by EMAP is stored in localStorage
-     * (survives tab close) and sent with every subsequent step.
+     * EDIT THESE TWO CONSTANTS before deploying:
      */
+    var EMAP_BASE_URL = 'https://emap.epd.dev'; // no trailing slash
+    var EMAP_PARTNER_KEY = ''; // optional — leave '' to skip partner attribution.
+    // This key is sent from the browser and is therefore visible to anyone who
+    // views this page's source. EMAP treats it purely as an attribution/referral
+    // value — it does not grant access to any account or data, so exposing it
+    // here only risks another site's signups being mis-attributed to this
+    // partner key, not a security breach. If that risk is unacceptable, leave
+    // this blank instead — signups will still work, just without commission
+    // attribution.
 
+    var EMAP_STEP_ENDPOINT = {
+      1: '/api/v1/signup',
+      2: '/api/v1/application/step',
+      3: '/api/v1/application/step',
+      4: '/api/v1/ownership',
+      5: '/api/v1/application/step',
+      6: '/api/v1/application/step',
+    };
+    var EMAP_DROPDOWN_PATH = {
+      countries: '/api/partner/countries',
+      states: '/api/partner/states',
+      industryTypes: '/api/partner/industry-types',
+      shoppingCarts: '/api/partner/shopping-carts',
+      referralSources: '/api/partner/referral-sources',
+      interestDetails: '/api/partner/interest-details',
+    };
+
+    // Static snapshot of the same 6 EMAP dropdown endpoints, used only when a
+    // live call fails, times out, or returns an empty/missing data array (see
+    // fetchDropdownData below). Keeps the form usable even if EMAP's dropdown
+    // API is briefly down or slow. Source: references/dropdown-fallbacks.json
+    // in the emap-merchant-signup skill — refresh it there periodically by
+    // re-running the same GET requests documented in mode-1-fullform.md.
+    var EMAP_DROPDOWN_FALLBACKS = {"countries":{"success":true,"message":"Country list","data":[{"name":"United States","code":"US"},{"name":"Canada","code":"CA"},{"name":"Puerto Rico","code":"PR"},{"name":"Afghanistan","code":"AF"},{"name":"Albania","code":"AL"},{"name":"Algeria","code":"DZ"},{"name":"American Samoa","code":"AS"},{"name":"Andorra","code":"AD"},{"name":"Angola","code":"AO"},{"name":"Anguilla","code":"AI"},{"name":"Antarctica","code":"AQ"},{"name":"Antigua and Barbuda","code":"AG"},{"name":"Argentina","code":"AR"},{"name":"Armenia","code":"AM"},{"name":"Aruba","code":"AW"},{"name":"Australia","code":"AU"},{"name":"Austria","code":"AT"},{"name":"Azerbaijan","code":"AZ"},{"name":"Bahamas","code":"BS"},{"name":"Bahrain","code":"BH"},{"name":"Bangladesh","code":"BD"},{"name":"Barbados","code":"BB"},{"name":"Belarus","code":"BY"},{"name":"Belgium","code":"BE"},{"name":"Belize","code":"BZ"},{"name":"Benin","code":"BJ"},{"name":"Bermuda","code":"BM"},{"name":"Bhutan","code":"BT"},{"name":"Bolivia","code":"BO"},{"name":"Bonaire, Sint Eustatius and Saba","code":"BQ"},{"name":"Bosnia and Herzegovina","code":"BA"},{"name":"Botswana","code":"BW"},{"name":"Bouvet Island","code":"BV"},{"name":"Brazil","code":"BR"},{"name":"British Indian Ocean Territory","code":"IO"},{"name":"Brunei Darussalam","code":"BN"},{"name":"Bulgaria","code":"BG"},{"name":"Burkina Faso","code":"BF"},{"name":"Burundi","code":"BI"},{"name":"Cabo Verde","code":"CV"},{"name":"Cambodia","code":"KH"},{"name":"Cameroon","code":"CM"},{"name":"Cayman Islands","code":"KY"},{"name":"Central African Republic","code":"CF"},{"name":"Chad","code":"TD"},{"name":"Chile","code":"CL"},{"name":"China","code":"CN"},{"name":"Christmas Island","code":"CX"},{"name":"Cocos Islands","code":"CC"},{"name":"Colombia","code":"CO"},{"name":"Comoros  ","code":"KM"},{"name":"Congo","code":"CG"},{"name":"Cook Islands  ","code":"CK"},{"name":"Costa Rica","code":"CR"},{"name":"Croatia","code":"HR"},{"name":"Cuba","code":"CU"},{"name":"Cura\u00e7ao","code":"CW"},{"name":"Cyprus","code":"CY"},{"name":"Czechia","code":"CZ"},{"name":"C\u00f4te d'Ivoire","code":"CI"},{"name":"Denmark","code":"DK"},{"name":"Djibouti","code":"DJ"},{"name":"Dominica","code":"DM"},{"name":"Dominican Republic","code":"DO"},{"name":"Ecuador","code":"EC"},{"name":"Egypt","code":"EG"},{"name":"El Salvador","code":"SV"},{"name":"Equatorial Guinea","code":"GQ"},{"name":"Eritrea","code":"ER"},{"name":"Estonia","code":"EE"},{"name":"Eswatini","code":"SZ"},{"name":"Ethiopia","code":"ET"},{"name":"Falkland Islands [Malvinas]","code":"FK"},{"name":"Faroe Islands","code":"FO"},{"name":"Fiji","code":"FJ"},{"name":"Finland","code":"FI"},{"name":"France","code":"FR"},{"name":"French Guiana","code":"GF"},{"name":"French Polynesia","code":"PF"},{"name":"French Sourn Territories","code":"TF"},{"name":"Gabon","code":"GA"},{"name":"Gambia","code":"GM"},{"name":"Georgia","code":"GE"},{"name":"Germany","code":"DE"},{"name":"Ghana","code":"GH"},{"name":"Gibraltar","code":"GI"},{"name":"Greece","code":"GR"},{"name":"Greenland","code":"GL"},{"name":"Grenada","code":"GD"},{"name":"Guadeloupe","code":"GP"},{"name":"Guam","code":"GU"},{"name":"Guatemala","code":"GT"},{"name":"Guernsey","code":"GG"},{"name":"Guinea","code":"GN"},{"name":"Guinea-Bissau","code":"GW"},{"name":"Guyana","code":"GY"},{"name":"Haiti","code":"HT"},{"name":"Heard Island and McDonald Islands","code":"HM"},{"name":"Holy See","code":"VA"},{"name":"Honduras","code":"HN"},{"name":"Hong Kong","code":"HK"},{"name":"Hungary","code":"HU"},{"name":"Iceland","code":"IS"},{"name":"India","code":"IN"},{"name":"Indonesia","code":"ID"},{"name":"Iran","code":"IR"},{"name":"Iraq","code":"IQ"},{"name":"Ireland","code":"IE"},{"name":"Isle of Man","code":"IM"},{"name":"Israel","code":"IL"},{"name":"Italy","code":"IT"},{"name":"Jamaica","code":"JM"},{"name":"Japan","code":"JP"},{"name":"Jersey","code":"JE"},{"name":"Jordan","code":"JO"},{"name":"Kazakhstan","code":"KZ"},{"name":"Kenya","code":"KE"},{"name":"Kiribati","code":"KI"},{"name":"North Korea","code":"KP"},{"name":"South Korea","code":"KR"},{"name":"Kuwait","code":"KW"},{"name":"Kyrgyzstan","code":"KG"},{"name":"Lao People's Democratic Republic","code":"LA"},{"name":"Latvia","code":"LV"},{"name":"Lebanon","code":"LB"},{"name":"Lesotho","code":"LS"},{"name":"Liberia","code":"LR"},{"name":"Libya","code":"LY"},{"name":"Liechtenstein","code":"LI"},{"name":"Lithuania","code":"LT"},{"name":"Luxembourg","code":"LU"},{"name":"Macao","code":"MO"},{"name":"Madagascar","code":"MG"},{"name":"Malawi","code":"MW"},{"name":"Malaysia","code":"MY"},{"name":"Maldives","code":"MV"},{"name":"Mali","code":"ML"},{"name":"Malta","code":"MT"},{"name":"Marshall Islands","code":"MH"},{"name":"Martinique","code":"MQ"},{"name":"Mauritania","code":"MR"},{"name":"Mauritius","code":"MU"},{"name":"Mayotte","code":"YT"},{"name":"Mexico","code":"MX"},{"name":"Micronesia","code":"FM"},{"name":"Moldova","code":"MD"},{"name":"Monaco","code":"MC"},{"name":"Mongolia","code":"MN"},{"name":"Montenegro","code":"ME"},{"name":"Montserrat","code":"MS"},{"name":"Morocco","code":"MA"},{"name":"Mozambique","code":"MZ"},{"name":"Myanmar","code":"MM"},{"name":"Namibia","code":"NA"},{"name":"Nauru","code":"NR"},{"name":"Nepal","code":"NP"},{"name":"Netherlands","code":"NL"},{"name":"New Caledonia","code":"NC"},{"name":"New Zealand","code":"NZ"},{"name":"Nicaragua","code":"NI"},{"name":"Niger","code":"NE"},{"name":"Nigeria","code":"NG"},{"name":"Niue","code":"NU"},{"name":"Norfolk Island","code":"NF"},{"name":"Norrn Mariana Islands","code":"MP"},{"name":"Norway","code":"NO"},{"name":"Oman","code":"OM"},{"name":"Pakistan","code":"PK"},{"name":"Palau","code":"PW"},{"name":"Palestine, State of","code":"PS"},{"name":"Panama","code":"PA"},{"name":"Papua New Guinea","code":"PG"},{"name":"Paraguay","code":"PY"},{"name":"Peru","code":"PE"},{"name":"Philippines","code":"PH"},{"name":"Pitcairn","code":"PN"},{"name":"Poland","code":"PL"},{"name":"Portugal","code":"PT"},{"name":"Qatar","code":"QA"},{"name":"Republic of North Macedonia","code":"MK"},{"name":"Romania","code":"RO"},{"name":"Russian Federation","code":"RU"},{"name":"Rwanda","code":"RW"},{"name":"R\u00e9union","code":"RE"},{"name":"Saint Barth\u00e9lemy","code":"BL"},{"name":"Saint Helena, Ascension and Tristan da Cunha","code":"SH"},{"name":"Saint Kitts and Nevis","code":"KN"},{"name":"Saint Lucia","code":"LC"},{"name":"Saint Martin","code":"MF"},{"name":"Saint Pierre and Miquelon","code":"PM"},{"name":"Saint Vincent and  Grenadines","code":"VC"},{"name":"Samoa","code":"WS"},{"name":"San Marino","code":"SM"},{"name":"Sao Tome and Principe","code":"ST"},{"name":"Saudi Arabia","code":"SA"},{"name":"Senegal","code":"SN"},{"name":"Serbia","code":"RS"},{"name":"Seychelles","code":"SC"},{"name":"Sierra Leone","code":"SL"},{"name":"Singapore","code":"SG"},{"name":"Sint Maarten","code":"SX"},{"name":"Slovakia","code":"SK"},{"name":"Slovenia","code":"SI"},{"name":"Solomon Islands","code":"SB"},{"name":"Somalia","code":"SO"},{"name":"South Africa","code":"ZA"},{"name":"South Georgia and South Sandwich Islands","code":"GS"},{"name":"South Sudan","code":"SS"},{"name":"Spain","code":"ES"},{"name":"Sri Lanka","code":"LK"},{"name":"Sudan","code":"SD"},{"name":"Suriname","code":"SR"},{"name":"Svalbard and Jan Mayen","code":"SJ"},{"name":"Sweden","code":"SE"},{"name":"Switzerland","code":"CH"},{"name":"Syrian Arab Republic","code":"SY"},{"name":"Taiwan","code":"TW"},{"name":"Tajikistan","code":"TJ"},{"name":"Tanzania, United Republic of","code":"TZ"},{"name":"Thailand","code":"TH"},{"name":"Timor-Leste","code":"TL"},{"name":"Togo","code":"TG"},{"name":"Tokelau","code":"TK"},{"name":"Tonga","code":"TO"},{"name":"Trinidad and Tobago","code":"TT"},{"name":"Tunisia","code":"TN"},{"name":"Turkey","code":"TR"},{"name":"Turkmenistan","code":"TM"},{"name":"Turks and Caicos Islands","code":"TC"},{"name":"Tuvalu","code":"TV"},{"name":"Uganda","code":"UG"},{"name":"Ukraine","code":"UA"},{"name":"United Arab Emirates","code":"AE"},{"name":"United Kingdom","code":"GB"},{"name":"United States Minor Outlying Islands","code":"UM"},{"name":"Uruguay","code":"UY"},{"name":"Uzbekistan","code":"UZ"},{"name":"Vanuatu","code":"VU"},{"name":"Venezuela","code":"VE"},{"name":"Viet Nam","code":"VN"},{"name":"Virgin Islands","code":"VG"},{"name":"Virgin Islands","code":"VI"},{"name":"Wallis and Futuna","code":"WF"},{"name":"Western Sahara","code":"EH"},{"name":"Yemen","code":"YE"},{"name":"Zambia","code":"ZM"},{"name":"Zimbabwe","code":"ZW"},{"name":"\u00c5land Islands","code":"AX"},{"name":"Tedlandia","code":null}]},"states":{"success":true,"message":"US State List","data":[{"name":"Alaska","code":"AK"},{"name":"Alabama","code":"AL"},{"name":"American Samoa","code":"AS"},{"name":"Arizona","code":"AZ"},{"name":"Arkansas","code":"AR"},{"name":"California","code":"CA"},{"name":"Colorado","code":"CO"},{"name":"Connecticut","code":"CT"},{"name":"Delaware","code":"DE"},{"name":"District of Columbia","code":"DC"},{"name":"Federated States of Micronesia","code":"FM"},{"name":"Florida","code":"FL"},{"name":"Georgia","code":"GA"},{"name":"Guam","code":"GU"},{"name":"Hawaii","code":"HI"},{"name":"Idaho","code":"ID"},{"name":"Illinois","code":"IL"},{"name":"Indiana","code":"IN"},{"name":"Iowa","code":"IA"},{"name":"Kansas","code":"KS"},{"name":"Kentucky","code":"KY"},{"name":"Louisiana","code":"LA"},{"name":"Maine","code":"ME"},{"name":"Marshall Islands","code":"MH"},{"name":"Maryland","code":"MD"},{"name":"Massachusetts","code":"MA"},{"name":"Michigan","code":"MI"},{"name":"Minnesota","code":"MN"},{"name":"Mississippi","code":"MS"},{"name":"Missouri","code":"MO"},{"name":"Montana","code":"MT"},{"name":"Nebraska","code":"NE"},{"name":"Nevada","code":"NV"},{"name":"New Hampshire","code":"NH"},{"name":"New Jersey","code":"NJ"},{"name":"New Mexico","code":"NM"},{"name":"New York","code":"NY"},{"name":"North Carolina","code":"NC"},{"name":"North Dakota","code":"ND"},{"name":"Northern Mariana Islands","code":"MP"},{"name":"Ohio","code":"OH"},{"name":"Oklahoma","code":"OK"},{"name":"Oregon","code":"OR"},{"name":"Palau","code":"PW"},{"name":"Pennsylvania","code":"PA"},{"name":"Puerto Rico","code":"PR"},{"name":"Rhode Island","code":"RI"},{"name":"South Carolina","code":"SC"},{"name":"South Dakota","code":"SD"},{"name":"Tennessee","code":"TN"},{"name":"Texas","code":"TX"},{"name":"Utah","code":"UT"},{"name":"Vermont","code":"VT"},{"name":"Virgin Islands","code":"VI"},{"name":"Virginia","code":"VA"},{"name":"Washington","code":"WA"},{"name":"West Virginia","code":"WV"},{"name":"Wisconsin","code":"WI"},{"name":"Wyoming","code":"WY"},{"name":"Armed Forces Africa","code":"AE"},{"name":"Armed Forces Americas (except Canada)","code":"AA"},{"name":"Armed Forces Canada","code":"AE"},{"name":"Armed Forces Europe","code":"AE"},{"name":"Armed Forces Middle East","code":"AE"},{"name":"Armed Forces Pacific","code":"AP"}]},"industry_types":{"success":true,"message":"Industry types list","data":[{"name":"Adult - Dating Memberships","slug":"adult-dating-memberships"},{"name":"Adult - Events","slug":"Adult-Events"},{"name":"Adult - Online Memberships","slug":"Adult-Online-Memberships"},{"name":"Adult - Other","slug":"Adult-Other"},{"name":"Aggregators","slug":"Aggregators"},{"name":"Alternative Health Practices - Information Product","slug":"Alternative-Health-Practices-Information-Product"},{"name":"Automotive","slug":"automotive"},{"name":"Bike Manufacturing","slug":"bike-manufacturing"},{"name":"Biz-Op","slug":"Biz-Op"},{"name":"Book Publishing","slug":"book-publishing"},{"name":"Bowling Alleys","slug":"bowling-alleys"},{"name":"Business & Legal  Consultation","slug":"Business-Legal-Consultation"},{"name":"Business Coaching - Information Product","slug":"Business-Coaching-Information-Product"},{"name":"Car Pooling","slug":"Car-Pooling"},{"name":"Car Rental","slug":"Car-rental"},{"name":"CBD","slug":"cbd"},{"name":"Charity","slug":"Charity"},{"name":"Cigars and Accessories","slug":"Cigars-and-Accessories"},{"name":"Clothing/Jewelry","slug":"Clothing-Jewelry"},{"name":"Credit Repair - Information Product","slug":"Credit-Repair-Information-Product"},{"name":"Credit Repair - Service","slug":"Credit-Repair-Service"},{"name":"Dating/Relationship - Informational Product","slug":"Dating-Relationship-Informational-Product"},{"name":"Directory Listing","slug":"Directory-Listing"},{"name":"Discount Buying Club","slug":"Discount-Buying-Club"},{"name":"E-Books","slug":"E-Books"},{"name":"eCommerce - Jewelry","slug":"ecommerce-jewelry"},{"name":"Energy & Utilities","slug":"energy-utilities"},{"name":"Entertainment & Media","slug":"entertainment-media"},{"name":"Event Management (Live Events)","slug":"Event-Management(Live-Events)"},{"name":"Fantasy Sports","slug":"Fantasy-Sports"},{"name":"Financial Services - Other","slug":"Financial-Services-Other"},{"name":"Financial Services - Remittance","slug":"Financial-Services-Remittance"},{"name":"Financial/Wealth Education - Informational Product","slug":"Financial-Wealth-Education-Informational-Product"},{"name":"Firearms","slug":"Firearms"},{"name":"Gaming - Other","slug":"Gaming-Other"},{"name":"Grocery Stores","slug":"grocery-stores"},{"name":"Health - Fitness Information","slug":"Health-Fitness-Information"},{"name":"Health - Other Information","slug":"Health-Other-Information"},{"name":"ID Background Check","slug":"ID-Background-Check"},{"name":"Information Product (Misc)","slug":"information-product-misc"},{"name":"IT Services - Cloud Storage","slug":"IT-Services-Cloud-Storage"},{"name":"IT Services - Marketing","slug":"IT-Services-Marketing"},{"name":"Kratom","slug":"Kratom"},{"name":"Liquor/Package Stores","slug":"liquorpackage-stores"},{"name":"Magazine Subscriptions","slug":"Magazine-Subscriptions"},{"name":"Marijuana / Cannabis","slug":"Marijuana-Cannabis"},{"name":"Marketing - Advertising Agency FULL SERVICE","slug":"Marketing-Advertising-Agency-FULL-SERVICE"},{"name":"Marketing - Business Opportunity (Lead Gen)","slug":"Marketing-Business-Opportunity(Lead-Gen)"},{"name":"Marketing - Printing Services","slug":"Marketing-Printing-Services"},{"name":"Marketing - SEO Services","slug":"marketing-seo-services"},{"name":"Marketing - Web Design & Digital Services ONLY","slug":"Marketing-Web-Design-Digital-Services-ONLY"},{"name":"Medical Services","slug":"Medical-Services"},{"name":"MLM","slug":"MLM"},{"name":"Movie Theaters","slug":"movie-theaters"},{"name":"Musical Instruction - Information Product","slug":"Musical-Instruction-Information-Product"},{"name":"Non-Profit","slug":"Non-Profit"},{"name":"Nutraceutical - Beauty","slug":"Nutraceutical-Beauty"},{"name":"Nutraceutical - Diet","slug":"Nutraceutical-Diet"},{"name":"Nutraceutical - Diet Memberships (Trial/Recurring)","slug":"Nutraceutical-Diet-Memberships(Trial/Recurring)"},{"name":"Nutraceutical - Male Enhancement","slug":"Nutraceutical-Male-Enhancement"},{"name":"Nutraceutical - Muscle","slug":"Nutraceutical-Muscle"},{"name":"Nutraceutical - Other","slug":"Nutraceutical-Other"},{"name":"Nutraceutical - Skin Care","slug":"Nutraceutical-Skin-Care"},{"name":"Nutraceutical - Sports Nutrition","slug":"Nutraceutical-Sports-Nutrition"},{"name":"Nutraceutical - Teeth Whitening","slug":"Nutraceutical-Teeth-Whitening"},{"name":"Online Marketing Education - Informational Product","slug":"Online-Marketing-Education-Informational-Product"},{"name":"Other","slug":"Other"},{"name":"Peptides Research","slug":"peptides-research"},{"name":"Pet Care - Information Product","slug":"Pet-Care-Information-Product"},{"name":"Physical Medical/Physicians","slug":"physical-medicalphysicians"},{"name":"Psychics","slug":"Psychics"},{"name":"Real Estate - Rent/Timeshares","slug":"Real-Estate-Rent/Timeshares"},{"name":"Real Estate Education - Information Product","slug":"Real-Estate-Education-Information-Product"},{"name":"Remote Tech Support - Accounting Services","slug":"Remote-Tech-Support-Accounting-Services"},{"name":"Remote Tech Support - Other","slug":"Remote-Tech-Support-Other"},{"name":"Remote Tech Support - PC Repair","slug":"Remote-Tech-Support-PC-Repair"},{"name":"Remote Tech Support - SEO Services","slug":"Remote-Tech-Support-SEO-Services"},{"name":"Restaurants","slug":"Restaurants"},{"name":"Retail (eCommerce) - Art & Design","slug":"Retail(eCommerce)-Art-Design"},{"name":"Retail (eCommerce) - Fashion","slug":"Retail(eCommerce)-Fashion"},{"name":"Retail (eCommerce) - Furniture","slug":"Retail(eCommerce)-Furniture"},{"name":"Retail (eCommerce) - Other","slug":"Retail(eCommerce)-Other"},{"name":"Retail (eCommerce) - Sports Equipment","slug":"Retail(eCommerce)-Sports-Equipment"},{"name":"Salon (independent hair stylist)","slug":"Salon(independent-hair-stylist)"},{"name":"Salon (NOT independent stylist)","slug":"Salon(NOT-independent-stylist)"},{"name":"SEO/Hosting","slug":"SEO/Hosting"},{"name":"Smoking - E-Cigs & Vaporizers","slug":"Smoking-E-Cigs-Vaporizers"},{"name":"Smoking - Herbals (K2, 'Potpourri', etc)","slug":"Smoking-Herbals(K2,Potpourri,etc)"},{"name":"Smoking - Hookahs","slug":"Smoking-Hookahs"},{"name":"Smoking - Marijuana","slug":"Smoking-Marijuana"},{"name":"Smoking - Other","slug":"Smoking-Other"},{"name":"Software As A Service (SAAS)","slug":"Software-As-A-Service(SAAS)"},{"name":"Software Sales - Anti-Virus","slug":"Software-Sales-Anti-Virus"},{"name":"Software Sales - Other","slug":"Software-Sales-Other"},{"name":"Survival Prep","slug":"Survival-Prep"},{"name":"Survival Prep - Information Product","slug":"Survival-Prep-Information-Product"},{"name":"Test Industry","slug":"test-industry"},{"name":"Travel - Cruise Bookings","slug":"Travel-Cruise-Bookings"},{"name":"Travel - Hotel Bookings","slug":"Travel-Hotel-Bookings"},{"name":"Travel - Travel Clubs (Discounts)","slug":"Travel-Travel-Clubs(Discounts)"},{"name":"Travel - Travel Packages","slug":"Travel-Travel-Packages"},{"name":"Virtual Assistants","slug":"Virtual-Assistants"}]},"shopping_carts":{"success":true,"message":"Shopping Cart List","data":[{"name":"1Shopping Cart","slug":"1Shopping Cart"},{"name":"3DCart","slug":"3DCart"},{"name":"Americommerce","slug":"Americommerce"},{"name":"API / Custom Integration","slug":"API / Custom Integration"},{"name":"BigCommerce","slug":"BigCommerce"},{"name":"Clickfunnels","slug":"Clickfunnels"},{"name":"CoreCommerce","slug":"CoreCommerce"},{"name":"CS-Cart","slug":"CS-Cart"},{"name":"Ecwid.com","slug":"Ecwid.com"},{"name":"Fortune3","slug":"Fortune3"},{"name":"FoxyCart","slug":"FoxyCart"},{"name":"GoHighLevel","slug":"GoHighLevel"},{"name":"Goodsie","slug":"Goodsie"},{"name":"I don't know, Other","slug":"Other"},{"name":"I don't use one","slug":"Not-Using"},{"name":"Infusionsoft/Keap","slug":"Infusionsoft/Keap"},{"name":"Intuit","slug":"Intuit"},{"name":"Jumpseller","slug":"Jumpseller"},{"name":"Konnektive","slug":"Konnektive"},{"name":"LemonStand","slug":"LemonStand"},{"name":"Magento","slug":"Magento"},{"name":"Miva Merchant","slug":"Miva Merchant"},{"name":"Mobile Swiper","slug":"Mobile Swiper"},{"name":"Moltin","slug":"Moltin"},{"name":"Neto","slug":"Neto"},{"name":"OntraPort","slug":"OntraPort"},{"name":"PayKickStart","slug":"PayKickStart"},{"name":"Physical-terminal","slug":"Physical-terminal"},{"name":"PinnacleCart","slug":"PinnacleCart"},{"name":"PrestaShop","slug":"PrestaShop"},{"name":"QuickBooks","slug":"QuickBooks"},{"name":"QuickClick","slug":"QuickClick"},{"name":"SamCart","slug":"SamCart"},{"name":"Shopify","slug":"Shopify"},{"name":"Shopio","slug":"Shopio"},{"name":"ShopVisible","slug":"ShopVisible"},{"name":"Squarespace","slug":"Squarespace"},{"name":"Supadupa.me","slug":"Supadupa.me"},{"name":"ThriveCart","slug":"ThriveCart"},{"name":"Tictail","slug":"Tictail"},{"name":"UltraCart","slug":"UltraCart"},{"name":"Volusion","slug":"Volusion"},{"name":"WooCommerce","slug":"WooCommerce"},{"name":"Yahoo Store","slug":"Yahoo Store"},{"name":"zAbc","slug":"zAbc"}]},"referral_sources":{"success":true,"message":"Referral source list","data":[{"name":"Bing","slug":"Bing"},{"name":"Brad Weimert","slug":"Brad"},{"name":"Forbes","slug":"Forbes"},{"name":"Friend","slug":"Friend"},{"name":"Google","slug":"Google"},{"name":"Live Event / Trade Show","slug":"Live-Event-/-Trade-Show"},{"name":"MMT","slug":"MMT"},{"name":"Online Ad","slug":"Online-Ad"},{"name":"Other","slug":"Other"},{"name":"Pompa","slug":"Pompa"},{"name":"Radio","slug":"Radio"},{"name":"TechCrunch","slug":"TechCrunch"},{"name":"Television","slug":"Television"},{"name":"Wall Street Journal","slug":"Wall-Street-Journal"}]},"interest_details":{"success":true,"message":"Interest list","data":[{"group_name":"Business Growth","interests":[{"id":8,"name":"Capital to grow your business"},{"id":12,"name":"Credible Business Coach"},{"id":14,"name":"Merchant Financing"}]},{"group_name":"Digital Marketing","interests":[{"id":11,"name":"Email Automation / CRMs"},{"id":6,"name":"Marketing Help - DFY Services"},{"id":3,"name":"Quick Website Development"}]},{"group_name":"Payment Processing","interests":[{"id":2,"name":"ACH/eCheck Processing"},{"id":1,"name":"Autoupdate Expired Cards"},{"id":7,"name":"Decline Salvage Tools"},{"id":10,"name":"Mobile Payments"}]},{"group_name":"Revenue Management","interests":[{"id":4,"name":"Chargeback Assistance"},{"id":5,"name":"Email invoicing"},{"id":9,"name":"Online Shopping Cart"}]}]}};
+
+    // After step 1 succeeds, the UUID returned by EMAP is stored in localStorage
+    // (survives tab close) and sent with every subsequent step.
     var currentStep = 1;
     var appUUID = localStorage.getItem('emap_uuid') || '';
     var step1Country = localStorage.getItem('emap_country') || '';
@@ -1359,16 +1396,16 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // ── POST a step to backend ───────────────────────────────────────────────
+    // ── POST a step directly to EMAP ─────────────────────────────────────────
     async function submitStep(stepNum, payload, btn, btnLabel) {
       btn.disabled = true;
       btn.textContent = 'Saving…';
       hideAlert();
 
       try {
-        var res = await fetch('/api/step/' + stepNum, {
+        var res = await fetch(EMAP_BASE_URL + EMAP_STEP_ENDPOINT[stepNum], {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
           body: JSON.stringify(payload),
         });
         var data = await res.json();
@@ -1382,6 +1419,12 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         if (res.status === 422) {
           showAlert('error', 'Please correct the errors below.');
           displayServerErrors(data.errors || {});
+          btn.disabled = false; btn.textContent = btnLabel;
+          return null;
+        }
+
+        if (res.status >= 500) {
+          showAlert('error', 'EMAP is temporarily unavailable. Please try again.');
           btn.disabled = false; btn.textContent = btnLabel;
           return null;
         }
@@ -1431,114 +1474,85 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
 
     var loadedCountries = [];
 
+    // Fetches one EMAP dropdown endpoint directly. Falls back to the embedded
+    // EMAP_DROPDOWN_FALLBACKS snapshot (see near the bottom of this file) when
+    // the live call errors, times out, or returns an empty/missing data array
+    // — this used to be a server-side proxy responsibility; now the client
+    // does it itself since there is no backend to do it for.
+    async function fetchDropdownData(path, fallbackKey) {
+      try {
+        var r = await fetch(EMAP_BASE_URL + path, { headers: { 'Accept': 'application/json' } });
+        var j = await r.json();
+        if (r.ok && j && Array.isArray(j.data) && j.data.length > 0) return j.data;
+      } catch (_) { /* fall through to fallback */ }
+      var fb = EMAP_DROPDOWN_FALLBACKS[fallbackKey];
+      return (fb && fb.data) || [];
+    }
+
     async function loadAllDropdowns() {
       // Countries
-      try {
-        var r = await fetch('/api/countries');
-        var j = await r.json();
-        loadedCountries = j.data || [];
-      } catch (_) {
-        loadedCountries = [
-          { code: 'US', name: 'United States' },
-          { code: 'CA', name: 'Canada' },
-          { code: 'GB', name: 'United Kingdom' },
-          { code: 'AU', name: 'Australia' },
-        ];
-      }
+      loadedCountries = await fetchDropdownData(EMAP_DROPDOWN_PATH.countries, 'countries');
       ['country', 'address_country', 'physical_address_country',
        'country_1', 'country_2'].forEach(function (id) {
         populateCountriesSelect(id, loadedCountries);
       });
 
       // States
-      try {
-        var r = await fetch('/api/states');
-        var j = await r.json();
-        loadedStates = j.data || [];
-      } catch (_) {
-        loadedStates = [];
-      }
+      loadedStates = await fetchDropdownData(EMAP_DROPDOWN_PATH.states, 'states');
       populateStates('business_state');
       populateStates('driver_license_state_1');
       populateStates('driver_license_state_2');
 
       // Industry types
-      try {
-        var r = await fetch('/api/industry-types');
-        var j = await r.json();
-        var sel = document.getElementById('industry_type');
-        sel.innerHTML = '<option value="">Select industry…</option>';
-        (j.data || []).forEach(function (t) {
-          var o = document.createElement('option');
-          o.value = t.slug; o.textContent = t.name;
-          sel.appendChild(o);
-        });
-      } catch (_) {
-        document.getElementById('industry_type').innerHTML =
-          '<option value="">Unable to load — please refresh</option>';
-      }
+      var industryTypes = await fetchDropdownData(EMAP_DROPDOWN_PATH.industryTypes, 'industry_types');
+      var industrySel = document.getElementById('industry_type');
+      industrySel.innerHTML = '<option value="">Select industry…</option>';
+      industryTypes.forEach(function (t) {
+        var o = document.createElement('option');
+        o.value = t.slug; o.textContent = t.name;
+        industrySel.appendChild(o);
+      });
 
       // Shopping carts
-      try {
-        var r = await fetch('/api/shopping-carts');
-        var j = await r.json();
-        var sel = document.getElementById('shopping_cart');
-        sel.innerHTML = '<option value="">Select…</option>';
-        (j.data || []).forEach(function (c) {
-          var o = document.createElement('option');
-          o.value = c.slug; o.textContent = c.name;
-          sel.appendChild(o);
-        });
-      } catch (_) {
-        document.getElementById('shopping_cart').innerHTML =
-          '<option value="">Unable to load — please refresh</option>';
-      }
+      var shoppingCarts = await fetchDropdownData(EMAP_DROPDOWN_PATH.shoppingCarts, 'shopping_carts');
+      var cartSel = document.getElementById('shopping_cart');
+      cartSel.innerHTML = '<option value="">Select…</option>';
+      shoppingCarts.forEach(function (c) {
+        var o = document.createElement('option');
+        o.value = c.slug; o.textContent = c.name;
+        cartSel.appendChild(o);
+      });
 
       // Referral sources
-      try {
-        var r = await fetch('/api/referral-sources');
-        var j = await r.json();
-        var sel = document.getElementById('howdidyouhear');
-        sel.innerHTML = '<option value="">Select…</option>';
-        (j.data || []).forEach(function (s) {
-          var o = document.createElement('option');
-          o.value = s.slug; o.textContent = s.name;
-          // Carry the referral source's real ID so the "tell us more" field
-          // can be shown/hidden by ID rather than by matching option text.
-          if (s.id !== undefined && s.id !== null) o.setAttribute('data-id', s.id);
-          sel.appendChild(o);
-        });
-      } catch (_) {
-        document.getElementById('howdidyouhear').innerHTML =
-          '<option value="">Unable to load — please refresh</option>';
-      }
+      var referralSources = await fetchDropdownData(EMAP_DROPDOWN_PATH.referralSources, 'referral_sources');
+      var referralSel = document.getElementById('howdidyouhear');
+      referralSel.innerHTML = '<option value="">Select…</option>';
+      referralSources.forEach(function (s) {
+        var o = document.createElement('option');
+        o.value = s.slug; o.textContent = s.name;
+        referralSel.appendChild(o);
+      });
 
       // Interest details (grouped)
-      try {
-        var r = await fetch('/api/interest-details');
-        var j = await r.json();
-        var container = document.getElementById('interests_group');
-        container.innerHTML = '';
-        (j.data || []).forEach(function (group) {
-          var heading = document.createElement('strong');
-          heading.textContent = group.group_name;
-          heading.style.cssText = 'display:block;margin-top:10px;margin-bottom:6px;font-size:.82rem;color:#374151';
-          container.appendChild(heading);
-          (group.interests || []).forEach(function (interest) {
-            var item = document.createElement('div');
-            item.className = 'checkbox-item';
-            item.innerHTML =
-              '<input type="checkbox" id="interest_' + interest.id + '" ' +
-              'name="other_interests_capital[]" value="' + interest.id + '">' +
-              '<label for="interest_' + interest.id + '">' + interest.name + '</label>';
-            container.appendChild(item);
-          });
+      var interestGroups = await fetchDropdownData(EMAP_DROPDOWN_PATH.interestDetails, 'interest_details');
+      var container = document.getElementById('interests_group');
+      container.innerHTML = '';
+      interestGroups.forEach(function (group) {
+        var heading = document.createElement('strong');
+        heading.textContent = group.group_name;
+        heading.style.cssText = 'display:block;margin-top:10px;margin-bottom:6px;font-size:.82rem;color:#374151';
+        container.appendChild(heading);
+        (group.interests || []).forEach(function (interest) {
+          var item = document.createElement('div');
+          item.className = 'checkbox-item';
+          item.innerHTML =
+            '<input type="checkbox" id="interest_' + interest.id + '" ' +
+            'name="other_interests_capital[]" value="' + interest.id + '">' +
+            '<label for="interest_' + interest.id + '">' + interest.name + '</label>';
+          container.appendChild(item);
         });
-        if (!j.data || j.data.length === 0) container.innerHTML = '<span style="color:#9ca3af;font-size:.85rem">None available</span>';
-      } catch (_) {
-        document.getElementById('interests_group').innerHTML =
-          '<span style="color:#9ca3af;font-size:.85rem">Unable to load</span>';
-      }
+      });
+      if (interestGroups.length === 0) container.innerHTML = '<span style="color:#9ca3af;font-size:.85rem">None available</span>';
     }
 
     function restoreSession() {
@@ -1662,9 +1676,8 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       updateSsnField(2);
     }
 
-    // ── SSN / Tax ID masking — matches EMAP's own variantA/step4 form exactly:
-    // `selectedCountry` in js.blade.php's manageFederalTaxId-adjacent SSN block
-    // is `$company->country` (the single Step 1 formation country), applied
+    // ── SSN / Tax ID masking — matches EMAP's own signup form exactly:
+    // the driving country is the single Step 1 formation country, applied
     // identically to BOTH Owner 1 and Owner 2 — never each owner's own country
     // of residence (country.1/country.2, a separate field used only for home
     // address + driver's license gating, see the country_1/country_2 change
@@ -1839,9 +1852,9 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         regInp.maxLength = isCA ? 11 : 20;
       }
 
-      // Update EIN label and placeholder based on country — matches
-      // manageFederalTaxIdLabel in js.blade.php: plain "Federal Tax ID" for
-      // US/CA/PR, "(or Corporation Tax Number equivalent)" for every other country.
+      // Update EIN label and placeholder based on country — matches EMAP's own
+      // signup form: plain "Federal Tax ID" for US/CA/PR, "(or Corporation Tax
+      // Number equivalent)" for every other country.
       var hint = document.getElementById('federal_tax_id_hint');
       if (hint && taxInp) {
         if (isUS || isCA || isPR) {
@@ -2126,9 +2139,9 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
     }
 
     // ── Step 4 nested-key helper ─────────────────────────────────────────────
-    // Laravel's data_get() splits on dots and traverses nested arrays.
-    // Field names like "phone.1" must be sent as {"phone": {"1": "..."}} so
-    // the validator can find them via data_get($data, 'phone.1').
+    // EMAP's ownership API expects nested objects, not dotted keys: field
+    // names like "phone.1" must be sent as {"phone": {"1": "..."}}, verified
+    // directly against the live API.
     function toNestedDot(flat) {
       var result = {};
       Object.keys(flat).forEach(function (key) {
@@ -2194,6 +2207,7 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       if (d.industry_type)         payload.industry_type         = d.industry_type;
       if (d.industry_type_other)   payload.industry_type_other   = d.industry_type_other;
       if (d.promo_code)            payload.promo_code            = d.promo_code;
+      if (EMAP_PARTNER_KEY)        payload.partner_key            = EMAP_PARTNER_KEY;
 
       var result = await submitStep(1, payload, btn, 'Continue — Company Info →');
       if (!result) return;
@@ -2269,7 +2283,7 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
           return;
         }
         // US/CA/PR: XXX-XX-XXXX (3-2-4); every other country: XX-XXXXXXX (2-7) — matches
-        // Cleave.js formatConfig in js.blade.php's manageFederalTaxIdFormat exactly.
+        // EMAP's own signup form's formatting exactly.
         var einPattern = (einCountry === 'US' || einCountry === 'CA' || einCountry === 'PR')
           ? /^\d{3}-\d{2}-\d{4}$/
           : /^\d{2}-\d{7}$/;
@@ -2283,8 +2297,8 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       }
 
       // business_register_number: hidden+non-required when country=US, country=PR,
-      // OR (country=CA AND org=Sole-Proprietorship) — matches
-      // manageBusinessRegistrationNumber in js.blade.php exactly (not just "non-US").
+      // OR (country=CA AND org=Sole-Proprietorship) — matches EMAP's own signup
+      // form's exemption rule exactly (not just "non-US").
       var regGrp = document.getElementById('business_register_number_group');
       if (regGrp && window.getComputedStyle(regGrp).display !== 'none') {
         var regVal = (payload.business_register_number || '').trim();
@@ -2293,12 +2307,6 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
           return;
         }
       }
-
-      // Sent only so the backend can independently re-derive the Step 1 country
-      // for server-side federal_tax_id/business_register_number validation —
-      // never forwarded to EMAP itself (stripped server-side), same pattern as
-      // country_from_step1 in the Step 5 banking payload below.
-      payload.country_from_step1 = einCountry;
 
       // Subscription Frequency (required whenever the group is visible)
       var freqGrp = document.getElementById('subscription_frequency_group');
@@ -2515,9 +2523,8 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       // Step 1 formation country), applied identically to BOTH owners, NOT
       // each owner's own country.1/country.2 (home address/residence — a
       // separate field used only for driver's license gating above). Matches
-      // manageFederalTaxId-adjacent SSN logic in EMAP's own variantA/step4
-      // js.blade.php (selectedCountry = $company->country, shared by both
-      // owner_ssn fields) — see updateSsnField(n) for the live masking.
+      // EMAP's own signup form: the same single formation-country value drives
+      // both owner_ssn fields — see updateSsnField(n) for the live masking.
       var SSN_RE = /^\d{3}-\d{2}-\d{4}$/;
       var ssnCountry = (step1Country || '').toUpperCase();
       var ssnRequiresFormat = ssnCountry === 'US' || ssnCountry === 'CA' || ssnCountry === 'PR';
@@ -2544,12 +2551,7 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         }
       }
 
-      // Sent only so the backend can independently re-derive the Step 1 country
-      // for server-side SSN validation — never forwarded to EMAP itself
-      // (stripped server-side), same pattern as country_from_step1 in Steps 2 and 5.
-      payload.country_from_step1 = ssnCountry;
-
-      // Convert flat dot-keys to nested objects so Laravel's data_get() can find them.
+      // Convert flat dot-keys to nested objects — EMAP's ownership API expects this shape.
       // {"phone.1": "..."} → {"phone": {"1": "..."}}
       var nestedPayload = toNestedDot(payload);
 
@@ -2604,9 +2606,6 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       var fd = new FormData(this);
       var payload = { uuid: appUUID, step_count: 5 };
       for (var pair of fd.entries()) payload[pair[0]] = pair[1];
-      // Sent so the backend can re-validate country-specific bank fields server-side;
-      // stripped by the backend before forwarding to EMAP.
-      payload.country_from_step1 = bankCountry;
 
       var btn = document.getElementById('btn-step5');
       var result = await submitStep(5, payload, btn, 'Continue — Final Details →');
@@ -2646,18 +2645,16 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
 
         // EMAP collects documents in its own UI after Step 6 — send the
         // merchant straight there instead of stopping on a local success
-        // panel. The backend builds this URL (it already knows EMAP_BASE_URL
-        // server-side) rather than exposing that config to the browser just
-        // to construct it here. redirect=1 tells EMAP this is a fresh
-        // handoff so it can resume the merchant's session and route them
-        // appropriately (e.g. straight to their dashboard if already complete).
-        if (result.redirect_url) {
-          window.location.href = result.redirect_url;
+        // panel. redirect=1 tells EMAP this is a fresh handoff so it can
+        // resume the merchant's session and route them appropriately (e.g.
+        // straight to their dashboard if the deal is already complete).
+        if (result.uuid) {
+          window.location.href = EMAP_BASE_URL + '/upload-document/' + encodeURIComponent(result.uuid) + '?redirect=1';
           return;
         }
 
-        // Fallback only — should not normally be reached, since the backend
-        // always attaches redirect_url on a successful Step 6 response.
+        // Fallback only — should not normally be reached, since a successful
+        // Step 6 response always includes a uuid.
         document.getElementById('form-step6').style.display = 'none';
         document.getElementById('progress-bar').style.display = 'none';
         document.getElementById('success-panel').style.display = 'block';

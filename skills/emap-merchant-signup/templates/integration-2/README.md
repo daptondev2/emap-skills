@@ -1,59 +1,31 @@
 # Integration 2 Templates
 
+Pure client-side. No backend, server, or `.env` file is used or needed — the redirect URL
+is built entirely in the browser.
+
 ## Templates
 
 ### `plain-html.html`
-A complete standalone HTML page. No backend required. The form collects step-1 data and on
-submit redirects the browser to EMAP's `/signup` with all values as query parameters.
+A complete standalone HTML page. The form collects step-1 data and on submit redirects
+the browser to EMAP's `/signup` with all values as query parameters, built entirely
+client-side.
 
 **Use when:** you have a static site, a CMS with no custom server code, or you want the
 simplest possible integration.
 
 **Setup:** Set `EMAP_BASE_URL` at the top of the `<script>` block. Optionally set
-`EMAP_PARTNER_SECRET_KEY` if you have a partner key (or append it server-side for cleaner separation).
+`EMAP_PARTNER_SECRET_KEY` if you have a partner key — see the Partner key visibility
+section below for the client-visibility tradeoff.
 
-### `node-express.js`
-An Express.js server that builds the redirect URL server-side and returns it to the browser.
-The browser then follows the URL.
+### `SignupForm.tsx`
+A Next.js **Client Component** (`'use client'`) wrapping the exact same tested markup,
+styles, and logic as `plain-html.html`. There is no `app/api/*/route.ts` file — the
+redirect URL is built and followed entirely in the browser, same as the plain HTML version.
 
-**Use when:** you have a Node.js backend and want to keep `EMAP_PARTNER_SECRET_KEY` out of
-your frontend JavaScript bundle.
+**Use when:** you're building on Next.js and want to drop the form into an existing app.
 
-**Setup:**
-```bash
-npm install express dotenv
-```
-Create `.env`:
-```
-EMAP_BASE_URL=https://emap.epd.dev
-EMAP_PARTNER_SECRET_KEY=your_key_here
-PORT=3000
-```
-Run: `node node-express.js`
-
-### `nextjs-route.ts`
-A Next.js App Router route handler at `app/api/build-redirect/route.ts`. Validates the
-form fields server-side, builds the EMAP redirect URL, and returns it as JSON. The browser
-then follows the URL.
-
-**Setup:** Add to `.env.local`:
-```
-EMAP_BASE_URL=https://emap.epd.dev
-EMAP_PARTNER_SECRET_KEY=your_key_here
-```
-
-### `php-vanilla.php`
-A single PHP file that renders the form (GET) and builds the redirect URL (POST), returning
-`{ "status": true, "redirectUrl": "..." }` as JSON. Includes CSRF protection, honeypot,
-country/state/industry dropdowns loaded from EMAP API, and client-side redirect on success.
-
-**Requirements:** PHP 7.4+
-
-**Setup:** Set in your server environment:
-```
-EMAP_BASE_URL=https://emap.epd.dev
-EMAP_PARTNER_SECRET_KEY=your_key_here
-```
+**Setup:** Import and render `<SignupForm />` anywhere in your app. Set the same
+`EMAP_BASE_URL` / `EMAP_PARTNER_SECRET_KEY` constants inside the component's embedded script.
 
 ---
 
@@ -64,6 +36,18 @@ EMAP_PARTNER_SECRET_KEY=your_key_here
    `phone`, `company_name`, `website`, `country`, `annual_sales`) must stay.
 3. **Auto-submit:** To trigger EMAP's auto-submit, include all the optional fields listed in
    [`../../references/field-catalog.md`](../../references/field-catalog.md) under "Auto-submit fields".
+
+---
+
+## Partner key visibility
+
+`EMAP_PARTNER_SECRET_KEY` is a plain constant in client-side JS — it's visible to anyone
+who views the page source, and it also appears in the redirect URL itself (address bar,
+browser history, referrer headers). EMAP treats it as a low-risk referral code, not a
+secret API key — the same value is already used in EMAP's public `/go/{code}` referral
+links. See `references/security-checklist.md` for the full tradeoff and mitigations
+(e.g. `Referrer-Policy: no-referrer`). Never commit a real partner key to a public repo
+or log it to a third-party service.
 
 ---
 

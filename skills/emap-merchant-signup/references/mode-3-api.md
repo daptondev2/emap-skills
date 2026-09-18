@@ -8,7 +8,10 @@ Content-Type: application/json
 Accept: application/json
 ```
 
-Always call this endpoint from your backend. Never call it from browser-side JavaScript.
+Call this endpoint directly from the browser via `fetch()` — this integration is pure client-side,
+no backend of its own. EMAP sets CORS headers that allow this from any origin
+(`Access-Control-Allow-Origin` reflects the request's `Origin`, verified directly against the live
+API).
 
 ---
 

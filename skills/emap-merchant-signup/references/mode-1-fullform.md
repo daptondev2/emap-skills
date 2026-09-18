@@ -1,8 +1,9 @@
 # Integration 1: Full Form — Deep Reference
 
 Integration 1 hosts the complete EMAP 6-step merchant signup on the partner's site.
-Each step is a separate API call from your backend to EMAP. The merchant never visits
-the EMAP domain.
+Each step is a separate API call POSTed directly from the browser to EMAP — pure
+client-side, no backend of this form's own. The merchant never visits the EMAP domain
+(until Step 6 redirects them to EMAP's document-upload page).
 
 > **This file documents API payload rules, not UI widget types.** The tables below tell you
 > what value to send and whether a field is required — they do not tell you whether to render a
@@ -19,22 +20,26 @@ the EMAP domain.
 > - `routing_number` (US: exactly 9 digits), `account_number` (US: 8–17 chars) — the `countryVariants`
 >   length limit must be enforced in code (HTML attribute + submit-time check), not just shown as a
 >   hint string.
-> - `dob.1`/`dob.2` — owner must be 18–100 years old. Enforce on **both** the client (date input
->   `min`/`max` + submit-time check) **and** the server (recompute age from the submitted date
->   before proxying to EMAP) — client-only validation can be bypassed by a direct API call.
+> - `dob.1`/`dob.2` — owner must be 18–100 years old. Enforce this client-side (date input
+>   `min`/`max` + submit-time check) — this form has no backend of its own to add a second layer
+>   behind, and EMAP's own API does not enforce this rule server-side either (verified directly),
+>   so the client-side check is all that exists. That was already bypassable by calling EMAP
+>   directly before this form existed; it isn't something this form can close.
 
 ---
 
 ## Overview of EMAP endpoints used
 
-| Step | Your backend route | EMAP endpoint | Request type |
-|---|---|---|---|
-| 1 | `POST /api/step/1` | `POST /api/v1/signup` | `ExternalSignupRequest` |
-| 2 | `POST /api/step/2` | `POST /api/v1/application/step` | `ApplicationStepRequest` (`step_count=2`) |
-| 3 | `POST /api/step/3` | `POST /api/v1/application/step` | `ApplicationStepRequest` (`step_count=3`) |
-| 4 | `POST /api/step/4` | `POST /api/v1/ownership` | `HandleOwnershipRequest` |
-| 5 | `POST /api/step/5` | `POST /api/v1/application/step` | `ApplicationStepRequest` (`step_count=5`) |
-| 6 | `POST /api/step/6` | `POST /api/v1/application/step` | `ApplicationStepRequest` (`step_count=6`) |
+Each step is called directly: `fetch(EMAP_BASE_URL + '<EMAP endpoint>', ...)` from the browser.
+
+| Step | EMAP endpoint | Notes |
+|---|---|---|
+| 1 | `POST /api/v1/signup` | Returns the `uuid` used by every later step |
+| 2 | `POST /api/v1/application/step` | `step_count=2` |
+| 3 | `POST /api/v1/application/step` | `step_count=3` |
+| 4 | `POST /api/v1/ownership` | Nested dot-notation fields (see Step 4 below) |
+| 5 | `POST /api/v1/application/step` | `step_count=5` |
+| 6 | `POST /api/v1/application/step` | `step_count=6` |
 
 The `uuid` returned by Step 1 must be included in every subsequent request.
 
@@ -80,7 +85,7 @@ The `uuid` returned by Step 1 must be included in every subsequent request.
 | `industry_type` | Yes | string | Slug from `/api/partner/industry-types` — collected in Step 1, sent with signup |
 | `industry_type_other` | Required if industry_type=`other` | string | Max 255 |
 | `promo_code` | No | string | max 255 |
-| `partner_key` | No | string | inject from env; never from browser |
+| `partner_key` | No | string | from the `EMAP_PARTNER_KEY` constant in the script — see the Security notes below |
 
 ### Response
 
@@ -90,7 +95,7 @@ On success: `{ "status": true, "uuid": "<uuid>" }`. Store the `uuid` and `countr
 
 ---
 
-## Step 2 — Business details (ApplicationStepRequest, step_count=2)
+## Step 2 — Business details (step_count=2)
 
 **EMAP endpoint:** `POST {EMAP_BASE_URL}/api/v1/application/step`
 
@@ -127,7 +132,7 @@ On success: `{ "status": true, "uuid": "<uuid>" }`. Store the `uuid` and `countr
 
 ---
 
-## Step 3 — Processing info (ApplicationStepRequest, step_count=3)
+## Step 3 — Processing info (step_count=3)
 
 **EMAP endpoint:** `POST {EMAP_BASE_URL}/api/v1/application/step`
 
@@ -152,7 +157,7 @@ On success: `{ "status": true, "uuid": "<uuid>" }`. Store the `uuid` and `countr
 
 ---
 
-## Step 4 — Ownership info (HandleOwnershipRequest)
+## Step 4 — Ownership info
 
 **EMAP endpoint:** `POST {EMAP_BASE_URL}/api/v1/ownership`
 
@@ -211,7 +216,7 @@ effect on SSN formatting.
 
 ---
 
-## Step 5 — Bank info (ApplicationStepRequest, step_count=5)
+## Step 5 — Bank info (step_count=5)
 
 **EMAP endpoint:** `POST {EMAP_BASE_URL}/api/v1/application/step`
 
@@ -229,7 +234,7 @@ effect on SSN formatting.
 
 ---
 
-## Step 6 — Referral & agreements (ApplicationStepRequest, step_count=6)
+## Step 6 — Referral & agreements (step_count=6)
 
 **EMAP endpoint:** `POST {EMAP_BASE_URL}/api/v1/application/step`
 
@@ -263,13 +268,16 @@ On Step 6 success, EMAP finalises the application. Clear `localStorage` keys and
 | `GET /api/partner/shopping-carts` | Step 3 | `{ data: [ { id, name, slug } ] }` |
 | `GET /api/partner/referral-sources` | Step 6 | `{ data: [ { id, name, slug } ] }` |
 
-Proxy all dropdown calls through your backend (same origin) to avoid CORS issues.
+Call each of these directly from the browser (`fetch(EMAP_BASE_URL + '<path>')`) — EMAP sets CORS
+headers that allow this from any origin (`Access-Control-Allow-Origin` reflects the request's
+`Origin`, verified directly against the live API), so no backend proxy is needed or used.
 
 **Fallback on failure:** if the live call to any of these six endpoints errors, times out, or
-returns an empty/missing `data` array, your proxy route must serve the matching static snapshot
-from [`dropdown-fallbacks.json`](dropdown-fallbacks.json) instead of an empty result — see the
-`DROPDOWN_FALLBACKS` / `dropdownProxy()` implementation in `templates/integration-1/node-express.js`
-for the reference pattern. Never let a dropdown-API hiccup render an empty `<select>`.
+returns an empty/missing `data` array, the client must fall back to the matching entry in the
+embedded `EMAP_DROPDOWN_FALLBACKS` constant (sourced from
+[`dropdown-fallbacks.json`](dropdown-fallbacks.json)) instead of an empty result — see
+`fetchDropdownData()` in `templates/integration-1/plain-html.html` for the reference pattern. Never
+let a dropdown-API hiccup render an empty `<select>`.
 
 ---
 
@@ -307,9 +315,10 @@ and 2-char country code are persisted — neither is sensitive.
 
 ## Security notes
 
-- `partner_key` must be injected by the backend (from env). Never expose it to the browser.
-- Never call `EMAP /api/v1/*` directly from browser-side JavaScript.
-- Never store SSN, DOB, or bank account numbers after forwarding to EMAP.
-- Never log request bodies on steps that contain SSN or bank data (steps 4 and 5).
-- Set `Cache-Control: no-store` on all backend responses.
+- `partner_key` is set as a constant directly in the client file and is therefore visible in the
+  deployed page's source — an accepted tradeoff of this pure-client architecture (see SKILL.md
+  Step 2), not something to hide behind a backend that doesn't exist here.
+- Never store SSN, DOB, or bank account numbers anywhere yourself after sending them to EMAP —
+  there is no backend or database of this form's own to store them in.
+- Never `console.log` request bodies on steps that contain SSN or bank data (steps 4 and 5).
 - See [`security-checklist.md`](security-checklist.md) before going live.

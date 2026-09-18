@@ -79,12 +79,13 @@ emap-skills/
         │   ├── mode-2-redirect.md .................... Integration 2 (redirect handoff) API contract
         │   ├── mode-3-api.md ......................... Integration 3 (email-based signup) API contract
         │   ├── api-errors.md ......................... HTTP status codes & error handling
-        │   └── security-checklist.md ................. Pre-launch security requirements
+        │   ├── security-checklist.md ................. Pre-launch security requirements
+        │   └── dropdown-fallbacks.json ................ Static fallback data if a live dropdown call fails
         │
-        ├── templates/ ................................ Ready-made code per integration mode
-        │   ├── integration-1/ ........................ Full form: plain-html, PHP, Node, Next.js
-        │   ├── integration-2/ ........................ Redirect handoff: plain-html, PHP, Node, Next.js
-        │   └── integration-3/ ........................ Email-based signup: plain-html, PHP, Node, Next.js
+        ├── templates/ ................................ Ready-made code per integration mode — pure client-side, no backend
+        │   ├── integration-1/ ........................ Full form: plain-html.html, SignupForm.tsx (Next.js client component)
+        │   ├── integration-2/ ........................ Redirect handoff: plain-html.html, SignupForm.tsx (Next.js client component)
+        │   └── integration-3/ ........................ Email-based signup: plain-html.html, SignupForm.tsx (Next.js client component)
         │
         └── verify/ .................................... Deterministic, script-based build verification
             ├── SKILL.md ............................... How to run it, what it checks, what it can't catch

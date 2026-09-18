@@ -223,9 +223,14 @@
     // Staging:     get this URL from Easy Pay Direct
     const EMAP_BASE_URL = 'https://emap.epd.dev';
 
-    // Optional: your partner secretKey for attribution.
-    // Prefer setting this server-side if you have a backend.
-    // If using client-side only, store this value in your CMS/config — never hardcode a secret.
+    // Optional: your partner secretKey for attribution. This is pure
+    // client-side HTML+JS by design — there is no backend to hide this
+    // value behind, so it is visible to anyone who views this page's
+    // source. EMAP treats it purely as an attribution/referral value (not
+    // a credential that grants access to anything), so the practical risk
+    // of exposing it is another site's signups being mis-attributed to
+    // this partner, not a security breach. Leave it '' to skip attribution
+    // entirely if that risk is unacceptable.
     const EMAP_PARTNER_SECRET_KEY = '';
 
     if (!EMAP_BASE_URL) {

@@ -50,7 +50,7 @@ Required for auto-save: `first_name`, `last_name`, `company_name`, `phone`, `ema
 
 | Field | URL param | Notes |
 |---|---|---|
-| Partner Attribution | `secretKey` | Partner's `security_key` from EMAP. Append server-side from `EMAP_PARTNER_SECRET_KEY` env — never hardcode in JS |
+| Partner Attribution | `secretKey` | Partner's `security_key` from EMAP. Set as the `EMAP_PARTNER_SECRET_KEY` constant directly in the template's `<script>` block — visible client-side by design, see SKILL.md Step 2 |
 | UTM Campaign | `utm_campaign` | Pass through from current page URL |
 | UTM Source | `utm_source` | Pass through from current page URL |
 | UTM Medium | `utm_medium` | Pass through from current page URL |
@@ -62,11 +62,11 @@ Required for auto-save: `first_name`, `last_name`, `company_name`, `phone`, `ema
 
 ---
 
-## Integration 3 attribution fields (backend only)
+## Integration 3 attribution fields
 
 | Field | API field | Notes |
 |---|---|---|
-| Partner Key | `partner_key` | Partner's `security_key`. Read from `EMAP_PARTNER_KEY` env. **Never from request body.** |
+| Partner Key | `partner_key` | Partner's `security_key`. Set as the `EMAP_PARTNER_KEY` constant directly in the template's `<script>` block — visible client-side by design, see SKILL.md Step 2. Not a form input the merchant fills in. |
 | Partner ID | `partner_id` | Partner's user ID in EMAP. Alternative to `partner_key` |
 
 ---

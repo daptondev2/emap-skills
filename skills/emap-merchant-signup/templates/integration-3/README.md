@@ -1,9 +1,12 @@
 # Integration 3 — Email-Based Signup
 
+Pure client-side. No backend, server, or `.env` file is used or needed — the form calls
+EMAP's API directly from the browser.
+
 ## How it works
 
 1. The **partner** (e.g. a sales rep) fills in the merchant's step-1 details on a form hosted on the partner's site.
-2. The partner's backend proxies the data to EMAP `POST /api/v1/signup` with the partner key.
+2. The browser POSTs the data directly to EMAP `POST /api/v1/signup` with `trigger_email: true` and the partner key.
 3. EMAP creates the merchant account and **emails the merchant a secure link** to complete the rest of their application on Easy Pay Direct's platform.
 4. The partner sees a success message: "Signup email sent to [merchant email]."
 
@@ -16,33 +19,31 @@ The merchant is **not present** during this step — the partner registers them 
 ## Templates
 
 ### `plain-html.html`
-A standalone HTML form. POSTs to `/api/signup` on your backend, which then calls EMAP's API.
+A standalone HTML form. Calls `EMAP_BASE_URL + '/api/v1/signup'` directly from the browser
+via `fetch()`. EMAP's API sets CORS headers that allow this from any origin.
 
-**Important:** This form must NOT call EMAP's API directly. Always proxy through your backend so that `EMAP_PARTNER_KEY` stays server-side.
+**Setup:** Set `EMAP_BASE_URL` and `EMAP_PARTNER_KEY` at the top of the `<script>` block.
 
-### `node-express.js`
-An Express.js backend proxy. Receives form data, validates it, calls EMAP's API with your partner key, and returns the result to the browser.
+### `SignupForm.tsx`
+A Next.js **Client Component** (`'use client'`) wrapping the exact same tested markup,
+styles, and logic as `plain-html.html`. There is no `app/api/*/route.ts` file — the
+component calls EMAP's API directly from the browser, same as the plain HTML version.
 
-**Dependencies:** `npm install express dotenv node-fetch@2`
+**Use when:** you're building on Next.js and want to drop the form into an existing app.
 
-### `php-vanilla.php`
-A single-file PHP implementation: includes both the HTML form and the backend proxy logic. Handles CSRF protection with PHP sessions.
-
-**Requirements:** PHP 7.4+ with `curl` extension enabled.
-
-### `nextjs-route.ts`
-A Next.js App Router route handler for `app/api/signup/route.ts`. TypeScript. Uses the built-in `fetch` API.
+**Setup:** Import and render `<SignupForm />` anywhere in your app. Set the same
+`EMAP_BASE_URL` / `EMAP_PARTNER_KEY` constants inside the component's embedded script.
 
 ---
 
-## Environment variables
+## Partner key visibility
 
-Create a `.env` file (never commit it):
-```
-EMAP_BASE_URL=https://emap.epd.dev
-EMAP_PARTNER_KEY=your_partner_key_here
-PORT=3000
-```
+`EMAP_PARTNER_KEY` is a plain constant in client-side JS — it's visible to anyone who
+views the page source. EMAP treats it as an attribution/referral value, not a credential
+that grants access to anything; the realistic risk of leaving it exposed is another
+site's signups being mis-attributed, not a security breach. See
+`references/security-checklist.md` for the full tradeoff. Never commit a real partner
+key to a public repo or log it to a third-party service.
 
 ---
 

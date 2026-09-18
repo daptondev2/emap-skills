@@ -1,10 +1,10 @@
 {
-  "_comment": "Merchant Signup Form - Stepwise Field Schema v1.0. All field keys match the API request parameter names. Slugs match the values accepted by the EMAP backend. Generated from SignupAPIController, ApplicationStepRequest, HandleOwnershipRequest, and variantA Blade views.",
+  "_comment": "Merchant Signup Form - Stepwise Field Schema v1.0. All field keys match the API request parameter names. Slugs match the values accepted by EMAP's API, verified directly against its live behavior.",
   "version": "1.0",
   "baseUrl": "{EMAP_BASE_URL}",
   "apiPrefix": "/api/v1",
   "dropdownApiPrefix": "/api/partner",
-  "_dynamicDropdownEndpointsNote": "Every entry has a matching key in references/dropdown-fallbacks.json. If the live GET call errors, times out, or returns an empty/missing `data` array, serve that fallback snapshot instead of an empty result — see the dropdownProxy()/DROPDOWN_FALLBACKS pattern in templates/integration-1/node-express.js.",
+  "_dynamicDropdownEndpointsNote": "Every entry has a matching key in references/dropdown-fallbacks.json. If the live GET call errors, times out, or returns an empty/missing `data` array, serve that fallback snapshot instead of an empty result — see the fetchDropdownData()/EMAP_DROPDOWN_FALLBACKS pattern in templates/integration-1/plain-html.html.",
   "dynamicDropdownEndpoints": {
     "countries": {
       "method": "GET",
@@ -345,8 +345,6 @@
       "api": {
         "method": "POST",
         "url": "/api/v1/signup",
-        "controller": "App\\Http\\Controllers\\API\\SignupAPIController@externalSignup",
-        "request": "App\\Http\\Requests\\API\\ExternalSignupRequest",
         "successResponse": {
           "status": true,
           "message": "Success",
@@ -500,8 +498,6 @@
       "api": {
         "method": "POST",
         "url": "/api/v1/application/step",
-        "controller": "App\\Http\\Controllers\\API\\SignupAPIController@submitApplicationStep",
-        "request": "App\\Http\\Requests\\API\\ApplicationStepRequest",
         "requiredBodyFields": [
           "uuid",
           "step_count"
@@ -947,8 +943,6 @@
       "api": {
         "method": "POST",
         "url": "/api/v1/application/step",
-        "controller": "App\\Http\\Controllers\\API\\SignupAPIController@submitApplicationStep",
-        "request": "App\\Http\\Requests\\API\\ApplicationStepRequest",
         "step_count": 3,
         "successResponse": {
           "status": true,
@@ -1150,8 +1144,6 @@
       "api": {
         "method": "POST",
         "url": "/api/v1/ownership",
-        "controller": "App\\Http\\Controllers\\API\\SignupAPIController@handleOwnership",
-        "request": "App\\Http\\Requests\\API\\HandleOwnershipRequest",
         "requiredBodyFields": [
           "uuid",
           "primary_contact"
@@ -1305,7 +1297,7 @@
               "autocomplete": "off",
               "countryDependent": true,
               "countryDependsOn": "country_from_step1",
-              "countryDependsOnNote": "Verified against EMAP's own variantA/step4 source (js.blade.php: `selectedCountry = $company->country`, shared by the Cleave mask for BOTH .owner_ssn fields and validateSSN()). The country that resolves this field's countryVariants is the SINGLE Step 1 formation country, applied identically to Owner 1 AND Owner 2 — NOT each owner's own country.1/country.2 (home address/residence, a separate field used only for driver_license_state gating, see the driver_license_state.1 field below). Do not key this off country.1.",
+              "countryDependsOnNote": "Verified against EMAP's own live behavior: the SSN mask and pattern for BOTH owners are driven by the SAME country — the Step 1 formation country, applied identically to Owner 1 AND Owner 2. The country that resolves this field's countryVariants is that SINGLE Step 1 formation country — NOT each owner's own country.1/country.2 (home address/residence, a separate field used only for driver_license_state gating, see the driver_license_state.1 field below). Do not key this off country.1.",
               "countryVariants": {
                 "US": {
                   "label": "Owner 1 Social Security Number (SSN)",
@@ -1391,8 +1383,8 @@
               "maxAge": 100,
               "maxDate": "today - 18 years (moment().subtract(18, 'years'))",
               "minDate": "today - 100 years (new Date().getFullYear() - 100)",
-              "validationNote": "Owner must be at least 18 years old. Max date = today minus 18 years. Min year = current year minus 100. Must be a valid calendar date in YYYY-MM-DD format. Must be enforced both client-side (date input min/max + submit-time check) AND server-side (backend recomputes age from the submitted date) — do not rely on the HTML date input's min/max alone.",
-              "enforceServerSide": true
+              "validationNote": "Owner must be at least 18 years old. Max date = today minus 18 years. Min year = current year minus 100. Must be a valid calendar date in YYYY-MM-DD format. Enforce this client-side (date input min/max + submit-time check) — do not rely on the HTML date input's min/max alone. EMAP's own API does not enforce this rule server-side (verified directly against its validation rules), so the client-side check is the only enforcement that exists; that is a pre-existing gap in EMAP itself, not something a partner form can close.",
+              "enforceServerSide": false
             },
             {
               "key": "ownership_percentage.1",
@@ -1491,7 +1483,7 @@
               "sensitive": true,
               "format": "YYYY-MM-DD",
               "minDate": "today",
-              "validationNote": "Must be today or in the future (Laravel: after_or_equal:today). Reject past dates.",
+              "validationNote": "Must be today or in the future. Reject past dates.",
               "dependsOn": {
                 "field": "country.1",
                 "operator": "equals",
@@ -1554,7 +1546,7 @@
               "required": false,
               "format": "YYYY-MM-DD",
               "maxDate": "today",
-              "validationNote": "Must be today or in the past (Laravel: before_or_equal:today). Future dates are rejected.",
+              "validationNote": "Must be today or in the past. Future dates are rejected.",
               "dependsOn": {
                 "field": "bankruptcy_discharged.1",
                 "operator": "equals",
@@ -1739,13 +1731,13 @@
               "maxAge": 100,
               "maxDate": "today - 18 years (moment().subtract(18, 'years'))",
               "minDate": "today - 100 years (new Date().getFullYear() - 100)",
-              "validationNote": "Owner must be at least 18 years old. Max date = today minus 18 years. Min year = current year minus 100. Must be enforced both client-side (date input min/max + submit-time check) AND server-side (backend recomputes age from the submitted date) — do not rely on the HTML date input's min/max alone.",
+              "validationNote": "Owner must be at least 18 years old. Max date = today minus 18 years. Min year = current year minus 100. Enforce this client-side (date input min/max + submit-time check) — do not rely on the HTML date input's min/max alone. EMAP's own API does not enforce this rule server-side (verified directly against its validation rules), so the client-side check is the only enforcement that exists; that is a pre-existing gap in EMAP itself, not something a partner form can close.",
               "conditionalRequired": {
                 "field": "ownership_percentage.1",
                 "operator": "lessThan",
                 "value": 51
               },
-              "enforceServerSide": true
+              "enforceServerSide": false
             },
             {
               "key": "ownership_percentage.2",
@@ -1872,7 +1864,7 @@
               "sensitive": true,
               "format": "YYYY-MM-DD",
               "minDate": "today",
-              "validationNote": "Must be today or in the future (Laravel: after_or_equal:today). Reject past dates.",
+              "validationNote": "Must be today or in the future. Reject past dates.",
               "conditionalRequired": {
                 "logic": "ownership_percentage.1 < 51 AND country.2 == 'US'"
               },
@@ -1934,7 +1926,7 @@
               "required": false,
               "format": "YYYY-MM-DD",
               "maxDate": "today",
-              "validationNote": "Must be today or in the past (Laravel: before_or_equal:today). Future dates are rejected.",
+              "validationNote": "Must be today or in the past. Future dates are rejected.",
               "visibleIf": {
                 "field": "bankruptcy_discharged.2",
                 "operator": "equals",
@@ -1957,8 +1949,6 @@
       "api": {
         "method": "POST",
         "url": "/api/v1/application/step",
-        "controller": "App\\Http\\Controllers\\API\\SignupAPIController@submitApplicationStep",
-        "request": "App\\Http\\Requests\\API\\ApplicationStepRequest",
         "step_count": 5,
         "successResponse": {
           "status": true,
@@ -2128,8 +2118,6 @@
       "api": {
         "method": "POST",
         "url": "/api/v1/application/step",
-        "controller": "App\\Http\\Controllers\\API\\SignupAPIController@submitApplicationStep",
-        "request": "App\\Http\\Requests\\API\\ApplicationStepRequest",
         "step_count": 6,
         "successResponse": {
           "status": true,

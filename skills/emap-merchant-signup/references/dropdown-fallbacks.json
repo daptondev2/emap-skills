@@ -1,5 +1,5 @@
 {
-  "_comment": "Static fallback snapshot of EMAP's public /api/partner/* dropdown endpoints. Used by the dropdown-proxy backend ONLY when the live EMAP call fails or returns no usable data, so a form never renders an empty dropdown. This snapshot goes stale over time (EMAP can add/remove options) — treat the live API as the source of truth and this file as a last-resort fallback only. Refresh periodically by re-running the same GET requests documented in mode-1-fullform.md's Dropdown APIs table.",
+  "_comment": "Static fallback snapshot of EMAP's public /api/partner/* dropdown endpoints. Used by the client-side dropdown-fetch helper ONLY when the live EMAP call fails or returns no usable data, so a form never renders an empty dropdown. This snapshot goes stale over time (EMAP can add/remove options) — treat the live API as the source of truth and this file as a last-resort fallback only. Refresh periodically by re-running the same GET requests documented in mode-1-fullform.md's Dropdown APIs table.",
   "capturedAt": "2026-09-16T13:26:30Z",
   "capturedFrom": "https://emap.epd.dev",
   "countries": {

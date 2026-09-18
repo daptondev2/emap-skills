@@ -62,6 +62,13 @@ TEXTAREA_TYPES = {"textarea"}
 
 WINDOW_LINES = 40  # how many lines apart two references may be and still count as "wired together"
 
+# Schema dependsOn/visibleIf conditions sometimes reference a synthetic
+# concept name instead of a literal field id/payload key — see the comment
+# where this is used in check_conditional_logic.
+SYNTHETIC_TOKEN_ALIASES = {
+    "country_from_step1": ["step1Country"],
+}
+
 
 # ── Schema loading / flattening ────────────────────────────────────────────
 
@@ -121,7 +128,19 @@ def html_id_variants(key: str) -> list:
         variants.add(key.replace(".", "_"))
     if "[]" not in key:
         variants.add(key + "[]")
+    if key in FIELD_KEY_ALIASES:
+        variants.update(FIELD_KEY_ALIASES[key])
     return list(variants)
+
+
+# The schema's field `key` is the API field name, which is not always what
+# the local HTML input is id'd/named — every template here deliberately
+# renders Step 1's company-name field as id="company_name" (for label/UX
+# clarity) and remaps it to the API's `name` field only at submit time. Both
+# spellings are legitimate; check either.
+FIELD_KEY_ALIASES = {
+    "name": ["company_name"],
+}
 
 
 def find_line_numbers(text_lines: list, needle: str) -> list:
@@ -284,6 +303,13 @@ def check_conditional_logic(field: dict, frontend_text_lines: list) -> list:
         if not tok:
             continue
         tok_variants = html_id_variants(tok) if re.match(r"^[a-zA-Z_]", tok) else [tok]
+        # Some schema dependsOn/visibleIf conditions reference a synthetic
+        # concept name rather than a literal field id — country_from_step1 is
+        # "the Step 1 formation country", which every known implementation
+        # tracks in a JS variable called step1Country, not a field literally
+        # named country_from_step1. Accept either spelling.
+        if tok in SYNTHETIC_TOKEN_ALIASES:
+            tok_variants = tok_variants + SYNTHETIC_TOKEN_ALIASES[tok]
         tok_lines = []
         for tv in tok_variants:
             tok_lines.extend(find_line_numbers(frontend_text_lines, tv))
@@ -310,24 +336,41 @@ def check_no_back_navigation(frontend_text: str) -> list:
 
 # ── Category D: dropdown_route ──────────────────────────────────────────────
 
-def check_dropdown_routes(schema: dict, backend_text: str) -> list:
+# Every form here is pure client-side (no backend of any kind) — each fetches
+# EMAP's dropdown endpoints directly from the browser. Not every integration
+# mode uses every endpoint: Integration 1 uses all 6; Integration 2 fetches
+# countries/states/industry_types live; Integration 3 fetches only
+# countries/industry_types (its state field is a hardcoded static <select>
+# of US states, not fetched — verified against the actual template).
+DROPDOWNS_BY_INTEGRATION = {
+    "1": {"countries", "states", "industry_types", "shopping_carts", "referral_sources", "interest_details"},
+    "2": {"countries", "states", "industry_types"},
+    "3": {"countries", "industry_types"},
+}
+
+
+def check_dropdown_routes(schema: dict, frontend_text: str, integration: str) -> list:
     findings = []
     endpoints = schema.get("dynamicDropdownEndpoints", {})
+    expected_names = DROPDOWNS_BY_INTEGRATION.get(integration, set(endpoints.keys()))
+    checked_any = False
     for name, spec in endpoints.items():
+        if name not in expected_names:
+            continue
+        checked_any = True
         url = spec.get("url", "")
-        if url and url not in backend_text and name not in backend_text:
+        if url and url not in frontend_text and name not in frontend_text:
             findings.append({
-                "file": "(backend)", "field": f"route:{url}", "category": "dropdown_route",
-                "expected": f"a proxy route forwarding to EMAP {url}",
-                "actual": "no reference to this endpoint found in the backend file", "severity": "blocker",
+                "file": "(frontend)", "field": f"route:{url}", "category": "dropdown_route",
+                "expected": f"a direct client-side fetch of EMAP {url} (no backend proxy — this form is pure client-side)",
+                "actual": "no reference to this endpoint found in the frontend file", "severity": "blocker",
             })
-        if "dropdown-fallback" not in backend_text.lower() and "fallback" not in backend_text.lower():
-            findings.append({
-                "file": "(backend)", "field": f"route:{url}", "category": "dropdown_route",
-                "expected": "a fallback to references/dropdown-fallbacks.json when the live call fails",
-                "actual": "no fallback reference found anywhere in the backend file", "severity": "blocker",
-            })
-            break  # one missing-fallback finding for the whole file is enough, don't repeat per-endpoint
+    if checked_any and "fallback" not in frontend_text.lower():
+        findings.append({
+            "file": "(frontend)", "field": "dropdown-fallback", "category": "dropdown_route",
+            "expected": "an embedded fallback dataset used when a live EMAP dropdown call fails, times out, or returns empty data",
+            "actual": "no fallback reference found anywhere in the frontend file", "severity": "blocker",
+        })
     return findings
 
 
@@ -491,8 +534,8 @@ def main() -> int:
 
     if run_cond and not args.fields:
         findings.extend(check_no_back_navigation(frontend_text))
-    if run_dropdown and args.integration == "1" and backend_text:
-        findings.extend(check_dropdown_routes(schema, backend_text))
+    if run_dropdown:
+        findings.extend(check_dropdown_routes(schema, frontend_text, args.integration))
 
     blockers = [f for f in findings if f.get("severity", "blocker") == "blocker"]
     passed = len(blockers) == 0

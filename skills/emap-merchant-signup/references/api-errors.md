@@ -76,7 +76,7 @@ The `errors` object uses the API field names. Map them to your form inputs:
 | `country` | `#country` | "Country is required" |
 | `annual_sales` | `#annual_sales` | "Annual sales is required" / "Annual sales must be at least 1" |
 | `business_state` | `#business_state` | "Business state is required for US-based companies" |
-| `partner_key` | — (backend field, never in form) | "Partner key is not valid" — log this, don't show to merchant |
+| `partner_key` | — (a constant set in the script, not a form input the merchant fills in) | "Partner key is not valid" — surface a generic error to the merchant, not this raw message |
 
 ---
 

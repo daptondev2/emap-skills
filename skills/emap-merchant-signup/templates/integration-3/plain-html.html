@@ -338,16 +338,27 @@
     /*
      * Integration 3 — Email-Based Signup
      *
-     * The partner fills in the merchant's step-1 details and submits.
-     * Your backend (node-express.js / php-vanilla.php / nextjs-route.ts) proxies
-     * the data to EMAP /api/v1/signup with your partner key.
-     * EMAP creates the account and emails the merchant a secure link so they can
-     * complete their full application on Easy Pay Direct's platform.
+     * The partner fills in the merchant's step-1 details and submits. This
+     * page POSTs that data directly to EMAP's /api/v1/signup with
+     * trigger_email:true, from the browser — no backend of any kind. EMAP's
+     * API sets CORS headers that allow this (Access-Control-Allow-Origin
+     * reflects any Origin). EMAP creates the account and emails the merchant
+     * a secure link so they can complete their full application on Easy Pay
+     * Direct's platform.
      *
-     * Never call EMAP's API directly from this file — keep your partner key server-side.
+     * EDIT THESE TWO CONSTANTS before deploying:
      */
+    const EMAP_BASE_URL = 'https://emap.epd.dev'; // no trailing slash
+    const EMAP_PARTNER_KEY = ''; // optional — leave '' to skip partner attribution.
+    // This key is sent from the browser and is therefore visible to anyone who
+    // views this page's source. EMAP treats it purely as an attribution/referral
+    // value — it does not grant access to any account or data, so exposing it
+    // here only risks another site's signups being mis-attributed to this
+    // partner key, not a security breach. If that risk is unacceptable, leave
+    // this blank instead — signups will still work, just without commission
+    // attribution.
 
-    // ── Load countries from backend proxy ────────────────────────────────────
+    // ── Load countries directly from EMAP ─────────────────────────────────────
     const FALLBACK_COUNTRIES = [
       { code: 'US', name: 'United States' }, { code: 'CA', name: 'Canada' },
       { code: 'GB', name: 'United Kingdom' }, { code: 'AU', name: 'Australia' },
@@ -355,7 +366,7 @@
 
     (async function loadCountries() {
       try {
-        const res = await fetch('/api/countries');
+        const res = await fetch(EMAP_BASE_URL + '/api/partner/countries');
         const json = await res.json();
         const list = json.data || [];
         const sel = document.getElementById('country');
@@ -376,10 +387,10 @@
       }
     })();
 
-    // ── Load industry types from backend proxy ───────────────────────────────
+    // ── Load industry types directly from EMAP ────────────────────────────────
     (async function loadIndustryTypes() {
       try {
-        const res = await fetch('/api/industry-types');
+        const res = await fetch(EMAP_BASE_URL + '/api/partner/industry-types');
         const json = await res.json();
         const sel = document.getElementById('industry_type');
         sel.innerHTML = '<option value="">Select industry…</option>';
@@ -503,11 +514,23 @@
       btn.disabled = true;
       btn.textContent = 'Sending…';
 
+      // Build the EMAP payload separately from `data` — `data` keeps
+      // company_name for the success-panel summary below, but EMAP's API
+      // field for company name is `name`, not `company_name`.
+      const payload = Object.assign({}, data);
+      payload.name = payload.company_name;
+      delete payload.company_name;
+      // trigger_email tells EMAP to dispatch the welcome/verification email
+      // as part of this call — without it, the account is created but no
+      // email is sent, defeating the point of this integration mode.
+      payload.trigger_email = true;
+      if (EMAP_PARTNER_KEY) payload.partner_key = EMAP_PARTNER_KEY;
+
       try {
-        const response = await fetch('/api/signup', {
+        const response = await fetch(EMAP_BASE_URL + '/api/v1/signup', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify(payload),
         });
 
         const result = await response.json();

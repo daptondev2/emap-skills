@@ -85,32 +85,9 @@ function buildEmapRedirectUrl(fields, emapBaseUrl, partnerSecretKey) {
   ['utm_campaign','utm_source','utm_medium','utm_term','utm_content','gclid','gbraid','wbraid']
     .forEach(k => { if (currentParams.has(k)) params.set(k, currentParams.get(k)); });
 
-  // Partner attribution (prefer server-side to keep key out of browser)
-  if (partnerSecretKey) params.set('secretKey', partnerSecretKey);
-
-  return `${emapBaseUrl}/signup?${params.toString()}`;
-}
-```
-
-### Server-side (Node.js — recommended for partner key)
-
-```javascript
-function buildEmapRedirectUrl(fields, emapBaseUrl, partnerSecretKey) {
-  const params = new URLSearchParams();
-
-  const allowed = [
-    'first_name', 'last_name', 'email', 'phone', 'company_name', 'website',
-    'country', 'annual_sales', 'business_state', 'industry_type',
-    'industry_type_other', 'promo_code',
-    'utm_campaign', 'utm_source', 'utm_medium', 'utm_term', 'utm_content',
-    'gclid', 'gbraid', 'wbraid',
-  ];
-
-  allowed.forEach(k => {
-    if (fields[k] != null && fields[k] !== '') params.set(k, fields[k]);
-  });
-
-  // Partner key comes from env, not from the incoming request
+  // Partner attribution — EMAP_PARTNER_SECRET_KEY is a constant set directly
+  // in this file (see SKILL.md Step 2); there is no backend to keep it
+  // behind, so it's visible in the browser and in the redirect URL itself.
   if (partnerSecretKey) params.set('secretKey', partnerSecretKey);
 
   return `${emapBaseUrl}/signup?${params.toString()}`;
@@ -140,8 +117,9 @@ stores: applications.partner_id, companies.partner_id
 ```
 
 The `secretKey` value is the partner's `security_key` column in EMAP's `users` table.
-Store it as `EMAP_PARTNER_SECRET_KEY` in your `.env` and append it server-side (never hardcode it
-in a JavaScript file that ships to the browser).
+Set it as the `EMAP_PARTNER_SECRET_KEY` constant directly in the template's `<script>` block — this
+form has no backend or `.env` file, so it is visible in the deployed page's JavaScript source. See
+the security-checklist.md note on this and SKILL.md's Step 2 for the tradeoff.
 
 ---
 
