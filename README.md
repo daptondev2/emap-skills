@@ -81,10 +81,18 @@ emap-skills/
         │   ├── api-errors.md ......................... HTTP status codes & error handling
         │   └── security-checklist.md ................. Pre-launch security requirements
         │
-        └── templates/ ................................ Ready-made code per integration mode
-            ├── integration-1/ ........................ Full form: plain-html, PHP, Node, Next.js
-            ├── integration-2/ ........................ Redirect handoff: plain-html, PHP, Node, Next.js
-            └── integration-3/ ........................ Email-based signup: plain-html, PHP, Node, Next.js
+        ├── templates/ ................................ Ready-made code per integration mode
+        │   ├── integration-1/ ........................ Full form: plain-html, PHP, Node, Next.js
+        │   ├── integration-2/ ........................ Redirect handoff: plain-html, PHP, Node, Next.js
+        │   └── integration-3/ ........................ Email-based signup: plain-html, PHP, Node, Next.js
+        │
+        └── verify/ .................................... Deterministic, script-based build verification
+            ├── SKILL.md ............................... How to run it, what it checks, what it can't catch
+            ├── scripts/
+            │   └── verify_form.py ..................... Checks the generated form against the schema — no LLM
+            └── hooks/
+                ├── emap_stop_gate.py .................. Stop hook: re-runs verify_form.py itself before allowing exit
+                └── settings.snippet.json .............. Hook registration snippet for .claude/settings.json
 ```
 
 This is the flat layout the `npx skills` CLI expects (`skills/<name>/SKILL.md`), so the skill under `skills/` here is installable with `npx skills add` out of the box.
