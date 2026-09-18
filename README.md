@@ -10,7 +10,10 @@ You don't need to handle any payment processing yourself. You just embed the for
 
 **What you'll need**
 
-- **A partner API key (optional)**, from the [Easy Pay Direct partner portal](https://emap.easypaydirect.com/signup/partner). It's what attributes signups to you for commission.
+- **A partner API key (optional)** — it's what attributes signups to you for commission.
+  - **Already a partner?** Log in to the partner portal → **Integration** → **API Integration** → copy the API key shown there.
+  - **Not a partner yet?** Sign up at the [partner portal](https://emap.easypaydirect.com/signup/partner). Once registered, go to **Integration** → **API Integration** → copy the partner key.
+  - You can also skip this and build without a key — signups will still work, just without commission attribution. You can add the key later.
 - **An AI coding assistant** (Claude Code, Cursor, etc.). This is what actually builds the form from the skill. App builders like Replit, v0, etc. work too, as long as you can give them the `SKILL.md` contents to build from.
 - **Node.js**, only for the `npx` install method below; not needed if you copy the skill manually. Get it at [nodejs.org](https://nodejs.org).
 
@@ -57,7 +60,11 @@ Before it writes any code, the skill stops and asks:
    2. **Redirect handoff** — the merchant only enters their basic contact info on your website. As soon as they submit that, they're automatically taken to Easy Pay Direct's own website to finish the rest of their application there.
    3. **Email-based signup** — the merchant enters their basic contact info on your website, and instead of being redirected, they get an email with a secure link to continue on Easy Pay Direct whenever they're ready.
 
-2. **Do you have a partner API key?** Determines whether `partner_key` gets sent with the signup request, so the merchant is attributed to you. You can provide a key, sign up for one, or skip and proceed without attribution.
+2. **Do you have a partner API key?** Determines whether `partner_key` gets sent with the signup request, so the merchant is attributed to you.
+
+   - **Yes** — log in to the partner portal → **Integration** → **API Integration** → copy the API key shown there, and paste it in when asked.
+   - **No** — sign up at the [partner portal](https://emap.easypaydirect.com/signup/partner), then follow the same **Integration → API Integration** path once registered.
+   - **Skip** — proceed without a key. Signups still work, just without commission attribution; the key is visible in the page's source once embedded, so skipping is also the option if you'd rather not have it there. See `references/security-checklist.md` for the full tradeoff.
 
 The skill will not read reference files, open templates, or generate any code until both questions are asked and answered.
 
