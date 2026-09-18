@@ -102,6 +102,14 @@ right:
 - **Anything not in the schema at all** — deployment config, security headers, partner-key
   handling. That's what [`../references/security-checklist.md`](../references/security-checklist.md)
   is for.
+- **Wire-format/payload-shape bugs.** The script confirms a field's id/name exists in the markup
+  and is wired to the right JS logic — it does not simulate an actual submission or inspect what
+  shape gets sent over the wire. Step 4 (`POST /api/v1/ownership`) is a real example: the field
+  *names* are dot-notation (`first_name.1`), but the API only accepts them sent as **nested JSON
+  objects** (`{"first_name": {"1": "..."}}`) — sending literal flat dotted keys gets every field
+  rejected as `"required"`. The templates' `toNestedDot()` helper already does this correctly, but
+  a script check on field ids alone can't tell a correctly-nested payload from an incorrectly-flat
+  one; only a real POST to the live API can. See `references/mode-1-fullform.md`'s Step 4 section.
 
 ## Why the hook re-runs the script instead of trusting the state file
 

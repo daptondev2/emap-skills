@@ -526,14 +526,27 @@
       payload.trigger_email = true;
       if (EMAP_PARTNER_KEY) payload.partner_key = EMAP_PARTNER_KEY;
 
-      try {
-        const response = await fetch(EMAP_BASE_URL + '/api/v1/signup', {
+      async function attemptSignup(reqPayload) {
+        const res = await fetch(EMAP_BASE_URL + '/api/v1/signup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(reqPayload),
         });
+        return { response: res, result: await res.json() };
+      }
 
-        const result = await response.json();
+      try {
+        let { response, result } = await attemptSignup(payload);
+
+        // A stale/typo'd partner_key rejects the WHOLE signup, not just its
+        // attribution (verified against the live API). Degrade gracefully:
+        // retry once without it so the merchant isn't blocked by a key
+        // problem that isn't theirs to fix.
+        if (response.status === 422 && result.errors && result.errors.partner_key && payload.partner_key) {
+          const retryPayload = Object.assign({}, payload);
+          delete retryPayload.partner_key;
+          ({ response, result } = await attemptSignup(retryPayload));
+        }
 
         if (response.status === 429) {
           showAlert('error', 'Too many attempts. Please wait a few minutes and try again.');

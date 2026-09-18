@@ -28,13 +28,17 @@ API).
   "country": "US",
   "annual_sales": 500000,
   "business_state": "CA",
-  "industry_type": "e-commerce",
+  "industry_type": "Other",
   "industry_type_other": "",
   "promo_code": "PARTNER20",
   "partner_key": "YOUR_EMAP_PARTNER_KEY",
   "trigger_email": true
 }
 ```
+
+> `industry_type` slugs change over time on EMAP's side — always resolve the value live from
+> `/api/partner/industry-types` rather than hardcoding one, including for manual testing. The
+> `"Other"` slug above is just a stable placeholder for this example.
 
 ### Field validation rules
 
@@ -49,7 +53,7 @@ API).
 | `country` | required, string, must match a valid entry in EMAP's country table (e.g. `US`, `CA`, `GB`) |
 | `annual_sales` | required, integer, min 1, max 999999999999 |
 | `business_state` | required when country=US, string, max 2 chars, valid US state code (e.g. `CA`, `TX`) |
-| `industry_type` | required, string — slug from `GET /api/partner/industry-types` (use the `slug` field, e.g. `e-commerce`) |
+| `industry_type` | required, string — slug from `GET /api/partner/industry-types` (use the `slug` field; slugs change over time, always resolve live, never hardcode) |
 | `industry_type_other` | required when `industry_type = other`, string, max 255 |
 | `promo_code` | optional, string, max 255 |
 | `partner_key` | optional, string — your partner `security_key` from EMAP |
@@ -170,7 +174,7 @@ curl -X POST https://emap.epd.dev/api/v1/signup \
     "country": "US",
     "annual_sales": 500000,
     "business_state": "CA",
-    "industry_type": "e-commerce",
+    "industry_type": "Other",
     "partner_key": "YOUR_PARTNER_KEY",
     "trigger_email": true
   }'

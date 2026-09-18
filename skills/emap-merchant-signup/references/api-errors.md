@@ -14,7 +14,7 @@ Complete error handling guide for `POST /api/v1/signup`.
 | 400 | Application creation failed | `{"status":false,"message":"Error while creating application","data":"Something went wrong."}` | Show generic "Something went wrong. Please try again." Re-enable the submit button. |
 | 403 | IP geofenced (PK) | `{"status":false,"message":"Unauthorised access."}` | Show "This service is not available in your region." |
 | 422 | Validation error | `{"status":false,"message":"Validation failed","errors":{"field":["message",...]}}` | Display per-field errors from `errors`. See field mapping below. |
-| 429 | Rate limited | Standard 429 HTML/JSON | Show "Too many attempts. Please wait a few minutes and try again." |
+| 429 | Rate limited | `{"status":false,"message":"Too many attempts. Please try again later.","retry_after":<seconds>}` — verified directly against the live API (triggers reliably after ~10 signup attempts within a few minutes from the same source) | Show "Too many attempts. Please wait a few minutes and try again." Optionally use `retry_after` to tell the merchant how long to wait or to schedule an automatic retry. |
 | 5xx | EMAP server error | varies | Show "EMAP is temporarily unavailable. Please try again in a few minutes." |
 
 > **Important:** EMAP returns HTTP 200 for business-logic rejections (company exists, existing user).
@@ -34,7 +34,7 @@ async function handleEmapResponse(response) {
   }
 
   if (response.status === 429) {
-    return { type: 'rate_limit' };
+    return { type: 'rate_limit', retryAfter: data.retry_after };
   }
 
   if (response.status >= 400) {
@@ -76,7 +76,7 @@ The `errors` object uses the API field names. Map them to your form inputs:
 | `country` | `#country` | "Country is required" |
 | `annual_sales` | `#annual_sales` | "Annual sales is required" / "Annual sales must be at least 1" |
 | `business_state` | `#business_state` | "Business state is required for US-based companies" |
-| `partner_key` | — (a constant set in the script, not a form input the merchant fills in) | "Partner key is not valid" — surface a generic error to the merchant, not this raw message |
+| `partner_key` | — (a constant set in the script, not a form input the merchant fills in) | "Partner key is not valid" — Integration 1 and 3's templates already retry the submission once automatically with `partner_key` omitted when this specific error is seen, so the merchant never encounters it in practice; if you see this surfaced to a merchant, the auto-retry didn't fire — check the key wasn't already empty, and surface a generic error, not this raw message |
 
 ---
 

@@ -24,7 +24,7 @@ with Integration 1, the partner hosts all 6 steps themselves.
 **Contents**
 - [Before you start — Required questions](#before-you-start--required-questions) ← **start here, always**
 - [Reference files](#reference-files) — load only when implementing that feature
-- [Step 0: Detect project setup](#step-0-detect-project-setup)
+- [Step 0: Choose project setup](#step-0-choose-project-setup)
 - [Step 1: Install the verify gate hook](#step-1-install-the-verify-gate-hook) ← **do this before writing any code**
 - [Step 2: Partner attribution (optional)](#step-2-partner-attribution-optional)
 - [Step 3: Choose integration mode](#step-3-choose-integration-mode)
@@ -55,9 +55,18 @@ Do not proceed until the developer has chosen one of the three variants.
 
 After the developer has chosen their variant, use AskUserQuestion with exactly these 3 options. The description for each option must include the retrieval instructions exactly as written below — this is what the developer reads to know where to find or get their key. Also tell them, before they answer: **this form is pure client-side, so the key will be embedded directly in the page's JavaScript and visible to anyone who views the page source.** EMAP treats it purely as an attribution/referral value (not a credential that grants access to anything), so the practical risk of exposure is another site's signups being mis-attributed to this key, not a security breach — but they should know that before deciding.
 
+> **A wrong key is worse than no key.** Verified directly against the live API: an *omitted* or
+> *empty* `partner_key` lets signups through unattributed, exactly as described below — but a
+> *non-empty, invalid* key (stale, revoked, or typo'd) gets the entire signup rejected with
+> `HTTP 422 {"errors":{"partner_key":["Partner key is not valid"]}}`. Since this key has no
+> rotation mechanism here — it's hand-typed into a JS constant, not an env var — a key that goes
+> bad after deployment silently breaks every signup on that site, not just its attribution. Warn
+> the developer of this before they choose, and see `references/api-errors.md` for handling this
+> specific error if it's ever surfaced to a merchant.
+
 - **Yes, I have a partner key** — description: "Log in to the partner portal → Integration → API Integration → copy the API key shown there → paste it here."
 - **No, I don't have a partner key** — description: "Sign up as a partner at https://emap.easypaydirect.com/signup/partner. Once registered, go to Integration → API Integration → copy the partner key → come back and paste it here."
-- **Skip (proceed without a key)** — description: "Signups will still work, but they won't be attributed to your partner account. Choose this if you'd rather not have the key visible in your page's source."
+- **Skip (proceed without a key)** — description: "Signups will still work, but they won't be attributed to your partner account. Choose this if you'd rather not have the key visible in your page's source. (Leaving it blank is safe — this is different from having a wrong key, which blocks signups entirely; see the note above.)"
 
 **If the developer selects "Yes, I have a partner key":**
 Ask them to paste the key now. Store it mentally as `EMAP_PARTNER_KEY` — you'll write it directly into the `EMAP_PARTNER_KEY` constant in the generated file(s) later. Proceed to Step 0.
@@ -68,7 +77,7 @@ Tell them to follow the sign-up link in the option description above, then come 
 **If the developer selects "Skip (proceed without a key)":**
 Proceed to Step 0 without a partner key.
 
-> **Only after both questions are answered** should you continue to [Step 0](#step-0-detect-project-setup) and begin reading reference files or generating code.
+> **Only after both questions are answered** should you continue to [Step 0](#step-0-choose-project-setup) and begin reading reference files or generating code.
 
 ---
 
@@ -90,12 +99,16 @@ Load a reference only when implementing that feature — do not read all upfront
 
 ---
 
-## Step 0: Detect project setup
+## Step 0: Choose project setup
 
 Every integration is pure client-side (HTML+CSS+JS, or a Next.js Client Component) — there is no
 backend, no server framework, no API route, and no environment variable to configure for any of
 the three modes. All three integrations are available regardless of what the target project looks
-like (static site, Next.js app, whatever) — the only thing that varies is which file you copy in:
+like (static site, Next.js app, whatever) — the only thing that varies is which file you copy in.
+
+Check the project for a giveaway first — a `next.config.js`/`next.config.ts` file, or a `next`
+dependency in `package.json` — and use that to make a confident guess; fall back to asking the
+developer only if neither is present or the project is empty:
 
 - **Plain HTML/JS site (or any non-Next.js stack)** → use `templates/integration-<n>/plain-html.html`
   as-is. It is a single, self-contained, zero-build-step file — drop it in and it works.
@@ -104,7 +117,7 @@ like (static site, Next.js app, whatever) — the only thing that varies is whic
   an `app/api/*/route.ts` file for this — there is nothing for it to do; every step is called
   directly from the browser.
 
-Ask the developer which of these two applies before generating anything.
+Confirm which of these two applies before generating anything.
 
 ---
 
@@ -182,7 +195,13 @@ exposure surfaces.
 
 If the developer does not yet have a partner key, refer them back to the instructions in
 [Before you start — Required questions](#before-you-start--required-questions).
-Integration works without a key; signups will simply not be attributed.
+Integration works without a key; signups will simply not be attributed — but only if the key is
+genuinely *omitted or empty*. A non-empty, *invalid* key (stale, revoked, or typo'd) gets the
+entire signup rejected with `HTTP 422 {"errors":{"partner_key":["Partner key is not valid"]}}`,
+verified directly against the live API — that's a broken signup, not just lost attribution. Since
+there's no env var or rotation mechanism for this constant, double-check a pasted key is exactly
+right before writing it into the template, and see `references/api-errors.md` for handling this
+error if it does happen.
 
 ---
 
@@ -250,7 +269,12 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
 4. **Understand the step flow:**
    - Step 1 (`POST /api/v1/signup`) returns a `uuid`. Collect: first name, last name, email, phone, company name, website, country, annual sales, **industry type**, and (if US) business state. Store the `uuid` in `localStorage('emap_uuid')`.
    - Steps 2, 3, 5, 6 call `POST /api/v1/application/step` with the `uuid` and the appropriate `step_count`.
-   - Step 4 calls `POST /api/v1/ownership` (no `step_count`; uses dot-notation field names).
+   - Step 4 calls `POST /api/v1/ownership` (no `step_count`). Fields are *named* with dot-notation
+     (e.g. `first_name.1`) but must be sent as **nested JSON objects**
+     (`{"first_name": {"1": "..."}}`), not literal flat dotted keys — the live API rejects every
+     field as "required" if you send them flat. The template's `toNestedDot()` helper does this
+     conversion; see `references/mode-1-fullform.md`'s Step 4 section for the exact shape and a
+     confirmed-working example payload.
    - Step 6 success → clear `localStorage` and show a completion panel.
 
 5. **Pre-fill Step 2 from Step 1 data:**

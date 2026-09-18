@@ -238,10 +238,15 @@
     }
 
     // ── Load dynamic dropdowns from EMAP API ─────────────────────────────────
+    // Fallback snapshots below are sourced from references/dropdown-fallbacks.json
+    // and used only when the live call fails or returns no usable data, so a
+    // form never renders an empty dropdown.
     const FALLBACK_COUNTRIES = [
       { code: 'US', name: 'United States' }, { code: 'CA', name: 'Canada' },
       { code: 'GB', name: 'United Kingdom' }, { code: 'AU', name: 'Australia' },
     ];
+    const FALLBACK_STATES = [{"name":"Alaska","code":"AK"},{"name":"Alabama","code":"AL"},{"name":"American Samoa","code":"AS"},{"name":"Arizona","code":"AZ"},{"name":"Arkansas","code":"AR"},{"name":"California","code":"CA"},{"name":"Colorado","code":"CO"},{"name":"Connecticut","code":"CT"},{"name":"Delaware","code":"DE"},{"name":"District of Columbia","code":"DC"},{"name":"Federated States of Micronesia","code":"FM"},{"name":"Florida","code":"FL"},{"name":"Georgia","code":"GA"},{"name":"Guam","code":"GU"},{"name":"Hawaii","code":"HI"},{"name":"Idaho","code":"ID"},{"name":"Illinois","code":"IL"},{"name":"Indiana","code":"IN"},{"name":"Iowa","code":"IA"},{"name":"Kansas","code":"KS"},{"name":"Kentucky","code":"KY"},{"name":"Louisiana","code":"LA"},{"name":"Maine","code":"ME"},{"name":"Marshall Islands","code":"MH"},{"name":"Maryland","code":"MD"},{"name":"Massachusetts","code":"MA"},{"name":"Michigan","code":"MI"},{"name":"Minnesota","code":"MN"},{"name":"Mississippi","code":"MS"},{"name":"Missouri","code":"MO"},{"name":"Montana","code":"MT"},{"name":"Nebraska","code":"NE"},{"name":"Nevada","code":"NV"},{"name":"New Hampshire","code":"NH"},{"name":"New Jersey","code":"NJ"},{"name":"New Mexico","code":"NM"},{"name":"New York","code":"NY"},{"name":"North Carolina","code":"NC"},{"name":"North Dakota","code":"ND"},{"name":"Northern Mariana Islands","code":"MP"},{"name":"Ohio","code":"OH"},{"name":"Oklahoma","code":"OK"},{"name":"Oregon","code":"OR"},{"name":"Palau","code":"PW"},{"name":"Pennsylvania","code":"PA"},{"name":"Puerto Rico","code":"PR"},{"name":"Rhode Island","code":"RI"},{"name":"South Carolina","code":"SC"},{"name":"South Dakota","code":"SD"},{"name":"Tennessee","code":"TN"},{"name":"Texas","code":"TX"},{"name":"Utah","code":"UT"},{"name":"Vermont","code":"VT"},{"name":"Virgin Islands","code":"VI"},{"name":"Virginia","code":"VA"},{"name":"Washington","code":"WA"},{"name":"West Virginia","code":"WV"},{"name":"Wisconsin","code":"WI"},{"name":"Wyoming","code":"WY"},{"name":"Armed Forces Africa","code":"AE"},{"name":"Armed Forces Americas (except Canada)","code":"AA"},{"name":"Armed Forces Canada","code":"AE"},{"name":"Armed Forces Europe","code":"AE"},{"name":"Armed Forces Middle East","code":"AE"},{"name":"Armed Forces Pacific","code":"AP"}];
+    const FALLBACK_INDUSTRY_TYPES = [{"name":"Adult - Dating Memberships","slug":"adult-dating-memberships"},{"name":"Adult - Events","slug":"Adult-Events"},{"name":"Adult - Online Memberships","slug":"Adult-Online-Memberships"},{"name":"Adult - Other","slug":"Adult-Other"},{"name":"Aggregators","slug":"Aggregators"},{"name":"Alternative Health Practices - Information Product","slug":"Alternative-Health-Practices-Information-Product"},{"name":"Automotive","slug":"automotive"},{"name":"Bike Manufacturing","slug":"bike-manufacturing"},{"name":"Biz-Op","slug":"Biz-Op"},{"name":"Book Publishing","slug":"book-publishing"},{"name":"Bowling Alleys","slug":"bowling-alleys"},{"name":"Business & Legal  Consultation","slug":"Business-Legal-Consultation"},{"name":"Business Coaching - Information Product","slug":"Business-Coaching-Information-Product"},{"name":"Car Pooling","slug":"Car-Pooling"},{"name":"Car Rental","slug":"Car-rental"},{"name":"CBD","slug":"cbd"},{"name":"Charity","slug":"Charity"},{"name":"Cigars and Accessories","slug":"Cigars-and-Accessories"},{"name":"Clothing/Jewelry","slug":"Clothing-Jewelry"},{"name":"Credit Repair - Information Product","slug":"Credit-Repair-Information-Product"},{"name":"Credit Repair - Service","slug":"Credit-Repair-Service"},{"name":"Dating/Relationship - Informational Product","slug":"Dating-Relationship-Informational-Product"},{"name":"Directory Listing","slug":"Directory-Listing"},{"name":"Discount Buying Club","slug":"Discount-Buying-Club"},{"name":"E-Books","slug":"E-Books"},{"name":"eCommerce - Jewelry","slug":"ecommerce-jewelry"},{"name":"Energy & Utilities","slug":"energy-utilities"},{"name":"Entertainment & Media","slug":"entertainment-media"},{"name":"Event Management (Live Events)","slug":"Event-Management(Live-Events)"},{"name":"Fantasy Sports","slug":"Fantasy-Sports"},{"name":"Financial Services - Other","slug":"Financial-Services-Other"},{"name":"Financial Services - Remittance","slug":"Financial-Services-Remittance"},{"name":"Financial/Wealth Education - Informational Product","slug":"Financial-Wealth-Education-Informational-Product"},{"name":"Firearms","slug":"Firearms"},{"name":"Gaming - Other","slug":"Gaming-Other"},{"name":"Grocery Stores","slug":"grocery-stores"},{"name":"Health - Fitness Information","slug":"Health-Fitness-Information"},{"name":"Health - Other Information","slug":"Health-Other-Information"},{"name":"ID Background Check","slug":"ID-Background-Check"},{"name":"Information Product (Misc)","slug":"information-product-misc"},{"name":"IT Services - Cloud Storage","slug":"IT-Services-Cloud-Storage"},{"name":"IT Services - Marketing","slug":"IT-Services-Marketing"},{"name":"Kratom","slug":"Kratom"},{"name":"Liquor/Package Stores","slug":"liquorpackage-stores"},{"name":"Magazine Subscriptions","slug":"Magazine-Subscriptions"},{"name":"Marijuana / Cannabis","slug":"Marijuana-Cannabis"},{"name":"Marketing - Advertising Agency FULL SERVICE","slug":"Marketing-Advertising-Agency-FULL-SERVICE"},{"name":"Marketing - Business Opportunity (Lead Gen)","slug":"Marketing-Business-Opportunity(Lead-Gen)"},{"name":"Marketing - Printing Services","slug":"Marketing-Printing-Services"},{"name":"Marketing - SEO Services","slug":"marketing-seo-services"},{"name":"Marketing - Web Design & Digital Services ONLY","slug":"Marketing-Web-Design-Digital-Services-ONLY"},{"name":"Medical Services","slug":"Medical-Services"},{"name":"MLM","slug":"MLM"},{"name":"Movie Theaters","slug":"movie-theaters"},{"name":"Musical Instruction - Information Product","slug":"Musical-Instruction-Information-Product"},{"name":"Non-Profit","slug":"Non-Profit"},{"name":"Nutraceutical - Beauty","slug":"Nutraceutical-Beauty"},{"name":"Nutraceutical - Diet","slug":"Nutraceutical-Diet"},{"name":"Nutraceutical - Diet Memberships (Trial/Recurring)","slug":"Nutraceutical-Diet-Memberships(Trial/Recurring)"},{"name":"Nutraceutical - Male Enhancement","slug":"Nutraceutical-Male-Enhancement"},{"name":"Nutraceutical - Muscle","slug":"Nutraceutical-Muscle"},{"name":"Nutraceutical - Other","slug":"Nutraceutical-Other"},{"name":"Nutraceutical - Skin Care","slug":"Nutraceutical-Skin-Care"},{"name":"Nutraceutical - Sports Nutrition","slug":"Nutraceutical-Sports-Nutrition"},{"name":"Nutraceutical - Teeth Whitening","slug":"Nutraceutical-Teeth-Whitening"},{"name":"Online Marketing Education - Informational Product","slug":"Online-Marketing-Education-Informational-Product"},{"name":"Other","slug":"Other"},{"name":"Peptides Research","slug":"peptides-research"},{"name":"Pet Care - Information Product","slug":"Pet-Care-Information-Product"},{"name":"Physical Medical/Physicians","slug":"physical-medicalphysicians"},{"name":"Psychics","slug":"Psychics"},{"name":"Real Estate - Rent/Timeshares","slug":"Real-Estate-Rent/Timeshares"},{"name":"Real Estate Education - Information Product","slug":"Real-Estate-Education-Information-Product"},{"name":"Remote Tech Support - Accounting Services","slug":"Remote-Tech-Support-Accounting-Services"},{"name":"Remote Tech Support - Other","slug":"Remote-Tech-Support-Other"},{"name":"Remote Tech Support - PC Repair","slug":"Remote-Tech-Support-PC-Repair"},{"name":"Remote Tech Support - SEO Services","slug":"Remote-Tech-Support-SEO-Services"},{"name":"Restaurants","slug":"Restaurants"},{"name":"Retail (eCommerce) - Art & Design","slug":"Retail(eCommerce)-Art-Design"},{"name":"Retail (eCommerce) - Fashion","slug":"Retail(eCommerce)-Fashion"},{"name":"Retail (eCommerce) - Furniture","slug":"Retail(eCommerce)-Furniture"},{"name":"Retail (eCommerce) - Other","slug":"Retail(eCommerce)-Other"},{"name":"Retail (eCommerce) - Sports Equipment","slug":"Retail(eCommerce)-Sports-Equipment"},{"name":"Salon (independent hair stylist)","slug":"Salon(independent-hair-stylist)"},{"name":"Salon (NOT independent stylist)","slug":"Salon(NOT-independent-stylist)"},{"name":"SEO/Hosting","slug":"SEO/Hosting"},{"name":"Smoking - E-Cigs & Vaporizers","slug":"Smoking-E-Cigs-Vaporizers"},{"name":"Smoking - Herbals (K2, 'Potpourri', etc)","slug":"Smoking-Herbals(K2,Potpourri,etc)"},{"name":"Smoking - Hookahs","slug":"Smoking-Hookahs"},{"name":"Smoking - Marijuana","slug":"Smoking-Marijuana"},{"name":"Smoking - Other","slug":"Smoking-Other"},{"name":"Software As A Service (SAAS)","slug":"Software-As-A-Service(SAAS)"},{"name":"Software Sales - Anti-Virus","slug":"Software-Sales-Anti-Virus"},{"name":"Software Sales - Other","slug":"Software-Sales-Other"},{"name":"Survival Prep","slug":"Survival-Prep"},{"name":"Survival Prep - Information Product","slug":"Survival-Prep-Information-Product"},{"name":"Test Industry","slug":"test-industry"},{"name":"Travel - Cruise Bookings","slug":"Travel-Cruise-Bookings"},{"name":"Travel - Hotel Bookings","slug":"Travel-Hotel-Bookings"},{"name":"Travel - Travel Clubs (Discounts)","slug":"Travel-Travel-Clubs(Discounts)"},{"name":"Travel - Travel Packages","slug":"Travel-Travel-Packages"},{"name":"Virtual Assistants","slug":"Virtual-Assistants"}];
 
     async function loadDropdowns() {
       if (!EMAP_BASE_URL) return;
@@ -251,6 +256,7 @@
         const res = await fetch(EMAP_BASE_URL + '/api/partner/countries');
         const json = await res.json();
         const list = json.data || [];
+        if (!list.length) throw new Error('empty');
         const sel = document.getElementById('country');
         sel.innerHTML = '<option value="">Select country…</option>';
         list.forEach(function (c) {
@@ -273,6 +279,7 @@
         const res = await fetch(EMAP_BASE_URL + '/api/partner/states');
         const json = await res.json();
         const list = json.data || [];
+        if (!list.length) throw new Error('empty');
         const sel = document.getElementById('business_state');
         sel.innerHTML = '<option value="">Select state…</option>';
         list.forEach(function (s) {
@@ -281,8 +288,13 @@
           sel.appendChild(o);
         });
       } catch (_) {
-        document.getElementById('business_state').innerHTML =
-          '<option value="">Unable to load — please refresh</option>';
+        const sel = document.getElementById('business_state');
+        sel.innerHTML = '<option value="">Select state…</option>';
+        FALLBACK_STATES.forEach(function (s) {
+          const o = document.createElement('option');
+          o.value = s.code; o.textContent = s.name;
+          sel.appendChild(o);
+        });
       }
 
       // Industry types — value = name (sent as URL param to EMAP), data-slug = slug (for "other" detection)
@@ -290,6 +302,7 @@
         const res = await fetch(EMAP_BASE_URL + '/api/partner/industry-types');
         const json = await res.json();
         const list = json.data || [];
+        if (!list.length) throw new Error('empty');
         const sel = document.getElementById('industry_type');
         sel.innerHTML = '<option value="">Select industry…</option>';
         list.forEach(function (t) {
@@ -298,8 +311,13 @@
           sel.appendChild(o);
         });
       } catch (_) {
-        document.getElementById('industry_type').innerHTML =
-          '<option value="">Unable to load — please refresh</option>';
+        const sel = document.getElementById('industry_type');
+        sel.innerHTML = '<option value="">Select industry…</option>';
+        FALLBACK_INDUSTRY_TYPES.forEach(function (t) {
+          const o = document.createElement('option');
+          o.value = t.name; o.dataset.slug = t.slug; o.textContent = t.name;
+          sel.appendChild(o);
+        });
       }
     }
 

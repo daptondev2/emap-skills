@@ -62,12 +62,16 @@ The `uuid` returned by Step 1 must be included in every subsequent request.
   "country":    "US",
   "annual_sales": 500000,
   "business_state": "CA",
-  "industry_type": "e-commerce",
+  "industry_type": "Other",
   "industry_type_other": "",
   "promo_code": "PARTNER20",
   "partner_key": "YOUR_EMAP_PARTNER_KEY"
 }
 ```
+
+> `industry_type` slugs change over time on EMAP's side — always resolve the value live from
+> `/api/partner/industry-types` rather than hardcoding one, including for manual testing. The
+> `"Other"` slug above is just a stable placeholder for this example.
 
 ### Field rules
 
@@ -161,7 +165,27 @@ On success: `{ "status": true, "uuid": "<uuid>" }`. Store the `uuid` and `countr
 
 **EMAP endpoint:** `POST {EMAP_BASE_URL}/api/v1/ownership`
 
-Fields use dot-notation names (e.g. `first_name.1`, `ssn.1`). The number suffix is the owner index.
+Fields are *named* using dot-notation (e.g. `first_name.1`, `ssn.1` — the number suffix is the
+owner index), but **the API rejects them sent that way as literal flat JSON keys.** They must be
+converted to nested objects before sending: `"first_name.1"` becomes `{"first_name": {"1": "..."}}`.
+Sending flat dotted keys gets every field rejected as `"required"` — including spurious Owner 2
+"required" errors regardless of `ownership_percentage.1` — because the API's validator can't see a
+field it doesn't recognize the shape of; verified directly against the live API, this is not a
+hypothetical. The templates' `toNestedDot()` helper does this conversion already; if you're building
+by hand or writing a raw HTTP request instead of using the template, do the same conversion. Example
+for a single owner (`ownership_percentage.1 = 100`, no Owner 2):
+
+```json
+{
+  "uuid": "<uuid-from-step-1>",
+  "primary_contact": 1,
+  "first_name": { "1": "Jane" },
+  "last_name":  { "1": "Owner" },
+  "ssn":        { "1": "123456789" },
+  "ownership_percentage": { "1": 100 }
+}
+```
+
 Owner 2 is required when `ownership_percentage.1 < 51`.
 
 ### Common fields

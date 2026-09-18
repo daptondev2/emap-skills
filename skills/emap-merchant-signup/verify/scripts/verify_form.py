@@ -107,6 +107,41 @@ def all_fields(schema: dict) -> list:
 
 # ── HTML/JS id helpers ─────────────────────────────────────────────────────
 
+TSX_CONST_NAMES = ("FORM_CSS", "FORM_HTML", "FORM_LOGIC")
+
+
+def extract_tsx_form_source(tsx_text: str) -> str:
+    """A Next.js Client Component template (SignupForm.tsx) embeds the tested
+    markup/styles/logic as JSON-encoded string constants (FORM_CSS, FORM_HTML,
+    FORM_LOGIC) that get injected into the DOM at runtime via innerHTML. Every
+    quote inside them is backslash-escaped in the raw .tsx source, so regexes
+    written against plain HTML attribute syntax (id="...") never match. Decode
+    each constant back to real HTML/CSS/JS and reassemble into an HTML-shaped
+    string so the same checks used against plain-html.html apply unchanged.
+    Falls back to the raw text unchanged if the file doesn't have this shape
+    (e.g. a hand-written .tsx that isn't one of this skill's templates)."""
+    decoder = json.JSONDecoder()
+    parts = {}
+    for name in TSX_CONST_NAMES:
+        match = re.search(rf"const\s+{name}(?:\s*:\s*string)?\s*=\s*", tsx_text)
+        if not match:
+            continue
+        start = match.end()
+        if start >= len(tsx_text) or tsx_text[start] != '"':
+            continue
+        try:
+            value, _ = decoder.raw_decode(tsx_text, start)
+        except json.JSONDecodeError:
+            continue
+        parts[name] = value
+    if "FORM_HTML" not in parts:
+        return tsx_text
+    css = parts.get("FORM_CSS", "")
+    html = parts.get("FORM_HTML", "")
+    logic = parts.get("FORM_LOGIC", "")
+    return f"<style>{css}</style>\n{html}\n<script>{logic}</script>"
+
+
 def extract_script_lines(html_text: str) -> list:
     """conditional_logic must be checked against actual JS wiring, not just
     proximity in the HTML markup — two related fields (e.g. a select and its
@@ -159,6 +194,23 @@ def any_pair_within_window(lines_a: list, lines_b: list, window: int) -> bool:
 
 # ── Category A: widget_type / hardcoded_label ──────────────────────────────
 
+def _checkbox_group_dynamic_match(key: str, text: str) -> bool:
+    """A checkbox-group can be built at runtime from live API data via
+    createElement + property assignment (el.type = 'checkbox'; el.name =
+    'key[]';) instead of static <input type="checkbox" name="key[]"> markup —
+    the schema's own `interest_details`-backed field works this way. Accept
+    that pattern too: a '.type = "checkbox"' assignment within WINDOW_LINES
+    lines of a matching '.name = "key[]"' assignment."""
+    lines = text.splitlines()
+    type_re = re.compile(r'\.type\s*=\s*[\'"]checkbox[\'"]')
+    name_re = re.compile(rf'\.name\s*=\s*[\'"]{re.escape(key)}\[\][\'"]')
+    type_lines = [i for i, line in enumerate(lines) if type_re.search(line)]
+    if not type_lines:
+        return False
+    name_lines = [i for i, line in enumerate(lines) if name_re.search(line)]
+    return any(abs(ti - ni) <= WINDOW_LINES for ti in type_lines for ni in name_lines)
+
+
 def check_widget_type(field: dict, frontend_text: str, schema: dict) -> list:
     findings = []
     key = field["key"]
@@ -178,7 +230,8 @@ def check_widget_type(field: dict, frontend_text: str, schema: dict) -> list:
                 f"expected a <select> for '{key}'", "no matching <select> found"))
     elif ftype in CHECKBOX_GROUP_TYPES:
         if not re.search(rf'type="checkbox"[^>]*name="{re.escape(key)}\[\]"', frontend_text) \
-           and not re.search(rf'name="{re.escape(key)}\[\]"[^>]*type="checkbox"', frontend_text):
+           and not re.search(rf'name="{re.escape(key)}\[\]"[^>]*type="checkbox"', frontend_text) \
+           and not _checkbox_group_dynamic_match(key, frontend_text):
             findings.append(_finding(field, "widget_type",
                 f"expected a checkbox-group for '{key}' (multiple type=\"checkbox\" inputs named '{key}[]')",
                 "no matching checkbox-group found"))
@@ -447,12 +500,15 @@ def save_cache(cache_path: Path, fp: str, passed: bool) -> None:
 # ── Main ─────────────────────────────────────────────────────────────────
 
 def detect_frontend(form_dir: Path) -> Path | None:
-    for candidate in ("plain-html.html", "index.php", "index.html"):
+    for candidate in ("plain-html.html", "index.php", "index.html", "SignupForm.tsx", "SignupForm.jsx"):
         p = form_dir / candidate
         if p.exists():
             return p
     html_files = list(form_dir.glob("*.html"))
-    return html_files[0] if html_files else None
+    if html_files:
+        return html_files[0]
+    jsx_files = list(form_dir.glob("*.tsx")) + list(form_dir.glob("*.jsx"))
+    return jsx_files[0] if jsx_files else None
 
 
 def detect_backend(form_dir: Path, frontend: Path | None) -> Path | None:
@@ -481,7 +537,7 @@ def main() -> int:
     form_dir = args.form_dir
     frontend_path = args.frontend or detect_frontend(form_dir)
     if not frontend_path or not frontend_path.exists():
-        print(f"ERROR: no frontend file found in {form_dir} (looked for plain-html.html / index.php / index.html / *.html)", file=sys.stderr)
+        print(f"ERROR: no frontend file found in {form_dir} (looked for plain-html.html / index.php / index.html / *.html / SignupForm.tsx / *.tsx / *.jsx)", file=sys.stderr)
         return 2
     backend_path = args.backend or detect_backend(form_dir, frontend_path)
 
@@ -496,6 +552,8 @@ def main() -> int:
             return 0
 
     frontend_text = frontend_path.read_text(encoding="utf-8", errors="replace")
+    if frontend_path.suffix in (".tsx", ".jsx"):
+        frontend_text = extract_tsx_form_source(frontend_text)
     backend_text = backend_path.read_text(encoding="utf-8", errors="replace") if backend_path else ""
     # conditional_logic must check actual JS wiring, not markup proximity —
     # if the backend is JS/TS (no separate frontend script), fall back to

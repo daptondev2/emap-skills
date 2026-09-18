@@ -1417,6 +1417,15 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         }
 
         if (res.status === 422) {
+          // A stale/typo'd partner_key rejects the WHOLE signup, not just its
+          // attribution (verified against the live API). Degrade gracefully:
+          // retry once without it so the merchant isn't blocked by a key
+          // problem that isn't theirs to fix.
+          if (data.errors && data.errors.partner_key && payload.partner_key) {
+            var retryPayload = Object.assign({}, payload);
+            delete retryPayload.partner_key;
+            return submitStep(stepNum, retryPayload, btn, btnLabel);
+          }
           showAlert('error', 'Please correct the errors below.');
           displayServerErrors(data.errors || {});
           btn.disabled = false; btn.textContent = btnLabel;
@@ -1545,10 +1554,16 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         (group.interests || []).forEach(function (interest) {
           var item = document.createElement('div');
           item.className = 'checkbox-item';
-          item.innerHTML =
-            '<input type="checkbox" id="interest_' + interest.id + '" ' +
-            'name="other_interests_capital[]" value="' + interest.id + '">' +
-            '<label for="interest_' + interest.id + '">' + interest.name + '</label>';
+          var cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.id = 'interest_' + interest.id;
+          cb.name = 'other_interests_capital[]';
+          cb.value = interest.id;
+          var lbl = document.createElement('label');
+          lbl.setAttribute('for', 'interest_' + interest.id);
+          lbl.textContent = interest.name;
+          item.appendChild(cb);
+          item.appendChild(lbl);
           container.appendChild(item);
         });
       });
@@ -2270,10 +2285,11 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         delete payload['marketingModel[]'];
       }
 
-      // federal_tax_id: hidden+disabled+non-required whenever country=CA OR
-      // org=Sole-Proprietorship (OR, matching EMAP's real dependsOn/manageFederalTaxId
-      // logic — see the note in updateFederalTaxVisibility() above). Disabled
-      // fields are never in FormData, so this only fires when the group is visible.
+      // federal_tax_id: hidden+disabled+non-required only when country=CA
+      // (CA-only, see the note in updateFederalTaxVisibility() above — NOT
+      // also exempt for Sole-Proprietorship, verified against the live API).
+      // Disabled fields are never in FormData, so this only fires when the
+      // group is visible.
       var einGrp = document.getElementById('federal_tax_id_group');
       var einVal = (payload.federal_tax_id || '').trim();
       var einCountry = (step1Country || '').toUpperCase();
@@ -2296,9 +2312,10 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         }
       }
 
-      // business_register_number: hidden+non-required when country=US, country=PR,
-      // OR (country=CA AND org=Sole-Proprietorship) — matches EMAP's own signup
-      // form's exemption rule exactly (not just "non-US").
+      // business_register_number: hidden+non-required only when country=US
+      // (US-only, see the note in updateFederalTaxVisibility() above — NOT
+      // also exempt for PR or CA+Sole-Proprietorship, verified against the
+      // live API).
       var regGrp = document.getElementById('business_register_number_group');
       if (regGrp && window.getComputedStyle(regGrp).display !== 'none') {
         var regVal = (payload.business_register_number || '').trim();
