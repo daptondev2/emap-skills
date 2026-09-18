@@ -253,14 +253,15 @@ export async function POST_step2(request: NextRequest): Promise<NextResponse> {
   // country_from_step1 is sent by the client for this check only; it is never
   // forwarded to EMAP (stripped below).
   const country = String(body.country_from_step1 ?? '').trim().toUpperCase();
-  const businessOrganized = String(body.business_organized ?? '').trim();
-  const isSoleProp = businessOrganized === 'Sole-Proprietorship';
   const errors: Record<string, string[]> = {};
 
-  // federal_tax_id: required unless country=CA OR org=Sole-Proprietorship (OR —
-  // matches manageFederalTaxId in EMAP's own variantA/step2 js.blade.php; the
-  // schema's visibleIf.logic uses AND instead and is stale/wrong — see SKILL.md).
-  const einRequired = !(country === 'CA' || isSoleProp);
+  // federal_tax_id: required for every country except Canada. EMAP's signup
+  // form also treats a Sole-Proprietorship as exempt, but live testing shows
+  // the API does not honor that exemption — verified against both a US and a
+  // Germany Sole-Proprietorship submission, both rejected with "required for
+  // all companies except Canada and Sole-Proprietorships" when the field was
+  // omitted. Canada is the only exemption that actually works.
+  const einRequired = country !== 'CA';
   const ein = String(body.federal_tax_id ?? '').trim();
   if (einRequired) {
     if (!ein) {
@@ -278,10 +279,12 @@ export async function POST_step2(request: NextRequest): Promise<NextResponse> {
     }
   }
 
-  // business_register_number: required unless country=US, country=PR, OR
-  // (country=CA AND org=Sole-Proprietorship) — matches manageBusinessRegistrationNumber
-  // exactly (not just "non-US").
-  const regRequired = !(country === 'US' || country === 'PR' || (country === 'CA' && isSoleProp));
+  // business_register_number: required for every country except US. EMAP's
+  // signup form also treats Puerto Rico and a CA Sole-Proprietorship as
+  // exempt, but live testing shows the API requires it for both — verified
+  // against a live Puerto Rico submission, rejected when the field was
+  // omitted. US is the only exemption that actually works.
+  const regRequired = country !== 'US';
   const regNumber = String(body.business_register_number ?? '').trim();
   if (regRequired && !regNumber) {
     errors.business_register_number = ['Business registration number is required'];

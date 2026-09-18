@@ -392,7 +392,9 @@ header('Referrer-Policy: no-referrer');
 
   // Industry type → other field (check data-slug, not value, since value is now the name)
   document.getElementById('industry_type').addEventListener('change', function () {
-    const isOther = this.options[this.selectedIndex]?.dataset.slug === 'other';
+    // EMAP's live /api/partner/industry-types returns the catch-all option's
+    // slug as "Other" (capitalized) — compare case-insensitively.
+    const isOther = (this.options[this.selectedIndex]?.dataset.slug || '').toLowerCase() === 'other';
     const grp = document.getElementById('industry_type_other_group');
     const inp = document.getElementById('industry_type_other');
     grp.style.display = isOther ? 'block' : 'none';

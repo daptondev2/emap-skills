@@ -276,10 +276,24 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
    > expression as its visibility** — read both conditions from `signup-steps-schema.json`
    > separately, and when EMAP's own Blade/JS source for that step is available, cross-check
    > against it rather than trusting either schema field blindly.
-   - `industry_type` is collected in **Step 1** (not Step 2) and submitted with `POST /api/v1/signup`. Show `industry_type_other` when `industry_type = other` (step 1).
+   >
+   > **Even EMAP's own signup form can disagree with its own API** — this was found the hard way
+   > testing the generated form end-to-end against the live API, not just by reading the schema.
+   > `federal_tax_id`'s Sole-Proprietorship exemption is real in EMAP's signup UI, but live testing
+   > shows **the API requires `federal_tax_id` for a Sole-Proprietorship in every country except
+   > Canada**, regardless of what the signup form does: a US and a Germany Sole-Proprietorship both
+   > submitted without `federal_tax_id` got a live 422 — `"Federal tax ID (or equivalent) is
+   > required for all companies except Canada and Sole-Proprietorships"` — a message that is,
+   > ironically, wrong about the very behavior it enforces. A form built to match the signup UI's
+   > leniency (hiding/un-requiring the field for any non-CA sole prop) hits that same 422. The same
+   > pattern hit `business_register_number`: EMAP's signup form also exempts Puerto Rico and
+   > CA+Sole-Proprietorship, but a live Puerto Rico submission without it was rejected too — the API
+   > only exempts `US`. **When a schema note and EMAP's own signup form agree with each other, that
+   > is not enough confidence — verify against a real POST to the live API before trusting either.**
+   - `industry_type` is collected in **Step 1** (not Step 2) and submitted with `POST /api/v1/signup`. Show `industry_type_other` when `industry_type = other`, matched **case-insensitively** — the live `/api/partner/industry-types` endpoint's catch-all slug is `Other` (capitalized), not `other` (step 1).
    - `country=US` → show `business_state` (step 1) and `state.1` (step 4).
-   - `business_organized` is `Sole-Proprietorship` **OR** `emap_country` (Step 1) = `CA` → hide/disable & un-require `federal_tax_id` (step 2). Otherwise it's shown, required, and masked per `countryVariants` (see point 9).
-   - `emap_country` (Step 1) = `US`, `emap_country` = `PR`, **OR** (`emap_country` = `CA` **AND** `business_organized` = `Sole-Proprietorship`) → hide/un-require `business_register_number` (step 2). It is not simply "non-US" — Puerto Rico and the Canada+Sole-Proprietorship combination are also exempt.
+   - `emap_country` (Step 1) = `CA` → hide/disable & un-require `federal_tax_id` (step 2). This is the ONLY real exemption — do not also exempt Sole-Proprietorship (see the callout above). Otherwise it's shown, required, and masked per `countryVariants` (see point 9).
+   - `emap_country` (Step 1) = `US` → hide/un-require `business_register_number` (step 2). This is the ONLY real exemption — do not also exempt Puerto Rico or CA+Sole-Proprietorship (see the callout above).
    - `is_physical_address_same_as_legal_address=0` → show the physical address block (step 2).
    - `marketingModel` includes `2` → show `subscription_frequency`; if frequency=`3` show `subscription_frequency_other` (step 2).
    - `fulfillment_by` is `Vendor` or `Others` → show `fullfillment_company` (double-l, step 3).
@@ -288,6 +302,11 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
    - `country.1=US` → show `driver_license_state.1` and `driver_license_expiration_date.1` (step 4).
    - `emap_country` (Step 1) = `CA` → show `institution_number` + `customer_pay_currency` (step 5).
    - `bad_experience=true` → show `bad_experience_happened` (step 6).
+   - `howdidyouhear` is "Other", "Friend", or "Live Event / Trade Show" → show `hear_about_us_other`
+     (step 6). The public `/api/partner/referral-sources` endpoint returns only `name`/`slug` — no
+     id — verified against the live API. Match on slug/name text instead (`Other`, `Friend`,
+     `Live-Event-/-Trade-Show`); an id-based check can never fire against the partner API and
+     silently ships a "tell us more" field that never appears.
 
 8. **Widget type — never guess, always resolve from the schema.** These fields are hardcoded
    value sets, not dynamic dropdown data, and have repeatedly been generated as a `<select>` of

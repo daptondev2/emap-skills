@@ -453,7 +453,9 @@ header('X-Content-Type-Options: nosniff');
   document.getElementById('industry_type').addEventListener('change', function() {
     const grp = document.getElementById('industry_type_other_group');
     const inp = document.getElementById('industry_type_other');
-    const isOther = this.value === 'other';
+    // EMAP's live /api/partner/industry-types returns the catch-all option's
+    // slug as "Other" (capitalized) — compare case-insensitively.
+    const isOther = (this.value || '').toLowerCase() === 'other';
     grp.style.display = isOther ? 'block' : 'none';
     inp.required = isOther;
     if (!isOther) inp.value = '';
@@ -508,7 +510,7 @@ header('X-Content-Type-Options: nosniff');
       setError('industry_type', 'Industry type is required');
       return;
     }
-    if (data.industry_type === 'other' && !data.industry_type_other) {
+    if ((data.industry_type || '').toLowerCase() === 'other' && !data.industry_type_other) {
       setError('industry_type_other', 'Please describe your industry');
       return;
     }

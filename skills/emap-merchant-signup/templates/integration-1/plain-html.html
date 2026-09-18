@@ -357,7 +357,6 @@
       <div class="form-group" id="federal_tax_id_group">
         <label for="federal_tax_id" id="federal_tax_id_label">Federal Tax ID <span class="required">*</span> <span class="hint" id="federal_tax_id_hint"></span></label>
         <input id="federal_tax_id" name="federal_tax_id" type="text" inputmode="numeric" maxlength="11" placeholder="XXX-XX-XXXX" autocomplete="off">
-        <small class="hint" id="federal_tax_id_soleprop_hint" style="display:none">Sole proprietors: you'll be asked for your SSN in the Ownership step instead.</small>
         <span class="field-error" id="err_federal_tax_id"></span>
       </div>
 
@@ -1772,7 +1771,10 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
     document.getElementById('industry_type').addEventListener('change', function () {
       var grp = document.getElementById('industry_type_other_group');
       var inp = document.getElementById('industry_type_other');
-      var isOther = this.value === 'other';
+      // EMAP's live /api/partner/industry-types returns the catch-all option's
+      // slug as "Other" (capitalized) — compare case-insensitively so this
+      // doesn't silently fail to match the actual API value.
+      var isOther = (this.value || '').toLowerCase() === 'other';
       grp.style.display = isOther ? 'block' : 'none';
       inp.required = isOther;
       if (!isOther) inp.value = '';
@@ -1787,7 +1789,6 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
     });
 
     function updateFederalTaxVisibility() {
-      var org = document.getElementById('business_organized').value;
       // Schema keys federal_tax_id/business_register_number conditions on
       // country_from_step1 (the Step 1 formation country) exclusively —
       // do NOT blend in address_country (a separate Step 2 legal-address field).
@@ -1795,34 +1796,33 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       var isUS = country === 'US' || country === '';
       var isCA = country === 'CA';
       var isPR = country === 'PR';
-      var isSoleProp = org === 'Sole-Proprietorship';
       var taxGrp = document.getElementById('federal_tax_id_group');
       var taxInp = document.getElementById('federal_tax_id');
       var regGrp = document.getElementById('business_register_number_group');
       var regInp = document.getElementById('business_register_number');
-      var solepropHint = document.getElementById('federal_tax_id_soleprop_hint');
 
-      // EMAP's variantA/step2 source (manageFederalTaxId in js.blade.php) hides
-      // and un-requires federal_tax_id on an OR condition — country=CA OR
-      // org=Sole-Proprietorship — not the AND the schema's stale visibleIf.logic
-      // implies (see SKILL.md's "shipped broken twice" note). Verified against
-      // the live form: there the field isn't even removed from the DOM, it's
-      // just disabled+cleared+non-required under this same OR condition, so a
-      // single OR-based hide reproduces the real behavior faithfully.
-      var hideTax = isCA || isSoleProp;
+      // federal_tax_id is required for every country except Canada. EMAP's
+      // signup form also treats a Sole-Proprietorship as exempt, but live
+      // testing shows the API does not honor that exemption — verified
+      // against both a US and a Germany Sole-Proprietorship submission, both
+      // rejected with "required for all companies except Canada and
+      // Sole-Proprietorships" when the field was omitted. Canada is the only
+      // exemption that actually works.
+      var hideTax = isCA;
       taxGrp.style.display = hideTax ? 'none' : 'block';
       if (taxInp) {
         taxInp.disabled = hideTax;
         taxInp.required = !hideTax;
         if (hideTax) taxInp.value = '';
       }
-      if (solepropHint) solepropHint.style.display = (isSoleProp && !isCA) ? 'inline' : 'none';
 
-      // business_register_number: hidden/non-required when country=US, country=PR,
-      // OR (country=CA AND org=Sole-Proprietorship) — mirrors manageBusinessRegistrationNumber
-      // in js.blade.php exactly (it also exempts Puerto Rico and CA sole props,
-      // not just US).
-      var hideReg = isUS || isPR || (isCA && isSoleProp);
+      // business_register_number is required for every country except US.
+      // EMAP's signup form also treats Puerto Rico and a CA
+      // Sole-Proprietorship as exempt, but live testing shows the API
+      // requires it for both — verified against a live Puerto Rico
+      // submission, rejected when the field was omitted. US is the only
+      // exemption that actually works.
+      var hideReg = isUS;
       regGrp.style.display = hideReg ? 'none' : 'block';
       if (regInp) {
         regInp.required = !hideReg;
@@ -2081,14 +2081,23 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
     });
 
     // Step 6: howdidyouhear → hear_about_us_other
-    // Shown when the selected referral source's underlying ID (from
-    // /api/referral-sources, carried on each <option> as data-id) is one of
-    // these — matching on option text is unreliable since copy can change.
-    var HEAR_ABOUT_US_OTHER_IDS = [50, 14, 8];
+    // EMAP's signup flow asks for more detail when the referral source is
+    // "Other", "Friend", or "Live Event / Trade Show". The public
+    // /api/partner/referral-sources endpoint returns only name/slug — no id
+    // (verified against the live API) — so matching by an id list (as an
+    // earlier version of this file did) can never fire. Match on the known
+    // slugs instead, with a text-based fallback in case EMAP adds a
+    // differently-slugged "other"-type source later.
+    var HEAR_ABOUT_US_OTHER_SLUGS = ['other', 'friend', 'live-event-/-trade-show'];
     document.getElementById('howdidyouhear').addEventListener('change', function () {
       var opt = this.options[this.selectedIndex];
-      var selectedId = opt ? Number(opt.getAttribute('data-id')) : NaN;
-      var needsDetail = HEAR_ABOUT_US_OTHER_IDS.indexOf(selectedId) !== -1;
+      var slug = (this.value || '').toLowerCase();
+      var txt = opt ? opt.textContent.toLowerCase() : '';
+      var needsDetail = HEAR_ABOUT_US_OTHER_SLUGS.indexOf(slug) !== -1 ||
+                         txt.indexOf('other') !== -1 ||
+                         txt.indexOf('friend') !== -1 ||
+                         txt.indexOf('live event') !== -1 ||
+                         txt.indexOf('trade show') !== -1;
       var grp = document.getElementById('hear_other_group');
       var inp = document.getElementById('hear_about_us_other');
       grp.style.display = needsDetail ? 'block' : 'none';
@@ -2157,7 +2166,7 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       if (d.country === 'US' && !d.business_state)
                                  errs.business_state = 'State is required for US businesses';
       if (!d.industry_type)      errs.industry_type = 'Industry type is required';
-      if (d.industry_type === 'other' && !d.industry_type_other)
+      if ((d.industry_type || '').toLowerCase() === 'other' && !d.industry_type_other)
                                  errs.industry_type_other = 'Please describe your industry';
 
       if (Object.keys(errs).length) {
