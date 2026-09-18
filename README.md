@@ -83,9 +83,9 @@ emap-skills/
         │   └── dropdown-fallbacks.json ................ Static fallback data if a live dropdown call fails
         │
         ├── templates/ ................................ Ready-made code per integration mode — pure client-side, no backend
-        │   ├── integration-1/ ........................ Full form: plain-html.html, SignupForm.tsx (Next.js client component)
-        │   ├── integration-2/ ........................ Redirect handoff: plain-html.html, SignupForm.tsx (Next.js client component)
-        │   └── integration-3/ ........................ Email-based signup: plain-html.html, SignupForm.tsx (Next.js client component)
+        │   ├── integration-1/ ........................ Full form: README.md, plain-html.html, SignupForm.tsx (Next.js client component)
+        │   ├── integration-2/ ........................ Redirect handoff: README.md, plain-html.html, SignupForm.tsx (Next.js client component)
+        │   └── integration-3/ ........................ Email-based signup: README.md, plain-html.html, SignupForm.tsx (Next.js client component)
         │
         └── verify/ .................................... Deterministic, script-based build verification
             ├── SKILL.md ............................... How to run it, what it checks, what it can't catch
