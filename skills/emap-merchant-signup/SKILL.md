@@ -2,12 +2,15 @@
 name: emap-merchant-signup
 description: >-
   Guides a partner building an EMAP merchant-signup form on their own
-  website. Pure client-side (HTML+CSS+JS, or a Next.js Client Component) —
-  no backend of any kind for any integration mode; every step is POSTed
-  directly from the browser to EMAP's API. Covers Integration 1 (full form —
+  website, in any tech stack (React/Next.js, Vue/Nuxt, Angular, Svelte,
+  PHP/WordPress, Rails, Django, ASP.NET, static sites, site builders).
+  Every EMAP API call is made from the merchant's browser, never from the
+  partner's server, so EMAP can rate-limit by the merchant's real IP.
+  Covers Integration 1 (full form —
   all 6 signup steps hosted on the partner site), Integration 2 (redirect
   handoff — browser redirects to EMAP with step-1 data in URL params, EMAP
-  prefills and auto-submits the form), and Integration 3 (email-based signup —
+  prefills its form and submits it for the merchant when the data passes its
+  validation), and Integration 3 (email-based signup —
   step-1 data is POSTed directly to EMAP's REST API from the browser, EMAP
   creates the record and emails the merchant a secure link to complete their
   full application). Provides field references, code templates, and a
@@ -24,8 +27,8 @@ with Integration 1, the partner hosts all 6 steps themselves.
 **Contents**
 - [Before you start — Required questions](#before-you-start--required-questions) ← **start here, always**
 - [Reference files](#reference-files) — load only when implementing that feature
-- [Step 0: Detect project setup](#step-0-detect-project-setup)
-- [Step 1: Install the verify gate hook](#step-1-install-the-verify-gate-hook) ← **do this before writing any code**
+- [Step 0: Detect the project's stack](#step-0-detect-the-projects-stack)
+- [Step 1: Install the verify gate](#step-1-install-the-verify-gate) ← **do this before writing any code**
 - [Step 2: Partner attribution (optional)](#step-2-partner-attribution-optional)
 - [Step 3: Choose integration mode](#step-3-choose-integration-mode)
 - [Build Integration 1: Full form](#build-integration-1-full-form)
@@ -39,36 +42,36 @@ with Integration 1, the partner hosts all 6 steps themselves.
 
 ## Before you start — Required questions
 
-> **STOP. Do not read any reference files, do not open any templates, and do not generate any code until BOTH questions below have been asked and answered by the developer.**
+> **STOP. Do not read any reference files, do not open any templates, and do not generate any code until the two questions below have been asked and answered by the developer.** These are the only two questions to ask up front; ask about the stack only if [Step 0](#step-0-detect-the-projects-stack) can't detect it.
 
 ### Question 1 — Which integration variant?
 
-Use AskUserQuestion with exactly these 3 options (no other options, no sequence numbers in labels):
+Ask the developer to pick one of exactly these 3 options, and no others. If your agent has a multiple-choice question tool, use it, with the bold text as each option's label and the rest as its description (no sequence numbers in labels). Otherwise, ask in plain text as a numbered list and wait for the answer.
 
-- **Full form (Integration 1)** — You host the entire 6-step merchant signup experience on your site. The merchant completes all steps (1–6) without ever leaving your platform. Each step is POSTed directly from the browser to EMAP's API. Pure client-side — no backend.
-- **Redirect handoff (Integration 2)** — The merchant fills out a single step-1 form on your site. On submit, they are redirected straight into EMAP's onboarding signup flow to complete the remaining steps. Pure client-side — no backend.
-- **Email-based signup (Integration 3)** — The merchant fills out a single step-1 form on your site, which POSTs it directly to EMAP from the browser. EMAP creates their account and sends them a secure resume link by email. The merchant clicks the link and continues the full onboarding flow from their inbox. Pure client-side — no backend.
+- **Full form (Integration 1)** — You host the entire 6-step merchant signup experience on your site. The merchant completes all steps (1–6) without ever leaving your platform. Each step is POSTed directly from the browser to EMAP's API. Works in any stack; EMAP is called from the merchant's browser.
+- **Redirect handoff (Integration 2)** — The merchant fills out a single step-1 form on your site. On submit, they are redirected straight into EMAP's onboarding signup flow to complete the remaining steps. Works in any stack; EMAP is called from the merchant's browser.
+- **Email-based signup (Integration 3)** — The merchant fills out a single step-1 form on your site, which POSTs it directly to EMAP from the browser. EMAP creates their account and sends them a secure resume link by email. The merchant clicks the link and continues the full onboarding flow from their inbox. Works in any stack; EMAP is called from the merchant's browser.
 
 Do not proceed until the developer has chosen one of the three variants.
 
 ### Question 2 — Partner key
 
-After the developer has chosen their variant, use AskUserQuestion with exactly these 3 options. The description for each option must include the retrieval instructions exactly as written below — this is what the developer reads to know where to find or get their key. Also tell them, before they answer: **this form is pure client-side, so the key will be embedded directly in the page's JavaScript and visible to anyone who views the page source.** EMAP treats it purely as an attribution/referral value (not a credential that grants access to anything), so the practical risk of exposure is another site's signups being mis-attributed to this key, not a security breach — but they should know that before deciding.
+After the developer has chosen their variant, ask them to pick one of exactly these 3 options, the same way as Question 1 (a multiple-choice question tool if your agent has one, otherwise a numbered list in plain text). The description for each option must include the retrieval instructions exactly as written below — this is what the developer reads to know where to find or get their key. Also tell them, before they answer: **EMAP is called from the merchant's browser, so the key will be embedded directly in the page's JavaScript and visible to anyone who views the page source.** EMAP treats it purely as an attribution/referral value (not a credential that grants access to anything), so the practical risk of exposure is another site's signups being mis-attributed to this key, not a security breach — but they should know that before deciding.
 
 - **Yes, I have a partner key** — description: "Log in to the partner portal → Integration → API Integration → copy the API key shown there → paste it here."
 - **No, I don't have a partner key** — description: "Sign up as a partner at https://emap.easypaydirect.com/signup/partner. Once registered, go to Integration → API Integration → copy the partner key → come back and paste it here."
 - **Skip (proceed without a key)** — description: "Signups will still work, but they won't be attributed to your partner account. Choose this if you'd rather not have the key visible in your page's source."
 
 **If the developer selects "Yes, I have a partner key":**
-Ask them to paste the key now. Store it mentally as `EMAP_PARTNER_KEY` — you'll write it directly into the `EMAP_PARTNER_KEY` constant in the generated file(s) later. Proceed to Step 0.
+Ask them to paste the key now. Remember it as `EMAP_PARTNER_KEY` — you'll write it directly into the `EMAP_PARTNER_KEY` constant in the generated file(s) later. Proceed to Step 0.
 
 **If the developer selects "No, I don't have a partner key":**
-Tell them to follow the sign-up link in the option description above, then come back and paste their key in the chat when ready. Proceed to Step 0 without a key for now — if they paste it later, write it into the `EMAP_PARTNER_KEY` constant in the generated file(s).
+Tell them to follow the sign-up link in the option description above, then come back and paste their key when ready. Proceed to Step 0 without a key for now — if they paste it later, write it into the `EMAP_PARTNER_KEY` constant in the generated file(s).
 
 **If the developer selects "Skip (proceed without a key)":**
 Proceed to Step 0 without a partner key.
 
-> **Only after both questions are answered** should you continue to [Step 0](#step-0-detect-project-setup) and begin reading reference files or generating code.
+> **Only after both questions are answered** should you continue to [Step 0](#step-0-detect-the-projects-stack) and begin reading reference files or generating code.
 
 ---
 
@@ -84,81 +87,108 @@ Load a reference only when implementing that feature — do not read all upfront
 | [`references/mode-2-redirect.md`](references/mode-2-redirect.md) | implementing Integration 2 — URL construction, auto-submit logic, partner attribution, UTM pass-through |
 | [`references/mode-3-api.md`](references/mode-3-api.md) | implementing Integration 3 — email-based signup API contract, request/response shapes, resume link, error handling |
 | [`references/api-errors.md`](references/api-errors.md) | handling errors — all HTTP status codes, response shapes, and recommended developer actions |
+| [`references/stack-guide.md`](references/stack-guide.md) | Step 0: delivering the form in the project's stack. Covers stack detection, React / Vue / Angular / Svelte / server-rendered / static / site-builder / mobile delivery, native-port rules, and which server-side code must never call EMAP |
 | [`references/security-checklist.md`](references/security-checklist.md) | before going live — all security requirements that must pass |
-| [`references/dropdown-fallbacks.json`](references/dropdown-fallbacks.json) | building any integration — static snapshot of every EMAP `/api/partner/*` dropdown response, embedded directly in the client-side fallback data (see each template's `EMAP_DROPDOWN_FALLBACKS`/`FALLBACK_COUNTRIES` constant) and used when the live call fails or returns no usable data |
-| [`verify/SKILL.md`](verify/SKILL.md) | after writing or editing any form file, before calling a build done — how to run [`verify_form.py`](verify/scripts/verify_form.py), what its 4 checks cover, and what it cannot catch |
+| [`references/dropdown-fallbacks.json`](references/dropdown-fallbacks.json) | building any integration — static snapshot of every EMAP `/api/partner/*` dropdown response, embedded in each template's `EMAP_DROPDOWN_FALLBACKS` constant and used when the live call fails or returns no usable data. Captured from EMAP's test server; re-capture once production serves the API |
+| [`references/api-quirks.md`](references/api-quirks.md) | building Integration 1 — API behaviour that differs from EMAP's own signup page (tax ID and register number exemptions, SSN country, referral and industry matching), with the reasons behind the rules in this file |
+| [`verify/README.md`](verify/README.md) | after writing or editing any form file, before calling a build done — how to run [`verify_form.py`](verify/scripts/verify_form.py), what its 5 check categories cover, and what it cannot catch |
 
 ---
 
-## Step 0: Detect project setup
+## Step 0: Detect the project's stack
 
-Every integration is pure client-side (HTML+CSS+JS, or a Next.js Client Component) — there is no
-backend, no server framework, no API route, and no environment variable to configure for any of
-the three modes. All three integrations are available regardless of what the target project looks
-like (static site, Next.js app, whatever) — the only thing that varies is which file you copy in:
+The form works in **any stack**. The one architectural rule concerns where the EMAP requests come
+from, not which framework renders the page:
 
-- **Plain HTML/JS site (or any non-Next.js stack)** → use `templates/integration-<n>/plain-html.html`
-  as-is. It is a single, self-contained, zero-build-step file — drop it in and it works.
-- **Next.js app** → use `templates/integration-<n>/SignupForm.tsx`. It is a `'use client'` Client
-  Component — import and render it from any page (`app/signup/page.tsx`, etc.). Do **not** create
-  an `app/api/*/route.ts` file for this — there is nothing for it to do; every step is called
-  directly from the browser.
-
-Ask the developer which of these two applies before generating anything.
-
----
-
-## Step 1: Install the verify gate hook
-
-> **STOP. Do not write, edit, or generate a single form file — in a brand-new project or
-> an existing one you're continuing — until all 3 steps below are done.** This applies even if
-> `merchant-signup/`, templates, or other build output already exist in this project from an
-> earlier session: existing code does not mean the hook was ever installed. Check for
-> `.claude/hooks/emap_stop_gate.py` first; if it's missing, treat this project as never having
-> done Step 1, regardless of what else is already built.
+> **Every EMAP call (all `POST`s, the `/api/partner/*` dropdown `GET`s, and the Integration 2
+> redirect) is made by the merchant's browser, never by the partner's server.** EMAP rate-limits
+> and abuse-scores signups by the caller's IP. Proxied through the partner's server, every
+> merchant would share that server's IP: one abuser would get all of the partner's signups
+> rate-limited, and EMAP would lose its per-merchant spam signal.
 >
-> This wires up an automated Stop-hook so a build cannot be silently declared "done" after only
-> manual curl/browser testing — it re-runs [`verify_form.py`](verify/scripts/verify_form.py) itself
-> (not a self-reported status field) and blocks the session from ending until it actually passes.
-> See [Verify: schema conformance](#verify-schema-conformance) for what that script checks.
+> The site may have any backend for everything else. Server-rendered pages are fine as long as the
+> EMAP request is made by JavaScript in the page. Never call EMAP from any of these:
+> - route handlers, API routes, Server Actions
+> - loaders or actions
+> - SSR data fetching
+> - controllers, `curl` / `wp_remote_post`, serverless functions
+>
+> [`references/stack-guide.md`](references/stack-guide.md) lists the exact server-side APIs to avoid,
+> per framework.
 
-These 3 steps touch 3 different files and none depends on another's *output* — do them as
-**parallel tool calls in the same message** rather than one at a time:
+Detect the stack from the project's files: `package.json` dependencies, `composer.json`, `Gemfile`,
+`manage.py`, `*.csproj`, SSG config, and so on. The signals are listed in the stack guide. Ask the
+developer only if the signals are missing or conflicting. Then deliver the form as follows:
 
-1. **Copy the hook, the script, and a schema snapshot** into the target project's `.claude/hooks/`:
-   - [`verify/hooks/emap_stop_gate.py`](verify/hooks/emap_stop_gate.py) → `.claude/hooks/emap_stop_gate.py`
-   - [`verify/scripts/verify_form.py`](verify/scripts/verify_form.py) → `.claude/hooks/verify_form.py`
-   - [`signup-steps-schema.json`](signup-steps-schema.json) → `.claude/hooks/signup-steps-schema.json`
-   All 3 exact contents, byte-for-byte — the hook expects the other two next to it at those exact
-   names. Make the hook executable (`chmod +x .claude/hooks/emap_stop_gate.py`).
+| Project | Deliver |
+|---|---|
+| React (Next.js, Vite, Remix / React Router, Gatsby, Astro + React) | `templates/integration-<n>/SignupForm.tsx`. Render it from any page. For JS-only projects, rename it `.jsx` and drop the types |
+| Vue / Nuxt, Angular, Svelte / SvelteKit, Solid, other component frameworks | Mount `plain-html.html`'s markup and script in a client-only mount hook, the way `SignupForm.tsx` does (recommended), or do a native 1:1 port |
+| Server-rendered (PHP / WordPress / Laravel, Rails, Django / Flask, ASP.NET, Twig / Liquid / etc.) | Embed `plain-html.html`: its CSS and script as static asset files, its `.emap-signup` markup in the page template |
+| Static site / SSG | `plain-html.html` as its own page, or embedded as above |
+| Hosted site builder (Webflow, Wix, Squarespace, Shopify, Framer) | A custom-code embed block, or host `plain-html.html` and iframe or link it |
+| Mobile app | Load a hosted `plain-html.html` in a WebView |
 
-2. **Register the hook.** Read [`verify/hooks/settings.snippet.json`](verify/hooks/settings.snippet.json)
-   and merge its `hooks` key into the target project's `.claude/settings.json`:
-   - If `.claude/settings.json` doesn't exist, create it with just that `hooks` key.
-   - If it exists but has no `hooks.Stop`, add the `hooks.Stop` array from the snippet.
-   - If `hooks.Stop` already has entries, **append** the snippet's single entry to the existing
-     array — never overwrite another hook that's already registered there.
+Read [`references/stack-guide.md`](references/stack-guide.md) for the per-stack details: SSR pitfalls,
+template-engine escaping, CSP, iframes, and the porting rules for native ports.
 
-3. **Mark the build in progress.** As soon as you start generating code for a chosen integration
-   mode, write `.claude/emap-build-state.json`:
+Both templates are the same tested form. The `plain-html.html` CSS is scoped under `.emap-signup`
+and its script is IIFE-wrapped and starts via `onReady()`, so it can be embedded into an existing
+page without leaking styles or globals. Put every file of the generated form under one `form_dir`
+that holds nothing else. `verify_form.py` scans it recursively for all frontend source types.
+
+---
+
+## Step 1: Install the verify gate
+
+> **STOP. Do not write, edit, or generate a single form file until this step is done**, in a
+> brand-new project or one you're continuing. Existing form code in the project does not mean the
+> gate was installed. Check for `.emap/emap_gate.py` first. If it's missing, do this step, no
+> matter what else is already built.
+>
+> The gate decides when a build is done. [`emap_gate.py`](verify/scripts/emap_gate.py) runs
+> [`verify_form.py`](verify/scripts/verify_form.py) itself and records the result; it never trusts
+> a status you wrote. It is plain Python 3, so it works with any agent that can run a shell
+> command, in CI, and by hand. See [Verify: schema conformance](#verify-schema-conformance) for
+> what the script checks.
+
+1. **Copy three files** into the target project's `.emap/` folder, byte for byte:
+   - [`verify/scripts/emap_gate.py`](verify/scripts/emap_gate.py) → `.emap/emap_gate.py`
+   - [`verify/scripts/verify_form.py`](verify/scripts/verify_form.py) → `.emap/verify_form.py`
+   - [`signup-steps-schema.json`](signup-steps-schema.json) → `.emap/signup-steps-schema.json`
+
+   `.emap/` is build tooling, not part of the form, so don't deploy it. Committing it is fine (it
+   lets CI run the gate). `.emap/verify-cache.json` can be gitignored.
+
+2. **Mark the build in progress.** As soon as you start generating code for a chosen integration
+   mode, write `.emap/build-state.json`:
    ```json
    { "status": "in_progress", "integration": "1", "form_dir": "merchant-signup" }
    ```
-   (use `"2"` or `"3"` to match the mode being built; set `form_dir` to wherever the generated form
-   files actually live, relative to the project root — this is what tells the hook where to point
-   `verify_form.py`). This is what activates the gate — from this point on, the session cannot Stop
-   until a real run of `verify_form.py` passes (the hook checks this itself; see
-   [Verify: schema conformance](#verify-schema-conformance)).
+   Use `"2"` or `"3"` to match the mode being built. Set `form_dir` to the folder holding the
+   generated form files, relative to the project root. That folder should hold nothing else.
 
-**Verify before proceeding:** confirm all 3 files exist under `.claude/hooks/`, the hook is
-executable, and `.claude/settings.json` actually contains the `Stop` hook entry — don't just assume
-the writes succeeded. This check does have to come *after* the parallel writes above complete. Only
-after all 4 files are confirmed on disk should you continue to
+3. **Optional: have your agent enforce the gate automatically.**
+   - **Claude Code:** merge the `hooks` key from
+     [`verify/hooks/claude-code-settings.json`](verify/hooks/claude-code-settings.json) into the
+     target project's `.claude/settings.json`. Create the file if it doesn't exist. If `hooks.Stop`
+     already has entries, **append** this entry and never overwrite the others. Claude Code then
+     can't finish its turn until the gate passes or the build is marked `blocked` or `cancelled`.
+   - **Other agents with a hook that runs when the agent finishes:** register
+     `python3 .emap/emap_gate.py` in that agent's hook format. It exits 0 when there is nothing to
+     block and 1 with the findings on stdout otherwise.
+   - **Agents without hooks:** nothing to install. You run the gate yourself before calling the
+     build done (see [Verify: schema conformance](#verify-schema-conformance)).
+   - **Any agent:** the developer can also run `python3 .emap/emap_gate.py` in CI or a pre-commit
+     hook, so an unverified form can't be merged.
+
+**Check before continuing:** confirm the three files and `.emap/build-state.json` exist on disk
+(and the settings entry, if you added one). Don't assume the writes succeeded. Then continue to
 [Step 2](#step-2-partner-attribution-optional) or begin generating code.
 
-If the target project cannot run Python 3 (rare), tell the developer the automated gate can't be
-installed and that they must run `verify_form.py` manually before accepting the build — do not
-skip Step 1 silently.
+If you can't run Python 3 in this environment (for example, a browser-based app builder), tell the
+developer the gate can't run here and that they must run `python3 .emap/emap_gate.py` on a machine
+with Python 3 before accepting the build. Do not skip Step 1 silently.
 
 ---
 
@@ -167,14 +197,15 @@ skip Step 1 silently.
 Partner attribution links the merchant signup to the partner's account in EMAP.
 It is optional — signups work without it, but the partner will not get credit.
 
-- **Integration 2 (redirect):** Pass `secretKey={partner_key}` as a URL query parameter.
-  The value is the partner's `security_key` from their EMAP account. Set the
-  `EMAP_PARTNER_SECRET_KEY` constant in the template's `<script>` block. There is no backend to
-  hide it behind — it will be visible in the page's JavaScript and in the redirect URL itself.
+Every template uses the same constant, `EMAP_PARTNER_KEY`, set in its `<script>` block. It is an
+attribution value, not a secret: it is visible in the page's JavaScript whichever integration you
+build.
 
-- **Integration 3 (API):** Pass `partner_key` in the JSON body POSTed directly to EMAP from the
-  browser. Set the `EMAP_PARTNER_KEY` constant in the template's `<script>` block — same
-  client-side-visibility tradeoff as above.
+- **Integrations 1 and 3 (API):** the template sends it as `partner_key` in the JSON body of the
+  Step 1 POST.
+- **Integration 2 (redirect):** the template sends it as EMAP's `secretKey` URL parameter. Despite
+  that parameter's name, the value is the same partner key, and it is also visible in the redirect
+  URL.
 
 Never commit a real key value to source control in a public repo, even though it is visible
 client-side once deployed — treat "in the deployed page" and "in git history" as different
@@ -192,19 +223,20 @@ Integration works without a key; signups will simply not be attributed.
 |---|---|---|---|
 | **How it works** | Partner hosts all 6 steps; the browser POSTs each step directly to EMAP's API | Partner hosts a single-step form (same fields as Int-1 Step 1); on submit, all fields are appended as URL params and browser redirects to EMAP `/signup?params` | Partner hosts a single-step form; the browser POSTs step-1 fields directly to EMAP's REST API; EMAP emails the merchant a secure link to complete their application |
 | **Where merchant continues** | Partner's site — all 6 steps | EMAP, from step 2 onward (immediately after redirect) | EMAP, from step 2 onward (after clicking email link) |
-| **Backend required?** | No — pure client-side, direct to EMAP | No — redirect is client-side | No — pure client-side, direct to EMAP |
-| **Auto-submit on EMAP?** | N/A — merchant never visits EMAP | Yes, when all non-excluded step-1 fields are provided | N/A — EMAP processes the record server-to-server |
+| **Server code needed?** | No. The browser calls EMAP directly | No. The redirect is a browser navigation | No. The browser calls EMAP directly |
+| **Auto-submit on EMAP?** | N/A — merchant never visits EMAP | When `first_name`, `last_name`, `company_name`, `phone` and `email` are all present and EMAP's page accepts the prefilled data; otherwise the merchant submits EMAP's prefilled form | N/A — the browser already submitted Step 1 |
 | **Best for** | Full branding control across all 6 steps, enterprise integrations | Simple embed, static sites, fastest integration | Clean partner-side UX for step 1; merchant completes the rest on EMAP after clicking their email link |
 
-Ask the developer which mode they want, or recommend based on their setup from Step 0.
+The developer already chose the mode in Question 1. Don't ask again; use this table only to answer
+their questions about the differences.
 
 ---
 
 ## Build Integration 1: Full form
 
-**Before writing any file below:** check that `.claude/hooks/emap_stop_gate.py` exists in this
+**Before writing any file below:** check that `.emap/emap_gate.py` exists in this
 project. If it doesn't — even if `merchant-signup/` or other build output already exists here —
-go do [Step 1](#step-1-install-the-verify-gate-hook) first.
+go do [Step 1](#step-1-install-the-verify-gate) first.
 
 Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before proceeding.
 
@@ -218,26 +250,32 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
 ### Steps
 
 1. **Use the template** from `templates/integration-1/`:
-   - `plain-html.html` — complete 6-step form, pure client-side, zero build step. Use for any
-     non-Next.js project.
-   - `SignupForm.tsx` — the identical form as a Next.js `'use client'` Client Component. Use for a
-     Next.js project. Do not create an `app/api/*/route.ts` file — there is no backend involved.
-   - If the project needs something neither file fits (e.g. a different framework's component
-     model), **port `plain-html.html` 1:1** — same field list, same widget type per field, same
-     validation, same conditional logic, same direct-to-EMAP `fetch()` calls — rather than
-     regenerating the form from the prose reference alone. Use `signup-steps-schema.json` as the
-     field-by-field spec while porting.
-   - **Don't re-read a template file you've already opened this session** unless you have a
-     concrete reason to think it changed on disk since — reuse the content already in context
-     instead of paying for a second full read of a 2,000+ line file.
+   - `plain-html.html`: the complete 6-step form with no build step. It is the canonical reference.
+     Use it as-is, or embed it into the project's pages (see
+     [Step 0](#step-0-detect-the-projects-stack)).
+   - `SignupForm.tsx`: the identical form as a React component, for any React framework.
+   - For any other component framework, mount the reference or **port `plain-html.html` 1:1**
+     rather than regenerating the form from the prose reference alone. A port keeps:
+     - the same field list
+     - the same widget type per field
+     - the same validation
+     - the same conditional logic
+     - the same browser-side `fetch()` calls to EMAP
 
-2. **Set the two constants at the top of the file's `<script>` block** (search for "EDIT THESE"):
+     Use `signup-steps-schema.json` as the field-by-field spec and follow the porting rules in
+     [`references/stack-guide.md`](references/stack-guide.md).
+   - Whatever the stack, the EMAP calls stay in browser code. Never add a server route, action,
+     or controller that calls EMAP.
+
+2. **Set the two constants at the top of the file's `<script>` block** (search for "EDIT THESE";
+   in `SignupForm.tsx` they are at the top of the `FORM_LOGIC` string):
    ```js
-   var EMAP_BASE_URL = 'https://emap.epd.dev';
+   var EMAP_BASE_URL = 'https://emap.epd.dev'; // EMAP's TEST server
    var EMAP_PARTNER_KEY = ''; // optional — see Step 2 above
    ```
    There is no environment variable, no `.env` file, and no server process to configure — this is
-   the only configuration step.
+   the only configuration step. `https://emap.epd.dev` is EMAP's **test server**: build and test
+   against it, and switch to the production URL Easy Pay Direct gives you before launch.
 
 3. **Dropdowns are fetched directly from EMAP** (`GET {EMAP_BASE_URL}/api/partner/countries`, etc.)
    by the `fetchDropdownData()` function already in the template — there is no proxy route to
@@ -251,7 +289,9 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
    - Step 1 (`POST /api/v1/signup`) returns a `uuid`. Collect: first name, last name, email, phone, company name, website, country, annual sales, **industry type**, and (if US) business state. Store the `uuid` in `localStorage('emap_uuid')`.
    - Steps 2, 3, 5, 6 call `POST /api/v1/application/step` with the `uuid` and the appropriate `step_count`.
    - Step 4 calls `POST /api/v1/ownership` (no `step_count`; uses dot-notation field names).
-   - Step 6 success → clear `localStorage` and show a completion panel.
+   - Step 6 success → clear `localStorage` and redirect the top-level window to EMAP's
+     `{EMAP_BASE_URL}/upload-document/{uuid}?redirect=1` page, where the merchant uploads their
+     documents.
 
 5. **Pre-fill Step 2 from Step 1 data:**
    When Step 1 succeeds and the form advances to Step 2, automatically populate:
@@ -268,38 +308,14 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
    support replaying an earlier step after it has been accepted.
 
 7. **Handle conditional fields:**
-   > **`dependsOn` and `visibleIf` can be genuinely different boolean expressions for the same
-   > field** — one controls whether the field is *required*, the other whether it's *shown*, and
-   > they don't always match. `federal_tax_id` is a real example that has shipped broken twice:
-   > an earlier `signup-steps-schema.json` had `visibleIf.logic` hide it only when country=CA
-   > **AND** business_organized=Sole-Proprietorship (AND), while `dependsOn.logic` made it
-   > non-required when country=CA **OR** business_organized=Sole-Proprietorship (OR) — two
-   > different conditions for the same field. That AND was verified directly against EMAP's own
-   > live signup form's behavior and found stale/wrong: the real form uses the same OR condition
-   > for both effects (it never actually hides the field from the DOM — it disables + clears +
-   > un-requires it under one OR rule). The schema has since been corrected so `visibleIf` and
-   > `dependsOn` agree. The lesson still stands for every other conditional field: **never assume
-   > a field's required-effect follows the same expression as its visibility** — read both
-   > conditions from `signup-steps-schema.json` separately, and cross-check against EMAP's live
-   > signup form's observed behavior rather than trusting either schema field blindly.
-   >
-   > **Even EMAP's own signup form can disagree with its own API** — this was found the hard way
-   > testing the generated form end-to-end against the live API, not just by reading the schema.
-   > `federal_tax_id`'s Sole-Proprietorship exemption is real in EMAP's signup UI, but live testing
-   > shows **the API requires `federal_tax_id` for a Sole-Proprietorship in every country except
-   > Canada**, regardless of what the signup form does: a US and a Germany Sole-Proprietorship both
-   > submitted without `federal_tax_id` got a live 422 — `"Federal tax ID (or equivalent) is
-   > required for all companies except Canada and Sole-Proprietorships"` — a message that is,
-   > ironically, wrong about the very behavior it enforces. A form built to match the signup UI's
-   > leniency (hiding/un-requiring the field for any non-CA sole prop) hits that same 422. The same
-   > pattern hit `business_register_number`: EMAP's signup form also exempts Puerto Rico and
-   > CA+Sole-Proprietorship, but a live Puerto Rico submission without it was rejected too — the API
-   > only exempts `US`. **When a schema note and EMAP's own signup form agree with each other, that
-   > is not enough confidence — verify against a real POST to the live API before trusting either.**
+   > Read `visibleIf` (shown) and `dependsOn` (required) separately for every conditional field;
+   > they are different expressions. Where EMAP's API and its own signup page disagree, follow the
+   > API. The rules below already do; [`references/api-quirks.md`](references/api-quirks.md) has
+   > the evidence for each.
    - `industry_type` is collected in **Step 1** (not Step 2) and submitted with `POST /api/v1/signup`. Show `industry_type_other` when `industry_type = other`, matched **case-insensitively** — the live `/api/partner/industry-types` endpoint's catch-all slug is `Other` (capitalized), not `other` (step 1).
    - `country=US` → show `business_state` (step 1) and `state.1` (step 4).
-   - `emap_country` (Step 1) = `CA` → hide/disable & un-require `federal_tax_id` (step 2). This is the ONLY real exemption — do not also exempt Sole-Proprietorship (see the callout above). Otherwise it's shown, required, and masked per `countryVariants` (see point 9).
-   - `emap_country` (Step 1) = `US` → hide/un-require `business_register_number` (step 2). This is the ONLY real exemption — do not also exempt Puerto Rico or CA+Sole-Proprietorship (see the callout above).
+   - `emap_country` (Step 1) = `CA` → hide/disable & un-require `federal_tax_id` (step 2). This is the ONLY exemption the API grants — do not also exempt Sole-Proprietorship. Otherwise it's shown, required, and masked per `countryVariants` (see point 9).
+   - `emap_country` (Step 1) = `US` → hide/un-require `business_register_number` (step 2). This is the ONLY exemption the API grants — do not also exempt Puerto Rico or CA+Sole-Proprietorship.
    - `is_physical_address_same_as_legal_address=0` → show the physical address block (step 2).
    - `marketingModel` includes `2` → show `subscription_frequency`; if frequency=`3` show `subscription_frequency_other` (step 2).
    - `fulfillment_by` is `Vendor` or `Others` → show `fullfillment_company` (double-l, step 3).
@@ -309,10 +325,8 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
    - `emap_country` (Step 1) = `CA` → show `institution_number` + `customer_pay_currency` (step 5).
    - `bad_experience=true` → show `bad_experience_happened` (step 6).
    - `howdidyouhear` is "Other", "Friend", or "Live Event / Trade Show" → show `hear_about_us_other`
-     (step 6). The public `/api/partner/referral-sources` endpoint returns only `name`/`slug` — no
-     id — verified against the live API. Match on slug/name text instead (`Other`, `Friend`,
-     `Live-Event-/-Trade-Show`); an id-based check can never fire against the partner API and
-     silently ships a "tell us more" field that never appears.
+     (step 6). Match on the slug or name text (`Other`, `Friend`, `Live-Event-/-Trade-Show`); the
+     endpoint returns no id.
 
 8. **Widget type — never guess, always resolve from the schema.** These fields are hardcoded
    value sets, not dynamic dropdown data, and have repeatedly been generated as a `<select>` of
@@ -337,8 +351,7 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
      `XX-XXXXXXX` (2-7 blocks) for every other country. This is the opposite of what the field's
      generic `^[0-9A-Za-z\-]+$` pattern and "EIN" placeholder might suggest — it is never free-form
      alphanumeric, in any country, even though the label reads "...or Corporation Tax Number
-     equivalent" for non-US/CA/PR. Confirmed directly against EMAP's own live signup form's
-     formatting behavior; see the field's `countryVariants` in `signup-steps-schema.json`.
+     equivalent" for non-US/CA/PR. See the field's `countryVariants` in `signup-steps-schema.json`.
    - `institution_number` — see its `countryVariants`/`pattern` in the schema.
 
 10. **Card percentage (step 3):** `card_swiped + customer_entered + staff_entered` must equal 100.
@@ -348,27 +361,17 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
     to format as `XXX-XX-XXXX`, labelled "SSN/SIN". Validate: `ssn.replace(/-/g,'').length >= 9`.
     For every other country, show a plain, unmasked text field labelled "SSN (or personal Tax ID
     equivalent)" with no format check beyond required.
-    > **The country that drives this is `country_from_step1` (the single Step 1 formation
-    > country) — the SAME value applied to BOTH Owner 1's `ssn.1` and Owner 2's `ssn.2`.** It is
-    > **not** each owner's own `country.1`/`country.2` (their home-address country of residence,
-    > which is a separate field used only to gate `driver_license_state.1`/`.2`). Verified directly
-    > against EMAP's own live signup form's behavior: the same single formation-country value is
-    > reused for the Cleave mask applied to every `.owner_ssn` field and for its SSN validation,
-    > regardless of which owner. A per-owner-country implementation is the exact class of bug
-    > bullet 7's `federal_tax_id` warning describes — confirm which field actually drives a
-    > country-dependent rule against EMAP's live observed behavior rather than assuming the
-    > "obvious" per-owner field is the right one.
+    > The country that drives this is `country_from_step1`, the single Step 1 formation country,
+    > for **both** `ssn.1` and `ssn.2`. It is not each owner's own `country.1` / `country.2`, which
+    > only gate the driver-licence fields.
     - Owner 1's SSN (`ssn.1`) is always required. Owner 2's SSN (`ssn.2`) is required only when
       the Owner 2 section is shown (`ownership_percentage.1 < 51`).
 
 12. **DOB (step 4):** Owner must be between 18 and 100 years old.
     `maxDate = today − 18 years`, `minDate = today − 100 years`.
-    Enforce this client-side (date input `min`/`max` attributes plus a submit-time check) — this
-    form has no backend of its own to add a second enforcement layer behind, and EMAP's own API
-    does not enforce this rule server-side either (verified directly against its validation rules),
-    so the client-side check is the only enforcement that exists. A user who calls EMAP directly
-    with a fabricated DOB can bypass it — that was true before this form even existed and is not
-    something this form can close.
+    Enforce this client-side (date input `min`/`max` attributes plus a submit-time check). EMAP's
+    API doesn't check it, so the form's check is the only one; see
+    [`references/api-quirks.md`](references/api-quirks.md).
 
 13. **Handle all response shapes** on each step (see [`references/api-errors.md`](references/api-errors.md)):
     - `{"status":true}` → advance to next step.
@@ -382,26 +385,23 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
     [`verify_form.py`](verify/scripts/verify_form.py) instead (see
     [Verify: schema conformance](#verify-schema-conformance)) and fix exactly what it reports. That
     check is deterministic and near-instant; re-doing it by hand pays for the same ground twice.
-    **This does not replace live testing, though** — the script can only catch a mismatch between
-    the schema and the code. It cannot catch the schema and the code agreeing with each other while
-    both are wrong relative to the live API, which is a real, documented failure mode (see the
-    `federal_tax_id`/`business_register_number` callout in point 7, and "What this script cannot
-    catch" in `verify/SKILL.md`). Once `verify_form.py` passes, still submit at least one live
-    6-step signup for a representative edge case (e.g. a non-CA Sole-Proprietorship) before telling
-    the developer the build is done.
+    **This does not replace a live test.** The script catches a mismatch between the schema and
+    the code, not both being wrong about the API (see "What this script cannot catch" in
+    [`verify/README.md`](verify/README.md)). Once it passes, submit one 6-step signup for a
+    representative edge case (e.g. a non-CA Sole-Proprietorship) against EMAP's **test server**,
+    with an email address you control. Never create test applications on EMAP's production server.
     - **Run the [Verify: schema conformance](#verify-schema-conformance) step**, then
       [Verify: security and coverage](#verify-security-and-coverage), before telling the developer
-      the form is done. The verify gate hook (Step 1) will block the session from ending until
-      `verify_form.py` actually passes.
+      the form is done. The build is not done until `python3 .emap/emap_gate.py` prints `PASS`.
 
 
 ---
 
 ## Build Integration 2: Redirect handoff
 
-**Before writing any file below:** check that `.claude/hooks/emap_stop_gate.py` exists in this
+**Before writing any file below:** check that `.emap/emap_gate.py` exists in this
 project. If it doesn't — even if `merchant-signup/` or other build output already exists here —
-go do [Step 1](#step-1-install-the-verify-gate-hook) first.
+go do [Step 1](#step-1-install-the-verify-gate) first.
 
 Read [`references/mode-2-redirect.md`](references/mode-2-redirect.md) before proceeding.
 
@@ -411,15 +411,22 @@ Read [`references/mode-2-redirect.md`](references/mode-2-redirect.md) before pro
 > dependent/conditional field (`dependsOn`/`visibleIf`). Do not infer any of these from the field
 > name, a markdown table, or prose — the JSON file is the single source of truth the form must be
 > built against.
+>
+> **One exception for Integration 2:** for `country` and `industry_type`, send the value named by
+> the field's `integration2UrlValue` in the schema (the display **name**), not the code or slug.
+> EMAP's `/signup` page matches these by name. Keep the code/slug in a `data-code` / `data-slug`
+> attribute for the form's own conditional logic.
 
 ### Overview
 
 Integration 2 is a **single-step form** — it collects exactly the same fields as Integration 1
 Step 1 (basic merchant info). There is **no Terms and Conditions checkbox**. On submit, all form
 fields are serialized as URL query parameters and the browser redirects to
-`{EMAP_BASE_URL}/signup?{params}`. EMAP reads the params, prefills its form, and either shows
-the form to the merchant or auto-submits it (if all auto-submit fields are present), landing the
-merchant directly on step 2.
+`{EMAP_BASE_URL}/signup?{params}`. EMAP reads the params and prefills its form. When
+`first_name`, `last_name`, `company_name`, `phone` and `email` are all present, EMAP's page
+validates the prefilled data and, if it passes, submits it for the merchant, who lands on step 2.
+Otherwise the merchant reviews EMAP's prefilled form and submits it. (Observed on EMAP's test
+server; see [`references/mode-2-redirect.md`](references/mode-2-redirect.md).)
 
 ### Fields collected (same as Integration 1 Step 1)
 
@@ -443,9 +450,13 @@ merchant directly on step 2.
 ### Steps
 
 1. **Use the template** from `templates/integration-2/`:
-   - `plain-html.html` — client-side form that builds and follows the redirect URL. Use for any
-     non-Next.js project.
-   - `SignupForm.tsx` — the identical form as a Next.js `'use client'` Client Component.
+   - `plain-html.html`: a client-side form that builds and follows the redirect URL. It is the
+     canonical reference. Use it as-is, or embed it (see
+     [Step 0](#step-0-detect-the-projects-stack)).
+   - `SignupForm.tsx`: the identical form as a React component, for any React framework.
+   - For any other component framework, mount the reference or port it 1:1 (see
+     [`references/stack-guide.md`](references/stack-guide.md)). The redirect must be a browser
+     navigation, never a server-side redirect built from the submitted data.
 
 2. **On submit — build redirect URL:**
    ```javascript
@@ -462,43 +473,50 @@ merchant directly on step 2.
    params.set('industry_type', formData.get('industry_type'));
    if (formData.get('promo_code'))    params.set('promo_code', formData.get('promo_code'));
    // UTM pass-through (see step 3)
-   window.location.href = EMAP_BASE_URL + '/signup?' + params.toString();
+   // navigateTop() navigates the top-level window (falls back to this frame), so the
+   // handoff also works when the form is embedded in an iframe.
+   navigateTop(EMAP_BASE_URL + '/signup?' + params.toString());
    ```
 
 3. **Pass UTM params through.** Read `utm_campaign`, `utm_source`, `utm_medium`, `utm_term`,
-   `utm_content`, `gclid`, `gbraid`, `wbraid` from the current page URL and append them to the
-   redirect URL. The templates do this automatically.
+   `utm_content`, and Google's click IDs `gclid`, `gbraid`, `wbraid` from the current page URL and
+   append them to the redirect URL. The templates do this automatically.
 
 4. **Set the two constants at the top of the file's `<script>` block** (search for "EDIT THESE"):
    ```js
-   const EMAP_BASE_URL = 'https://emap.epd.dev';
-   const EMAP_PARTNER_SECRET_KEY = ''; // optional — see Step 2 above
+   const EMAP_BASE_URL = 'https://emap.epd.dev'; // EMAP's TEST server
+   const EMAP_PARTNER_KEY = ''; // optional — see Step 2 above
    ```
-   There is no environment variable, no `.env` file, and no server process to configure.
+   There is no environment variable, no `.env` file, and no server process to configure. Switch
+   `EMAP_BASE_URL` to the production URL Easy Pay Direct gives you before launch.
 
-5. **Set `Referrer-Policy: no-referrer`** on your form page. This prevents the EMAP URL
-   (which contains PII in the query string) from leaking into the `Referer` header sent to
-   third-party analytics on the EMAP page.
+5. **Know where the PII goes.** The redirect URL carries the merchant's name, email and phone in
+   its query string. A `Referrer-Policy` on *your* page doesn't protect that URL: it's the EMAP page
+   that loads with it, so only EMAP's own `Referrer-Policy` and handling can keep it out of the
+   `Referer` header its page sends. Tell the developer this is a property of the redirect mode. If
+   it's unacceptable, recommend Integration 3, which sends the data in a POST body.
 
-6. **Test:**
-   - Partial prefill: pass `first_name`, `last_name`, `company_name`, `phone`, `email` only.
-     EMAP shows the form prefilled; the merchant fills in the rest manually.
-   - Full prefill (auto-submit): pass all non-excluded fields. EMAP auto-submits; merchant
-     lands on step 2. See [`references/mode-2-redirect.md`](references/mode-2-redirect.md).
-   - **Run `verify_form.py --integration 2`** (see
+6. **Test against EMAP's test server:**
+   - Missing auto-submit fields: leave `phone` empty. EMAP shows its form prefilled and the
+     merchant submits it.
+   - Full prefill: fill every field with valid data. EMAP submits for the merchant, who lands on
+     step 2. If EMAP's page rejects a value (for example an unrecognised website), the merchant
+     sees EMAP's prefilled form instead. See
+     [`references/mode-2-redirect.md`](references/mode-2-redirect.md).
+   - **Run the gate, `python3 .emap/emap_gate.py`** (see
      [Verify: schema conformance](#verify-schema-conformance)), then
      [Verify: security and coverage](#verify-security-and-coverage), before telling the developer
-     the form is done. The manual testing above does not substitute for either — the verify gate
-     hook (Step 1) will block the session from ending until `verify_form.py` actually passes.
+     the form is done. The manual testing above does not substitute for either. The build is not
+     done until the gate prints `PASS`.
 
 
 ---
 
 ## Build Integration 3: Email-based signup
 
-**Before writing any file below:** check that `.claude/hooks/emap_stop_gate.py` exists in this
+**Before writing any file below:** check that `.emap/emap_gate.py` exists in this
 project. If it doesn't — even if `merchant-signup/` or other build output already exists here —
-go do [Step 1](#step-1-install-the-verify-gate-hook) first.
+go do [Step 1](#step-1-install-the-verify-gate) first.
 
 Read [`references/mode-3-api.md`](references/mode-3-api.md) before proceeding.
 
@@ -512,9 +530,11 @@ Read [`references/mode-3-api.md`](references/mode-3-api.md) before proceeding.
 ### Steps
 
 1. **Use the template** from `templates/integration-3/`:
-   - `plain-html.html` — client-side form, pure client-side, zero build step. Use for any
-     non-Next.js project.
-   - `SignupForm.tsx` — the identical form as a Next.js `'use client'` Client Component.
+   - `plain-html.html`: the client-side form with no build step. It is the canonical reference.
+     Use it as-is, or embed it (see [Step 0](#step-0-detect-the-projects-stack)).
+   - `SignupForm.tsx`: the identical form as a React component, for any React framework.
+   - For any other component framework, mount the reference or port it 1:1 (see
+     [`references/stack-guide.md`](references/stack-guide.md)).
    The form POSTs directly from the browser to `{EMAP_BASE_URL}/api/v1/signup` with `partner_key`
    (if set) and `trigger_email: true` in the JSON body — this flag tells EMAP to dispatch the
    welcome/verification email as part of this same call; without it, the account is created but no
@@ -524,39 +544,49 @@ Read [`references/mode-3-api.md`](references/mode-3-api.md) before proceeding.
 
 2. **Set the two constants at the top of the file's `<script>` block** (search for "EDIT THESE"):
    ```js
-   const EMAP_BASE_URL = 'https://emap.epd.dev';
+   const EMAP_BASE_URL = 'https://emap.epd.dev'; // EMAP's TEST server
    const EMAP_PARTNER_KEY = ''; // optional — see Step 2 above
    ```
-   There is no environment variable, no `.env` file, and no server process to configure.
+   There is no environment variable, no `.env` file, and no server process to configure. Switch
+   `EMAP_BASE_URL` to the production URL Easy Pay Direct gives you before launch.
 
 3. **Handle all response shapes** on the client side (see
-   [`references/api-errors.md`](references/api-errors.md) for the full table):
-   - `{"status":true,"uuid":"..."}` → show "Application submitted! Check your inbox."
-   - `{"verificationLink":true,"url":"..."}` → existing user; show message or redirect to `url`.
-   - `{"status":false,"message":"Company already exists"}` → tell merchant to check their email.
+   [`references/api-errors.md`](references/api-errors.md) for the full table). The form is used by
+   the merchant, so every message speaks to them:
+   - `{"status":true,"uuid":"..."}` → show "Check Your Email" with the address the link went to.
+     **Never display, log or store the `uuid`**: anyone holding it can continue that application.
+   - `{"verificationLink":true,"url":"..."}` (existing user) → show the same "Check Your Email"
+     panel with a note that the email is already registered. Don't navigate to `url`.
+   - `{"status":false,"message":"Company already exists"}` → tell the merchant an application
+     already exists and to check their inbox or contact Easy Pay Direct.
    - HTTP 422 → display per-field errors from `response.errors`.
    - HTTP 429 → tell merchant to wait and retry.
 
-4. **Test** by submitting with a unique email. Verify `{"status":true,"uuid":"..."}` is returned
-   and the welcome email arrives.
-   - **Run `verify_form.py --integration 3`** (see
+4. **Test against EMAP's test server** by submitting with a unique email address you control.
+   Check that "Check Your Email" appears and the email arrives. Never test on production.
+   - **Run the gate, `python3 .emap/emap_gate.py`** (see
      [Verify: schema conformance](#verify-schema-conformance)), then
      [Verify: security and coverage](#verify-security-and-coverage), before telling the developer
-     the form is done. The manual testing above does not substitute for either — the verify gate
-     hook (Step 1) will block the session from ending until `verify_form.py` actually passes.
+     the form is done. The manual testing above does not substitute for either. The build is not
+     done until the gate prints `PASS`.
 
 
 ---
 
 ## Verify: schema conformance
 
-Run [`verify_form.py`](verify/scripts/verify_form.py) against the generated form — a deterministic
-script, no LLM reading involved — instead of spot-checking fields by hand against
-`signup-steps-schema.json`. Full details, the loop to follow, what each of its 4 categories checks,
-and — importantly — what it structurally cannot catch (some bugs need a real live-API test, not
-just a schema-vs-code diff) are in [`verify/SKILL.md`](verify/SKILL.md). If Step 1's hook is
-installed, the session cannot Stop until a real run of the script passes — see that file for the
-full loop (fix → scoped re-run → repeat, capped at 5 rounds).
+Run the gate from the project root. It runs [`verify_form.py`](verify/scripts/verify_form.py), a
+deterministic script with no LLM reading involved, against the tracked form:
+
+```
+python3 .emap/emap_gate.py
+```
+
+Don't spot-check fields by hand against `signup-steps-schema.json` instead. The build is done only
+when the gate prints `PASS`, whatever agent you are. [`verify/README.md`](verify/README.md) covers
+the loop (fix → scoped re-run → gate again, capped at 5 failing gate runs), what each of the 5 check
+categories covers, and what the script structurally cannot catch: some bugs need a live test on
+EMAP's test server, not just a schema-vs-code diff.
 
 ---
 
@@ -568,11 +598,13 @@ Quick self-check — **[Verify: schema conformance](#verify-schema-conformance) 
 conformance only; it does not check deployment/config wiring, so these items need a manual look,
 not just a clean `verify_form.py` run**:
 - [ ] HTTPS on your site.
-- [ ] `EMAP_PARTNER_KEY`/`EMAP_PARTNER_SECRET_KEY` set directly in the deployed file, not left as
-  the placeholder `''` unless attribution is intentionally being skipped. Confirmed with the
-  developer that they accept it being visible client-side (see Step 2 above) — do not silently
-  decide this for them.
-- [ ] `Referrer-Policy: no-referrer` on the form page (critical for Integration 2).
+- [ ] `EMAP_BASE_URL` points at the production URL Easy Pay Direct gave you, not the test server
+  `https://emap.epd.dev`.
+- [ ] `EMAP_PARTNER_KEY` set directly in the deployed file, not left as the placeholder `''` unless
+  attribution is intentionally being skipped. Confirmed with the developer that they accept it
+  being visible client-side (see Step 2 above) — do not silently decide this for them.
+- [ ] Integration 3: the success panel doesn't show the application `uuid`, and no form stores it
+  anywhere except Integration 1's own `localStorage` resume key.
 - [ ] Submit button disabled on first click (double-submit prevention).
 - [ ] Generic user-facing errors — do not expose EMAP's raw error messages verbatim to the merchant.
 - [ ] **The embedded dropdown-fallback data is actually present in the deployed file**, not
@@ -580,20 +612,26 @@ not just a clean `verify_form.py` run**:
   constant) still exists in what's actually deployed, and that the fallback path is genuinely
   reachable (e.g. by testing with `EMAP_BASE_URL` pointed at an unreachable host briefly), not
   merely defined and never invoked.
-- [ ] **No `app/api/*/route.ts` (or any other backend file) was added for a Next.js build.** If
-  one exists, this integration was built wrong — every step must be called directly from the
-  `'use client'` component.
+- [ ] **No server-side code calls EMAP.** Check for route handlers, API routes, Server Actions,
+  loaders and actions, SSR data fetching, controllers, `curl` / `wp_remote_post`, and serverless
+  functions ([`references/stack-guide.md`](references/stack-guide.md) lists them per framework).
+  If one exists, the integration was built wrong. Every EMAP request must come from the merchant's
+  browser so EMAP's IP-based rate limiting sees the merchant's IP.
 
 ---
 
 ## Guardrails
 
-**Every form here is pure client-side by design — HTML+CSS+JS, or a Next.js Client Component.
-Never add a backend file (an API route, an Express/PHP/etc. server, a `.env`-based config) to any
-integration.** Every step is POSTed directly from the browser to EMAP's API, which allows this via
-CORS. The partner key constant is therefore visible in the deployed page's source — that is an
-accepted, developer-confirmed tradeoff (see Step 2 above), not an oversight to "fix" by adding a
-backend.
+**Any stack is fine, but every EMAP call is made by the merchant's browser, by design.** Never
+route EMAP requests through the partner's server in any form:
+- an API route, Server Action, loader or action
+- SSR data fetching
+- a controller, `curl` / `wp_remote_post`, or a serverless function
+
+EMAP rate-limits signups by the caller's IP, and a server proxy would put every merchant behind
+one IP. EMAP's API allows browser calls via CORS. The partner key constant is therefore visible in
+the deployed page's source. That is an accepted, developer-confirmed tradeoff (see Step 2 above),
+not an oversight to "fix" by adding a backend proxy.
 **Still never print or log the partner key to any third-party analytics/error tool, and never
 commit a real key value to a public source repo** — "visible in the deployed page" and "visible in
 git history/log aggregators" are different exposure surfaces, and only the first is accepted here.

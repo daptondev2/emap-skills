@@ -1,5 +1,5 @@
 {
-  "_comment": "Merchant Signup Form - Stepwise Field Schema v1.0. All field keys match the API request parameter names. Slugs match the values accepted by EMAP's API, verified directly against its live behavior.",
+  "_comment": "Merchant Signup Form - Stepwise Field Schema v1.0. All field keys match the API request parameter names. Slugs match the values accepted by EMAP's API, verified against EMAP's test server (https://emap.epd.dev).",
   "version": "1.0",
   "baseUrl": "{EMAP_BASE_URL}",
   "apiPrefix": "/api/v1",
@@ -415,6 +415,8 @@
           "required": true,
           "optionsSource": "dynamicDropdownEndpoints.countries",
           "sendField": "code",
+          "integration2UrlValue": "name",
+          "_integration2Note": "Integration 2 only: EMAP's /signup page matches the country URL parameter against the option's display name, so the redirect URL carries `name` (e.g. United States), not `code`. Keep `code` on the option (e.g. data-code) for the US check. Integrations 1 and 3 send `code`.",
           "hint": "Country where your company is legally registered"
         },
         {
@@ -453,7 +455,9 @@
           "type": "select",
           "required": true,
           "optionsSource": "dynamicDropdownEndpoints.industry_types",
-          "sendField": "slug"
+          "sendField": "slug",
+          "integration2UrlValue": "name",
+          "_integration2Note": "Integration 2 only: the redirect URL carries the industry `name`, not `slug`. Keep `slug` on the option (e.g. data-slug) for the 'other' check. Integrations 1 and 3 send `slug`."
         },
         {
           "key": "industry_type_other",
@@ -462,6 +466,7 @@
           "required": false,
           "maxLength": 255,
           "placeholder": "Describe your industry",
+          "_note": "Compare the industry slug to 'other' case-insensitively: EMAP returns this option's slug as 'Other'.",
           "dependsOn": {
             "field": "industry_type",
             "operator": "equals",
@@ -487,7 +492,7 @@
           "label": "Partner Key",
           "type": "hidden",
           "required": false,
-          "note": "Never send this from the browser. Send from server-side only. Optional partner attribution."
+          "note": "Optional partner attribution. Set as a constant in the client code and sent from the browser like every other field (there is no server side in this skill). It is an attribution value, not a secret, and is visible in the page source. Integration 2 passes the same value in EMAP's `secretKey` URL parameter."
         }
       ]
     },

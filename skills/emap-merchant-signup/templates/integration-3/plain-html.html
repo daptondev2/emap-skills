@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Register a Merchant</title>
+  <title>Start Your Merchant Application</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; }
+    .emap-signup, .emap-signup *, .emap-signup *::before, .emap-signup *::after { box-sizing: border-box; }
 
-    body {
+    .emap-signup {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: #f5f7fa;
       color: #1a1a2e;
@@ -15,7 +15,7 @@
       padding: 40px 16px;
     }
 
-    .card {
+    .emap-signup .card {
       max-width: 560px;
       margin: 0 auto;
       background: #fff;
@@ -24,22 +24,22 @@
       padding: 40px 36px;
     }
 
-    h1 { font-size: 1.6rem; margin: 0 0 6px; color: #0f172a; }
-    .subtitle { color: #64748b; margin: 0 0 28px; font-size: .95rem; }
+    .emap-signup h1 { font-size: 1.6rem; margin: 0 0 6px; color: #0f172a; }
+    .emap-signup .subtitle { color: #64748b; margin: 0 0 28px; font-size: .95rem; }
 
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .form-group { margin-bottom: 18px; }
+    .emap-signup .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .emap-signup .form-group { margin-bottom: 18px; }
 
-    label {
+    .emap-signup label {
       display: block;
       font-size: .85rem;
       font-weight: 600;
       color: #374151;
       margin-bottom: 5px;
     }
-    label .required { color: #ef4444; margin-left: 2px; }
+    .emap-signup label .required { color: #ef4444; margin-left: 2px; }
 
-    input, select {
+    .emap-signup input, .emap-signup select {
       width: 100%;
       padding: 10px 13px;
       border: 1.5px solid #d1d5db;
@@ -50,16 +50,16 @@
       transition: border-color .15s;
       appearance: none;
     }
-    input:focus, select:focus {
+    .emap-signup input:focus, .emap-signup select:focus {
       outline: none;
       border-color: #3b82f6;
       box-shadow: 0 0 0 3px rgba(59,130,246,.15);
     }
-    input.error, select.error { border-color: #ef4444; }
+    .emap-signup input.error, .emap-signup select.error { border-color: #ef4444; }
 
-    .field-error { display: block; color: #ef4444; font-size: .8rem; margin-top: 4px; }
+    .emap-signup .field-error { display: block; color: #ef4444; font-size: .8rem; margin-top: 4px; }
 
-    button[type="submit"] {
+    .emap-signup button[type="submit"] {
       width: 100%;
       padding: 13px;
       background: #3b82f6;
@@ -71,35 +71,35 @@
       cursor: pointer;
       transition: background .15s, opacity .15s;
     }
-    button[type="submit"]:hover:not(:disabled) { background: #2563eb; }
-    button[type="submit"]:disabled { opacity: .65; cursor: not-allowed; }
+    .emap-signup button[type="submit"]:hover:not(:disabled) { background: #2563eb; }
+    .emap-signup button[type="submit"]:disabled { opacity: .65; cursor: not-allowed; }
 
-    .alert { padding: 14px 16px; border-radius: 8px; margin-bottom: 20px; font-size: .9rem; }
-    .alert-error   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
-    .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
-    .alert-warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+    .emap-signup .alert { padding: 14px 16px; border-radius: 8px; margin-bottom: 20px; font-size: .9rem; }
+    .emap-signup .alert-error   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .emap-signup .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .emap-signup .alert-warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
 
-    .hp-field { display: none !important; }
+    .emap-signup .hp-field { display: none !important; }
 
     /* ── Success / confirmation panel ──────────────────────────────────────── */
-    #success-panel { display: none; }
+    .emap-signup #success-panel { display: none; }
 
-    .success-header { text-align: center; padding: 8px 0 24px; }
-    .success-header .icon { font-size: 3rem; display: block; margin-bottom: 12px; }
-    .success-header h2 { color: #166534; margin: 0 0 8px; font-size: 1.5rem; }
-    .success-header .lead {
+    .emap-signup .success-header { text-align: center; padding: 8px 0 24px; }
+    .emap-signup .success-header .icon { font-size: 3rem; display: block; margin-bottom: 12px; }
+    .emap-signup .success-header h2 { color: #166534; margin: 0 0 8px; font-size: 1.5rem; }
+    .emap-signup .success-header .lead {
       color: #4b5563; font-size: .95rem; margin: 0;
       max-width: 380px; margin: 0 auto;
     }
 
-    .summary-card {
+    .emap-signup .summary-card {
       background: #f8fafc;
       border: 1px solid #e2e8f0;
       border-radius: 10px;
       padding: 20px 22px;
       margin: 24px 0;
     }
-    .summary-card .summary-title {
+    .emap-signup .summary-card .summary-title {
       font-size: .75rem;
       font-weight: 700;
       text-transform: uppercase;
@@ -107,7 +107,7 @@
       color: #64748b;
       margin: 0 0 14px;
     }
-    .summary-row {
+    .emap-signup .summary-row {
       display: flex;
       justify-content: space-between;
       align-items: baseline;
@@ -116,11 +116,11 @@
       border-bottom: 1px solid #e2e8f0;
       font-size: .9rem;
     }
-    .summary-row:last-child { border-bottom: none; }
-    .summary-key { color: #64748b; flex-shrink: 0; }
-    .summary-val { color: #0f172a; font-weight: 600; text-align: right; word-break: break-all; }
+    .emap-signup .summary-row:last-child { border-bottom: none; }
+    .emap-signup .summary-key { color: #64748b; flex-shrink: 0; }
+    .emap-signup .summary-val { color: #0f172a; font-weight: 600; text-align: right; word-break: break-all; }
 
-    .email-sent-box {
+    .emap-signup .email-sent-box {
       display: flex;
       align-items: flex-start;
       gap: 14px;
@@ -130,18 +130,18 @@
       padding: 16px 18px;
       margin-bottom: 20px;
     }
-    .email-sent-box .envelope { font-size: 1.6rem; flex-shrink: 0; line-height: 1; }
-    .email-sent-box .email-text strong { color: #166534; font-size: .95rem; display: block; margin-bottom: 4px; }
-    .email-sent-box .email-text p { margin: 0; color: #4b5563; font-size: .87rem; }
+    .emap-signup .email-sent-box .envelope { font-size: 1.6rem; flex-shrink: 0; line-height: 1; }
+    .emap-signup .email-sent-box .email-text strong { color: #166534; font-size: .95rem; display: block; margin-bottom: 4px; }
+    .emap-signup .email-sent-box .email-text p { margin: 0; color: #4b5563; font-size: .87rem; }
 
-    .reference-note {
+    .emap-signup .reference-note {
       text-align: center;
       color: #94a3b8;
       font-size: .8rem;
       margin: 12px 0 20px;
     }
 
-    .btn-register-another {
+    .emap-signup .btn-register-another {
       display: block;
       width: 100%;
       padding: 12px;
@@ -155,13 +155,21 @@
       text-align: center;
       transition: background .15s;
     }
-    .btn-register-another:hover { background: #e2e8f0; }
+    .emap-signup .btn-register-another:hover { background: #e2e8f0; }
+  </style>
+  <!-- Standalone-page chrome only. When embedding the form into an existing
+       page/template, copy the style block above, the .emap-signup element
+       and the script tags, but NOT this block: it styles the host page's
+       body element. -->
+  <style>
+    body { margin: 0; background: #f5f7fa; }
   </style>
 </head>
 <body>
+  <div class="emap-signup">
   <div class="card">
-    <h1>Register a Merchant</h1>
-    <p class="subtitle">Enter the merchant's details below. They'll receive an email with a secure link to complete their Easy Pay Direct account application.</p>
+    <h1>Start Your Merchant Application</h1>
+    <p class="subtitle">Tell us about your business. We'll email you a secure link so you can finish your Easy Pay Direct application whenever you're ready.</p>
 
     <div id="form-alert" class="alert" style="display:none"></div>
 
@@ -170,13 +178,13 @@
 
       <div class="success-header">
         <span class="icon">&#x2705;</span>
-        <h2>Merchant Registered</h2>
-        <p class="lead">The merchant's details have been saved and Easy Pay Direct has emailed them a secure link to complete their account application.</p>
+        <h2>Check Your Email</h2>
+        <p class="lead">Your details have been saved, and Easy Pay Direct has emailed you a secure link to finish your merchant account application.</p>
       </div>
 
-      <!-- Submitted merchant details summary -->
+      <!-- Summary of what the merchant submitted -->
       <div class="summary-card">
-        <p class="summary-title">Details Saved</p>
+        <p class="summary-title">What you submitted</p>
         <div class="summary-row">
           <span class="summary-key">Name</span>
           <span id="sum-name" class="summary-val"></span>
@@ -203,15 +211,15 @@
       <div class="email-sent-box">
         <span class="envelope">&#x2709;&#xFE0F;</span>
         <div class="email-text">
-          <strong>Signup email sent to <span id="sum-email-confirm"></span></strong>
-          <p>The merchant will receive a link to complete their merchant account on Easy Pay Direct's platform. This typically arrives within a few minutes.</p>
+          <strong>We sent the link to <span id="sum-email-confirm"></span></strong>
+          <p>It usually arrives within a few minutes. If you don't see it, check your spam or promotions folder.</p>
         </div>
       </div>
 
-      <p class="reference-note" id="success-uuid"></p>
+      <p class="reference-note" id="success-note"></p>
 
       <button type="button" class="btn-register-another" id="btn-register-another">
-        Register Another Merchant
+        Wrong email? Start over
       </button>
 
     </div>
@@ -330,25 +338,36 @@
         <input id="promo_code" name="promo_code" type="text" maxlength="255" autocomplete="off">
       </div>
 
-      <button type="submit" id="submit-btn">Send Signup Link</button>
+      <button type="submit" id="submit-btn">Email Me a Secure Link</button>
     </form>
   </div>
 
+  </div><!-- .emap-signup -->
+
   <script>
+    // Wrapped in an IIFE so nothing leaks into (or collides with) the
+    // host page's globals, and the script can safely run more than once.
+    (function () {
+
     /*
      * Integration 3 — Email-Based Signup
      *
-     * The partner fills in the merchant's step-1 details and submits. This
+     * The merchant fills in their step-1 details and submits. This
      * page POSTs that data directly to EMAP's /api/v1/signup with
      * trigger_email:true, from the browser — no backend of any kind. EMAP's
-     * API sets CORS headers that allow this (Access-Control-Allow-Origin
-     * reflects any Origin). EMAP creates the account and emails the merchant
-     * a secure link so they can complete their full application on Easy Pay
-     * Direct's platform.
+     * API allows these cross-origin calls via CORS; if EMAP limits that to
+     * registered partner sites, this site's origin must be registered with
+     * Easy Pay Direct. EMAP creates the account and emails the merchant
+     * a secure link so they can finish their application on Easy Pay Direct's
+     * platform later.
      *
      * EDIT THESE TWO CONSTANTS before deploying:
      */
-    const EMAP_BASE_URL = 'https://emap.epd.dev'; // no trailing slash
+    // EMAP's TEST server. The partner API is only live there today; use it
+    // for development and testing only, and switch to the production URL
+    // Easy Pay Direct gives you before launch. No trailing slash.
+    const EMAP_BASE_URL = 'https://emap.epd.dev';
+
     const EMAP_PARTNER_KEY = ''; // optional — leave '' to skip partner attribution.
     // This key is sent from the browser and is therefore visible to anyone who
     // views this page's source. EMAP treats it purely as an attribution/referral
@@ -358,51 +377,66 @@
     // this blank instead — signups will still work, just without commission
     // attribution.
 
-    // ── Load countries directly from EMAP ─────────────────────────────────────
-    const FALLBACK_COUNTRIES = [
-      { code: 'US', name: 'United States' }, { code: 'CA', name: 'Canada' },
-      { code: 'GB', name: 'United Kingdom' }, { code: 'AU', name: 'Australia' },
-    ];
+    // ── Load dropdowns directly from EMAP ─────────────────────────────────────
+    // Static snapshot of the EMAP dropdown endpoints this form uses, used only
+    // when a live call fails, returns a non-2xx status or non-JSON body,
+    // returns an empty data array, or takes longer than 8 seconds. Source:
+    // references/dropdown-fallbacks.json in the emap-merchant-signup skill.
+    const EMAP_DROPDOWN_FALLBACKS = {"countries":{"data":[{"name":"United States","code":"US"},{"name":"Canada","code":"CA"},{"name":"Puerto Rico","code":"PR"},{"name":"Afghanistan","code":"AF"},{"name":"Albania","code":"AL"},{"name":"Algeria","code":"DZ"},{"name":"American Samoa","code":"AS"},{"name":"Andorra","code":"AD"},{"name":"Angola","code":"AO"},{"name":"Anguilla","code":"AI"},{"name":"Antarctica","code":"AQ"},{"name":"Antigua and Barbuda","code":"AG"},{"name":"Argentina","code":"AR"},{"name":"Armenia","code":"AM"},{"name":"Aruba","code":"AW"},{"name":"Australia","code":"AU"},{"name":"Austria","code":"AT"},{"name":"Azerbaijan","code":"AZ"},{"name":"Bahamas","code":"BS"},{"name":"Bahrain","code":"BH"},{"name":"Bangladesh","code":"BD"},{"name":"Barbados","code":"BB"},{"name":"Belarus","code":"BY"},{"name":"Belgium","code":"BE"},{"name":"Belize","code":"BZ"},{"name":"Benin","code":"BJ"},{"name":"Bermuda","code":"BM"},{"name":"Bhutan","code":"BT"},{"name":"Bolivia","code":"BO"},{"name":"Bonaire, Sint Eustatius and Saba","code":"BQ"},{"name":"Bosnia and Herzegovina","code":"BA"},{"name":"Botswana","code":"BW"},{"name":"Bouvet Island","code":"BV"},{"name":"Brazil","code":"BR"},{"name":"British Indian Ocean Territory","code":"IO"},{"name":"Brunei Darussalam","code":"BN"},{"name":"Bulgaria","code":"BG"},{"name":"Burkina Faso","code":"BF"},{"name":"Burundi","code":"BI"},{"name":"Cabo Verde","code":"CV"},{"name":"Cambodia","code":"KH"},{"name":"Cameroon","code":"CM"},{"name":"Cayman Islands","code":"KY"},{"name":"Central African Republic","code":"CF"},{"name":"Chad","code":"TD"},{"name":"Chile","code":"CL"},{"name":"China","code":"CN"},{"name":"Christmas Island","code":"CX"},{"name":"Cocos Islands","code":"CC"},{"name":"Colombia","code":"CO"},{"name":"Comoros  ","code":"KM"},{"name":"Congo","code":"CG"},{"name":"Cook Islands  ","code":"CK"},{"name":"Costa Rica","code":"CR"},{"name":"Croatia","code":"HR"},{"name":"Cuba","code":"CU"},{"name":"Curaçao","code":"CW"},{"name":"Cyprus","code":"CY"},{"name":"Czechia","code":"CZ"},{"name":"Côte d'Ivoire","code":"CI"},{"name":"Denmark","code":"DK"},{"name":"Djibouti","code":"DJ"},{"name":"Dominica","code":"DM"},{"name":"Dominican Republic","code":"DO"},{"name":"Ecuador","code":"EC"},{"name":"Egypt","code":"EG"},{"name":"El Salvador","code":"SV"},{"name":"Equatorial Guinea","code":"GQ"},{"name":"Eritrea","code":"ER"},{"name":"Estonia","code":"EE"},{"name":"Eswatini","code":"SZ"},{"name":"Ethiopia","code":"ET"},{"name":"Falkland Islands [Malvinas]","code":"FK"},{"name":"Faroe Islands","code":"FO"},{"name":"Fiji","code":"FJ"},{"name":"Finland","code":"FI"},{"name":"France","code":"FR"},{"name":"French Guiana","code":"GF"},{"name":"French Polynesia","code":"PF"},{"name":"French Sourn Territories","code":"TF"},{"name":"Gabon","code":"GA"},{"name":"Gambia","code":"GM"},{"name":"Georgia","code":"GE"},{"name":"Germany","code":"DE"},{"name":"Ghana","code":"GH"},{"name":"Gibraltar","code":"GI"},{"name":"Greece","code":"GR"},{"name":"Greenland","code":"GL"},{"name":"Grenada","code":"GD"},{"name":"Guadeloupe","code":"GP"},{"name":"Guam","code":"GU"},{"name":"Guatemala","code":"GT"},{"name":"Guernsey","code":"GG"},{"name":"Guinea","code":"GN"},{"name":"Guinea-Bissau","code":"GW"},{"name":"Guyana","code":"GY"},{"name":"Haiti","code":"HT"},{"name":"Heard Island and McDonald Islands","code":"HM"},{"name":"Holy See","code":"VA"},{"name":"Honduras","code":"HN"},{"name":"Hong Kong","code":"HK"},{"name":"Hungary","code":"HU"},{"name":"Iceland","code":"IS"},{"name":"India","code":"IN"},{"name":"Indonesia","code":"ID"},{"name":"Iran","code":"IR"},{"name":"Iraq","code":"IQ"},{"name":"Ireland","code":"IE"},{"name":"Isle of Man","code":"IM"},{"name":"Israel","code":"IL"},{"name":"Italy","code":"IT"},{"name":"Jamaica","code":"JM"},{"name":"Japan","code":"JP"},{"name":"Jersey","code":"JE"},{"name":"Jordan","code":"JO"},{"name":"Kazakhstan","code":"KZ"},{"name":"Kenya","code":"KE"},{"name":"Kiribati","code":"KI"},{"name":"North Korea","code":"KP"},{"name":"South Korea","code":"KR"},{"name":"Kuwait","code":"KW"},{"name":"Kyrgyzstan","code":"KG"},{"name":"Lao People's Democratic Republic","code":"LA"},{"name":"Latvia","code":"LV"},{"name":"Lebanon","code":"LB"},{"name":"Lesotho","code":"LS"},{"name":"Liberia","code":"LR"},{"name":"Libya","code":"LY"},{"name":"Liechtenstein","code":"LI"},{"name":"Lithuania","code":"LT"},{"name":"Luxembourg","code":"LU"},{"name":"Macao","code":"MO"},{"name":"Madagascar","code":"MG"},{"name":"Malawi","code":"MW"},{"name":"Malaysia","code":"MY"},{"name":"Maldives","code":"MV"},{"name":"Mali","code":"ML"},{"name":"Malta","code":"MT"},{"name":"Marshall Islands","code":"MH"},{"name":"Martinique","code":"MQ"},{"name":"Mauritania","code":"MR"},{"name":"Mauritius","code":"MU"},{"name":"Mayotte","code":"YT"},{"name":"Mexico","code":"MX"},{"name":"Micronesia","code":"FM"},{"name":"Moldova","code":"MD"},{"name":"Monaco","code":"MC"},{"name":"Mongolia","code":"MN"},{"name":"Montenegro","code":"ME"},{"name":"Montserrat","code":"MS"},{"name":"Morocco","code":"MA"},{"name":"Mozambique","code":"MZ"},{"name":"Myanmar","code":"MM"},{"name":"Namibia","code":"NA"},{"name":"Nauru","code":"NR"},{"name":"Nepal","code":"NP"},{"name":"Netherlands","code":"NL"},{"name":"New Caledonia","code":"NC"},{"name":"New Zealand","code":"NZ"},{"name":"Nicaragua","code":"NI"},{"name":"Niger","code":"NE"},{"name":"Nigeria","code":"NG"},{"name":"Niue","code":"NU"},{"name":"Norfolk Island","code":"NF"},{"name":"Norrn Mariana Islands","code":"MP"},{"name":"Norway","code":"NO"},{"name":"Oman","code":"OM"},{"name":"Pakistan","code":"PK"},{"name":"Palau","code":"PW"},{"name":"Palestine, State of","code":"PS"},{"name":"Panama","code":"PA"},{"name":"Papua New Guinea","code":"PG"},{"name":"Paraguay","code":"PY"},{"name":"Peru","code":"PE"},{"name":"Philippines","code":"PH"},{"name":"Pitcairn","code":"PN"},{"name":"Poland","code":"PL"},{"name":"Portugal","code":"PT"},{"name":"Qatar","code":"QA"},{"name":"Republic of North Macedonia","code":"MK"},{"name":"Romania","code":"RO"},{"name":"Russian Federation","code":"RU"},{"name":"Rwanda","code":"RW"},{"name":"Réunion","code":"RE"},{"name":"Saint Barthélemy","code":"BL"},{"name":"Saint Helena, Ascension and Tristan da Cunha","code":"SH"},{"name":"Saint Kitts and Nevis","code":"KN"},{"name":"Saint Lucia","code":"LC"},{"name":"Saint Martin","code":"MF"},{"name":"Saint Pierre and Miquelon","code":"PM"},{"name":"Saint Vincent and  Grenadines","code":"VC"},{"name":"Samoa","code":"WS"},{"name":"San Marino","code":"SM"},{"name":"Sao Tome and Principe","code":"ST"},{"name":"Saudi Arabia","code":"SA"},{"name":"Senegal","code":"SN"},{"name":"Serbia","code":"RS"},{"name":"Seychelles","code":"SC"},{"name":"Sierra Leone","code":"SL"},{"name":"Singapore","code":"SG"},{"name":"Sint Maarten","code":"SX"},{"name":"Slovakia","code":"SK"},{"name":"Slovenia","code":"SI"},{"name":"Solomon Islands","code":"SB"},{"name":"Somalia","code":"SO"},{"name":"South Africa","code":"ZA"},{"name":"South Georgia and South Sandwich Islands","code":"GS"},{"name":"South Sudan","code":"SS"},{"name":"Spain","code":"ES"},{"name":"Sri Lanka","code":"LK"},{"name":"Sudan","code":"SD"},{"name":"Suriname","code":"SR"},{"name":"Svalbard and Jan Mayen","code":"SJ"},{"name":"Sweden","code":"SE"},{"name":"Switzerland","code":"CH"},{"name":"Syrian Arab Republic","code":"SY"},{"name":"Taiwan","code":"TW"},{"name":"Tajikistan","code":"TJ"},{"name":"Tanzania, United Republic of","code":"TZ"},{"name":"Thailand","code":"TH"},{"name":"Timor-Leste","code":"TL"},{"name":"Togo","code":"TG"},{"name":"Tokelau","code":"TK"},{"name":"Tonga","code":"TO"},{"name":"Trinidad and Tobago","code":"TT"},{"name":"Tunisia","code":"TN"},{"name":"Turkey","code":"TR"},{"name":"Turkmenistan","code":"TM"},{"name":"Turks and Caicos Islands","code":"TC"},{"name":"Tuvalu","code":"TV"},{"name":"Uganda","code":"UG"},{"name":"Ukraine","code":"UA"},{"name":"United Arab Emirates","code":"AE"},{"name":"United Kingdom","code":"GB"},{"name":"United States Minor Outlying Islands","code":"UM"},{"name":"Uruguay","code":"UY"},{"name":"Uzbekistan","code":"UZ"},{"name":"Vanuatu","code":"VU"},{"name":"Venezuela","code":"VE"},{"name":"Viet Nam","code":"VN"},{"name":"Virgin Islands","code":"VG"},{"name":"Virgin Islands","code":"VI"},{"name":"Wallis and Futuna","code":"WF"},{"name":"Western Sahara","code":"EH"},{"name":"Yemen","code":"YE"},{"name":"Zambia","code":"ZM"},{"name":"Zimbabwe","code":"ZW"},{"name":"Åland Islands","code":"AX"}]},"industry_types":{"data":[{"name":"Adult - Dating Memberships","slug":"adult-dating-memberships"},{"name":"Adult - Events","slug":"Adult-Events"},{"name":"Adult - Online Memberships","slug":"Adult-Online-Memberships"},{"name":"Adult - Other","slug":"Adult-Other"},{"name":"Aggregators","slug":"Aggregators"},{"name":"Alternative Health Practices - Information Product","slug":"Alternative-Health-Practices-Information-Product"},{"name":"Automotive","slug":"automotive"},{"name":"Bike Manufacturing","slug":"bike-manufacturing"},{"name":"Biz-Op","slug":"Biz-Op"},{"name":"Book Publishing","slug":"book-publishing"},{"name":"Bowling Alleys","slug":"bowling-alleys"},{"name":"Business & Legal  Consultation","slug":"Business-Legal-Consultation"},{"name":"Business Coaching - Information Product","slug":"Business-Coaching-Information-Product"},{"name":"Car Pooling","slug":"Car-Pooling"},{"name":"Car Rental","slug":"Car-rental"},{"name":"CBD","slug":"cbd"},{"name":"Charity","slug":"Charity"},{"name":"Cigars and Accessories","slug":"Cigars-and-Accessories"},{"name":"Clothing/Jewelry","slug":"Clothing-Jewelry"},{"name":"Credit Repair - Information Product","slug":"Credit-Repair-Information-Product"},{"name":"Credit Repair - Service","slug":"Credit-Repair-Service"},{"name":"Dating/Relationship - Informational Product","slug":"Dating-Relationship-Informational-Product"},{"name":"Directory Listing","slug":"Directory-Listing"},{"name":"Discount Buying Club","slug":"Discount-Buying-Club"},{"name":"E-Books","slug":"E-Books"},{"name":"eCommerce - Jewelry","slug":"ecommerce-jewelry"},{"name":"Energy & Utilities","slug":"energy-utilities"},{"name":"Entertainment & Media","slug":"entertainment-media"},{"name":"Event Management (Live Events)","slug":"Event-Management(Live-Events)"},{"name":"Fantasy Sports","slug":"Fantasy-Sports"},{"name":"Financial Services - Other","slug":"Financial-Services-Other"},{"name":"Financial Services - Remittance","slug":"Financial-Services-Remittance"},{"name":"Financial/Wealth Education - Informational Product","slug":"Financial-Wealth-Education-Informational-Product"},{"name":"Firearms","slug":"Firearms"},{"name":"Gaming - Other","slug":"Gaming-Other"},{"name":"Grocery Stores","slug":"grocery-stores"},{"name":"Health - Fitness Information","slug":"Health-Fitness-Information"},{"name":"Health - Other Information","slug":"Health-Other-Information"},{"name":"ID Background Check","slug":"ID-Background-Check"},{"name":"Information Product (Misc)","slug":"information-product-misc"},{"name":"IT Services - Cloud Storage","slug":"IT-Services-Cloud-Storage"},{"name":"IT Services - Marketing","slug":"IT-Services-Marketing"},{"name":"Kratom","slug":"Kratom"},{"name":"Liquor/Package Stores","slug":"liquorpackage-stores"},{"name":"Magazine Subscriptions","slug":"Magazine-Subscriptions"},{"name":"Marijuana / Cannabis","slug":"Marijuana-Cannabis"},{"name":"Marketing - Advertising Agency FULL SERVICE","slug":"Marketing-Advertising-Agency-FULL-SERVICE"},{"name":"Marketing - Business Opportunity (Lead Gen)","slug":"Marketing-Business-Opportunity(Lead-Gen)"},{"name":"Marketing - Printing Services","slug":"Marketing-Printing-Services"},{"name":"Marketing - SEO Services","slug":"marketing-seo-services"},{"name":"Marketing - Web Design & Digital Services ONLY","slug":"Marketing-Web-Design-Digital-Services-ONLY"},{"name":"Medical Services","slug":"Medical-Services"},{"name":"MLM","slug":"MLM"},{"name":"Movie Theaters","slug":"movie-theaters"},{"name":"Musical Instruction - Information Product","slug":"Musical-Instruction-Information-Product"},{"name":"Non-Profit","slug":"Non-Profit"},{"name":"Nutraceutical - Beauty","slug":"Nutraceutical-Beauty"},{"name":"Nutraceutical - Diet","slug":"Nutraceutical-Diet"},{"name":"Nutraceutical - Diet Memberships (Trial/Recurring)","slug":"Nutraceutical-Diet-Memberships(Trial/Recurring)"},{"name":"Nutraceutical - Male Enhancement","slug":"Nutraceutical-Male-Enhancement"},{"name":"Nutraceutical - Muscle","slug":"Nutraceutical-Muscle"},{"name":"Nutraceutical - Other","slug":"Nutraceutical-Other"},{"name":"Nutraceutical - Skin Care","slug":"Nutraceutical-Skin-Care"},{"name":"Nutraceutical - Sports Nutrition","slug":"Nutraceutical-Sports-Nutrition"},{"name":"Nutraceutical - Teeth Whitening","slug":"Nutraceutical-Teeth-Whitening"},{"name":"Online Marketing Education - Informational Product","slug":"Online-Marketing-Education-Informational-Product"},{"name":"Other","slug":"Other"},{"name":"Peptides Research","slug":"peptides-research"},{"name":"Pet Care - Information Product","slug":"Pet-Care-Information-Product"},{"name":"Physical Medical/Physicians","slug":"physical-medicalphysicians"},{"name":"Psychics","slug":"Psychics"},{"name":"Real Estate - Rent/Timeshares","slug":"Real-Estate-Rent/Timeshares"},{"name":"Real Estate Education - Information Product","slug":"Real-Estate-Education-Information-Product"},{"name":"Remote Tech Support - Accounting Services","slug":"Remote-Tech-Support-Accounting-Services"},{"name":"Remote Tech Support - Other","slug":"Remote-Tech-Support-Other"},{"name":"Remote Tech Support - PC Repair","slug":"Remote-Tech-Support-PC-Repair"},{"name":"Remote Tech Support - SEO Services","slug":"Remote-Tech-Support-SEO-Services"},{"name":"Restaurants","slug":"Restaurants"},{"name":"Retail (eCommerce) - Art & Design","slug":"Retail(eCommerce)-Art-Design"},{"name":"Retail (eCommerce) - Fashion","slug":"Retail(eCommerce)-Fashion"},{"name":"Retail (eCommerce) - Furniture","slug":"Retail(eCommerce)-Furniture"},{"name":"Retail (eCommerce) - Other","slug":"Retail(eCommerce)-Other"},{"name":"Retail (eCommerce) - Sports Equipment","slug":"Retail(eCommerce)-Sports-Equipment"},{"name":"Salon (independent hair stylist)","slug":"Salon(independent-hair-stylist)"},{"name":"Salon (NOT independent stylist)","slug":"Salon(NOT-independent-stylist)"},{"name":"SEO/Hosting","slug":"SEO/Hosting"},{"name":"Smoking - E-Cigs & Vaporizers","slug":"Smoking-E-Cigs-Vaporizers"},{"name":"Smoking - Herbals (K2, 'Potpourri', etc)","slug":"Smoking-Herbals(K2,Potpourri,etc)"},{"name":"Smoking - Hookahs","slug":"Smoking-Hookahs"},{"name":"Smoking - Marijuana","slug":"Smoking-Marijuana"},{"name":"Smoking - Other","slug":"Smoking-Other"},{"name":"Software As A Service (SAAS)","slug":"Software-As-A-Service(SAAS)"},{"name":"Software Sales - Anti-Virus","slug":"Software-Sales-Anti-Virus"},{"name":"Software Sales - Other","slug":"Software-Sales-Other"},{"name":"Survival Prep","slug":"Survival-Prep"},{"name":"Survival Prep - Information Product","slug":"Survival-Prep-Information-Product"},{"name":"Travel - Cruise Bookings","slug":"Travel-Cruise-Bookings"},{"name":"Travel - Hotel Bookings","slug":"Travel-Hotel-Bookings"},{"name":"Travel - Travel Clubs (Discounts)","slug":"Travel-Travel-Clubs(Discounts)"},{"name":"Travel - Travel Packages","slug":"Travel-Travel-Packages"},{"name":"Virtual Assistants","slug":"Virtual-Assistants"}]}};
 
-    (async function loadCountries() {
-      try {
-        const res = await fetch(EMAP_BASE_URL + '/api/partner/countries');
-        const json = await res.json();
-        const list = json.data || [];
-        const sel = document.getElementById('country');
-        sel.innerHTML = '<option value="">Select country…</option>';
-        list.forEach(function (c) {
-          const o = document.createElement('option');
-          o.value = c.code; o.textContent = c.name;
-          sel.appendChild(o);
-        });
-      } catch (_) {
-        const sel = document.getElementById('country');
-        sel.innerHTML = '<option value="">Select country…</option>';
-        FALLBACK_COUNTRIES.forEach(function (c) {
-          const o = document.createElement('option');
-          o.value = c.code; o.textContent = c.name;
-          sel.appendChild(o);
-        });
-      }
-    })();
+    // Parses a response body as JSON, or returns null when it isn't JSON.
+    // Rate limiters, proxies and CDNs often answer 429/5xx with an HTML page.
+    async function readJson(res) {
+      try { return await res.json(); } catch (_) { return null; }
+    }
 
-    // ── Load industry types directly from EMAP ────────────────────────────────
-    (async function loadIndustryTypes() {
+    // Drops rows with no usable value (EMAP's data can include, e.g., a
+    // country whose code is null), so they never render as a blank option.
+    const DROPDOWN_VALUE_KEY = { countries: 'code', states: 'code', industry_types: 'slug' };
+    function usableRows(list, fallbackKey) {
+      const key = DROPDOWN_VALUE_KEY[fallbackKey];
+      return key ? list.filter(function (row) { return row && row[key]; }) : list;
+    }
+
+    // Fetches one EMAP dropdown endpoint directly from the browser, falling
+    // back to EMAP_DROPDOWN_FALLBACKS[fallbackKey] on any failure.
+    async function fetchDropdownData(path, fallbackKey) {
+      const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+      const timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 8000) : null;
       try {
-        const res = await fetch(EMAP_BASE_URL + '/api/partner/industry-types');
-        const json = await res.json();
-        const sel = document.getElementById('industry_type');
-        sel.innerHTML = '<option value="">Select industry…</option>';
-        (json.data || []).forEach(function (t) {
-          const o = document.createElement('option');
-          o.value = t.slug; o.textContent = t.name;
-          sel.appendChild(o);
+        const res = await fetch(EMAP_BASE_URL + path, {
+          headers: { 'Accept': 'application/json' },
+          signal: ctrl ? ctrl.signal : undefined,
         });
-      } catch (_) {
-        document.getElementById('industry_type').innerHTML =
-          '<option value="">Unable to load — please refresh</option>';
-      }
+        const json = await readJson(res);
+        const rows = res.ok && json && Array.isArray(json.data) ? usableRows(json.data, fallbackKey) : [];
+        if (rows.length > 0) return rows;
+      } catch (_) { /* fall through to fallback */ }
+      finally { if (timer) clearTimeout(timer); }
+      return usableRows(EMAP_DROPDOWN_FALLBACKS[fallbackKey].data, fallbackKey);
+    }
+
+    function fillSelect(id, placeholder, list, build) {
+      const sel = document.getElementById(id);
+      sel.innerHTML = '<option value="">' + placeholder + '</option>';
+      list.forEach(function (item) { sel.appendChild(build(item)); });
+    }
+
+    (async function loadDropdowns() {
+      const [countries, industryTypes] = await Promise.all([
+        fetchDropdownData('/api/partner/countries', 'countries'),
+        fetchDropdownData('/api/partner/industry-types', 'industry_types'),
+      ]);
+      fillSelect('country', 'Select country…', countries, function (c) {
+        const o = document.createElement('option');
+        o.value = c.code; o.textContent = c.name;
+        return o;
+      });
+      fillSelect('industry_type', 'Select industry…', industryTypes, function (t) {
+        const o = document.createElement('option');
+        o.value = t.slug; o.textContent = t.name;
+        return o;
+      });
     })();
 
     // Show/hide "other" industry description
@@ -533,12 +567,13 @@
           body: JSON.stringify(payload),
         });
 
-        const result = await response.json();
+        // Status is checked before trusting the body: a 429/5xx may be an HTML page.
+        const result = (await readJson(response)) || {};
 
         if (response.status === 429) {
           showAlert('error', 'Too many attempts. Please wait a few minutes and try again.');
           btn.disabled = false;
-          btn.textContent = 'Send Signup Link';
+          btn.textContent = 'Email Me a Secure Link';
           return;
         }
 
@@ -546,57 +581,57 @@
           showAlert('error', 'Please correct the errors below.');
           displayServerErrors(result.errors || {});
           btn.disabled = false;
-          btn.textContent = 'Send Signup Link';
+          btn.textContent = 'Email Me a Secure Link';
           return;
         }
 
         if (!response.ok) {
           showAlert('error', 'Something went wrong. Please try again in a few moments.');
           btn.disabled = false;
-          btn.textContent = 'Send Signup Link';
+          btn.textContent = 'Email Me a Secure Link';
           return;
         }
 
         // Existing user — EMAP resent the verification link; treat as success
         if (result.verificationLink === true) {
-          showSuccessPanel(data, result.uuid || '', true);
+          showSuccessPanel(data, true);
           return;
         }
 
         // Company already exists
         if (result.status === false && result.message === 'Company already exists') {
           showAlert('warning',
-            'A company with this name already exists in our system. ' +
-            'The merchant may already have an active account.'
+            'An application for this company already exists. Check your inbox ' +
+            'for an earlier email from Easy Pay Direct, or contact their support team.'
           );
           btn.disabled = false;
-          btn.textContent = 'Send Signup Link';
+          btn.textContent = 'Email Me a Secure Link';
           return;
         }
 
         // Success — account created, EMAP emailed the merchant a signup link
         if (result.status === true && result.uuid) {
-          showSuccessPanel(data, result.uuid, false);
+          showSuccessPanel(data, false);
           return;
         }
 
         // Unexpected response shape
         showAlert('error', 'An unexpected error occurred. Please try again.');
         btn.disabled = false;
-        btn.textContent = 'Send Signup Link';
+        btn.textContent = 'Email Me a Secure Link';
 
       } catch (err) {
         showAlert('error', 'A network error occurred. Please check your connection and try again.');
         btn.disabled = false;
-        btn.textContent = 'Send Signup Link';
+        btn.textContent = 'Email Me a Secure Link';
       }
     });
 
-    function showSuccessPanel(data, uuid, isExistingUser) {
+    function showSuccessPanel(data, isExistingUser) {
       document.getElementById('signup-form').style.display = 'none';
       document.getElementById('form-alert').style.display = 'none';
 
-      // Populate merchant summary
+      // Populate the summary of what was submitted
       const fullName = [data.first_name, data.last_name].filter(Boolean).join(' ');
       document.getElementById('sum-name').textContent    = fullName || '—';
       document.getElementById('sum-email').textContent   = data.email || '—';
@@ -605,21 +640,20 @@
       document.getElementById('sum-website').textContent = data.website || '—';
 
       // Email confirmation line
-      document.getElementById('sum-email-confirm').textContent = data.email || 'the merchant';
+      document.getElementById('sum-email-confirm').textContent = data.email || 'your email address';
 
-      // Reference number or existing-user note
-      const uuidEl = document.getElementById('success-uuid');
-      if (isExistingUser) {
-        uuidEl.textContent = 'This merchant already has an account — a new signup link has been resent.';
-      } else if (uuid) {
-        uuidEl.textContent = 'Application reference: ' + uuid;
-      }
+      // The application uuid is not shown: EMAP's step API accepts it as the
+      // only proof of access to the application, so treat it like a password.
+      const noteEl = document.getElementById('success-note');
+      noteEl.textContent = isExistingUser
+        ? 'You already have an Easy Pay Direct account, so the email contains a link to sign in and continue.'
+        : '';
 
       document.getElementById('success-panel').style.display = 'block';
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // "Register Another Merchant" — reset the form and show it again
+    // "Start over" — reset the form and show it again (e.g. a mistyped email)
     document.getElementById('btn-register-another').addEventListener('click', function () {
       document.getElementById('success-panel').style.display = 'none';
       const form = document.getElementById('signup-form');
@@ -632,6 +666,7 @@
       form.style.display = 'block';
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
+    })();
   </script>
 </body>
 </html>

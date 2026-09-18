@@ -2,26 +2,36 @@
 """
 verify_form.py — deterministic schema-conformance checker for a generated
 EMAP merchant-signup form. No LLM involved: reads signup-steps-schema.json
-and the generated form/backend files directly, and reports mismatches.
+and the generated form files directly, and reports mismatches.
 
-Checks 4 categories:
+Stack-agnostic: every frontend source file under --form-dir is scanned
+(HTML, JS/TS/JSX/TSX, Vue, Svelte, Astro, and server-rendered template
+formats such as PHP, ERB, Twig, Liquid, Jinja, Razor, EJS, Handlebars).
+Markup embedded in long JS string literals (as in templates/*/SignupForm.tsx)
+is decoded and checked too.
+
+Checks 5 categories:
   widget_type    — rendered widget matches the schema's `type`, and any
                     hardcoded (staticDropdowns) field renders the option
                     `label`, not the raw `value`/`slug`.
   country_validation — every countryVariants `pattern` is present verbatim
-                    somewhere in the backend validation code, not just shown
+                    somewhere in the form's validation code, not just shown
                     as a hint/placeholder.
   conditional_logic — every dependsOn/visibleIf field has its controlling
                     field id and comparison value referenced near its own
                     show/hide/require code, and no Back-navigation exists.
-  dropdown_route — every dynamicDropdownEndpoints entry has a matching proxy
-                    route in the backend, with a fallback reference.
+  dropdown_route — every dynamicDropdownEndpoints entry the integration uses
+                    is fetched directly from the browser, and an embedded
+                    fallback dataset (real rows, not just the word) exists.
+  error_handling — Integrations 1 and 3 (which POST to EMAP) handle HTTP 429
+                    and 422 explicitly.
 
 Usage:
-  verify_form.py [--schema PATH] [--form-dir DIR] [--frontend FILE]
+  verify_form.py [--schema PATH] [--form-dir DIR] [--frontend FILE ...]
                   [--backend FILE] [--integration {1,2,3}]
-                  [--category {widget_type,country_validation,conditional_logic,dropdown_route}]
+                  [--category {widget_type,country_validation,conditional_logic,dropdown_route,error_handling}]
                   [--step N] [--fields a,b,c] [--json] [--no-cache]
+                  [--cache-file PATH]
 
 Exit code: 0 if PASS (no findings), 1 if findings exist, 2 on a usage/setup error.
 """
@@ -35,14 +45,23 @@ import sys
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-CACHE_FILE_NAME = ".emap_verify_cache.json"
+# Same file the gate passes via --cache-file, so an installed copy shares it.
+CACHE_FILE_NAME = "verify-cache.json"
+CATEGORIES = ["widget_type", "country_validation", "conditional_logic", "dropdown_route", "error_handling"]
+
+
+def default_cache_path():
+    """Only an installed copy (in the target project's .emap/ folder) caches
+    by default, next to itself. Run from anywhere else, it never writes into
+    the form's folder: no cache unless --cache-file is given."""
+    return SCRIPT_DIR / CACHE_FILE_NAME if SCRIPT_DIR.name == ".emap" else None
 
 
 def default_schema_path() -> Path:
     """This script lives in two layouts: inside the skill repo at
     verify/scripts/verify_form.py (schema two levels up), or copied next to
-    the schema itself into a target project's .claude/hooks/ (schema in the
-    same directory, per Step 1). Try both, same-directory first since
+    the schema itself into a target project's .emap/ folder (schema in the
+    same directory, per SKILL.md Step 1). Try both, same-directory first since
     that's where an installed copy expects it."""
     same_dir = SCRIPT_DIR / "signup-steps-schema.json"
     if same_dir.exists():
@@ -61,6 +80,35 @@ TEXTAREA_TYPES = {"textarea"}
 # Everything else (text, tel, email, number, date, url, hidden) is a plain <input>.
 
 WINDOW_LINES = 40  # how many lines apart two references may be and still count as "wired together"
+
+# Frontend source formats scanned under --form-dir. The form may be built in
+# any client-side stack; what matters is that the EMAP calls happen in the
+# browser (see SKILL.md Step 0), not which framework renders the markup.
+COMPONENT_EXTS = {".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".vue", ".svelte", ".astro"}
+TEMPLATE_EXTS = {
+    ".html", ".htm", ".php", ".erb", ".twig", ".liquid", ".hbs", ".handlebars", ".njk",
+    ".ejs", ".cshtml", ".razor", ".jinja", ".jinja2", ".j2", ".mustache",
+}
+FRONTEND_EXTS = COMPONENT_EXTS | TEMPLATE_EXTS
+SKIP_DIRS = {
+    "node_modules", ".git", ".next", ".nuxt", ".svelte-kit", ".output", ".astro", ".turbo",
+    ".cache", "dist", "build", "out", "coverage", "vendor", "__pycache__",
+}
+# Test/story/type-declaration files mention field names without wiring them
+# up — scanning them would let a broken form false-pass.
+SKIP_FILE_RE = re.compile(r"\.(test|spec|stories)\.[^.]+$|\.d\.ts$")
+
+# A long double-quoted JS string literal — how templates/*/SignupForm.tsx
+# embeds its markup and logic (JSON-escaped). Decoded before checking.
+LONG_JS_STRING_RE = re.compile(r'"(?:[^"\\\n]|\\.){200,}"')
+# A decoded literal counts as script (for conditional_logic) only if it reads
+# like JS and isn't a markup blob — logic that builds a few HTML strings is
+# still logic; the FORM_HTML constant (starts with a tag) is not.
+JS_CODE_RE = re.compile(r"\bfunction\b|=>|\b(?:const|let|var)\s+\w+\s*=|addEventListener")
+
+# Gap allowed between a tag name and one of its attributes. Not [^>]* —
+# JSX attributes often contain "=>" (onChange={e => ...}).
+TAG_GAP = r"[^<]*?"
 
 # Schema dependsOn/visibleIf conditions sometimes reference a synthetic
 # concept name instead of a literal field id/payload key — see the comment
@@ -159,6 +207,20 @@ def any_pair_within_window(lines_a: list, lines_b: list, window: int) -> bool:
 
 # ── Category A: widget_type / hardcoded_label ──────────────────────────────
 
+def attr_re(attr_names: str, values: list) -> str:
+    """Regex for an attribute assignment in any common template syntax:
+    name="x", name='x', or JSX's name={"x"} / name={'x'} / name={`x`}.
+    `attr_names` is a regex alternation (e.g. "id|name")."""
+    v = "|".join(re.escape(x) for x in values)
+    return (rf'\b(?:{attr_names})\s*=\s*'
+            rf'(?:"(?:{v})"|\'(?:{v})\'|\{{\s*["\'`](?:{v})["\'`]\s*\}})')
+
+
+# Attribute names that identify a form control across stacks: plain HTML
+# id/name, plus Angular reactive forms' formControlName.
+ID_ATTRS = "id|name|formControlName"
+
+
 def check_widget_type(field: dict, frontend_text: str, schema: dict) -> list:
     findings = []
     key = field["key"]
@@ -167,44 +229,50 @@ def check_widget_type(field: dict, frontend_text: str, schema: dict) -> list:
         return findings  # hidden fields aren't user-facing widgets, nothing to render-check
 
     ids = html_id_variants(key)
-    id_pattern = "|".join(re.escape(i) for i in ids)
+    id_attr = attr_re(ID_ATTRS, ids)
+    name_attr = attr_re("name|formControlName", [key, key + "[]"])
+    type_checkbox = attr_re("type", ["checkbox"])
+    type_radio = attr_re("type", ["radio"])
 
     def present(pattern: str) -> bool:
         return re.search(pattern, frontend_text) is not None
 
+    def tag_with(tag: str, attr: str) -> bool:
+        return present(rf"<{tag}\b{TAG_GAP}{attr}")
+
+    def both_attrs(a: str, b: str) -> bool:
+        return present(rf"{a}{TAG_GAP}{b}") or present(rf"{b}{TAG_GAP}{a}")
+
     if ftype in SELECT_TYPES:
-        if not present(rf'<select[^>]*(?:id|name)="(?:{id_pattern})"'):
+        if not tag_with("select", id_attr):
             findings.append(_finding(field, "widget_type",
                 f"expected a <select> for '{key}'", "no matching <select> found"))
     elif ftype in CHECKBOX_GROUP_TYPES:
-        if not re.search(rf'type="checkbox"[^>]*name="{re.escape(key)}\[\]"', frontend_text) \
-           and not re.search(rf'name="{re.escape(key)}\[\]"[^>]*type="checkbox"', frontend_text):
+        if not both_attrs(type_checkbox, name_attr):
             findings.append(_finding(field, "widget_type",
                 f"expected a checkbox-group for '{key}' (multiple type=\"checkbox\" inputs named '{key}[]')",
                 "no matching checkbox-group found"))
-        if present(rf'<select[^>]*(?:id|name)="(?:{id_pattern})"'):
+        if tag_with("select", id_attr):
             findings.append(_finding(field, "widget_type",
                 f"'{key}' is a checkbox-group in the schema", "rendered as a <select> instead"))
     elif ftype in RADIO_TYPES:
-        if not re.search(rf'type="radio"[^>]*name="{re.escape(key)}"', frontend_text) \
-           and not re.search(rf'name="{re.escape(key)}"[^>]*type="radio"', frontend_text):
+        if not both_attrs(type_radio, name_attr):
             findings.append(_finding(field, "widget_type",
                 f"expected radio buttons for '{key}'", "no matching type=\"radio\" inputs found"))
-        if present(rf'<select[^>]*(?:id|name)="(?:{id_pattern})"'):
+        if tag_with("select", id_attr):
             findings.append(_finding(field, "widget_type",
                 f"'{key}' is radio (Yes/No) in the schema", "rendered as a <select> instead"))
     elif ftype in CHECKBOX_TYPES:
-        if not re.search(rf'type="checkbox"[^>]*(?:id|name)="(?:{id_pattern})"', frontend_text) \
-           and not re.search(rf'(?:id|name)="(?:{id_pattern})"[^>]*type="checkbox"', frontend_text):
+        if not both_attrs(type_checkbox, id_attr):
             findings.append(_finding(field, "widget_type",
                 f"expected a single checkbox for '{key}'", "no matching type=\"checkbox\" input found"))
     elif ftype in TEXTAREA_TYPES:
-        if not present(rf'<textarea[^>]*(?:id|name)="(?:{id_pattern})"'):
+        if not tag_with("textarea", id_attr):
             findings.append(_finding(field, "widget_type",
                 f"expected a <textarea> for '{key}'", "no matching <textarea> found"))
     else:
         # text / tel / email / number / date / url and anything else -> plain <input>
-        if not present(rf'<input[^>]*(?:id|name)="(?:{id_pattern})"'):
+        if not tag_with("input", id_attr):
             findings.append(_finding(field, "widget_type",
                 f"expected an <input> for '{key}' (type={ftype})", "no matching <input> found"))
 
@@ -242,7 +310,9 @@ def check_country_validation(field: dict, combined_text: str) -> list:
     key = field["key"]
     for country, variant in variants.items():
         pattern = variant.get("pattern")
-        if pattern and pattern not in combined_text:
+        # A pattern written inside a JS string literal has its backslashes
+        # doubled ('^\\d{3}' for ^\d{3}) — accept either spelling.
+        if pattern and pattern not in combined_text and pattern.replace("\\", "\\\\") not in combined_text:
             findings.append(_finding(field, "country_validation",
                 f"'{key}' countryVariants.{country}.pattern ({pattern}) enforced somewhere (client or server)",
                 "literal pattern not found in frontend or backend file — may be shown only as a hint/placeholder"))
@@ -325,7 +395,7 @@ def check_conditional_logic(field: dict, frontend_text_lines: list) -> list:
 
 def check_no_back_navigation(frontend_text: str) -> list:
     findings = []
-    if re.search(r'class="[^"]*\bbtn-back\b[^"]*"', frontend_text) or re.search(r'>\s*[←]?\s*Back\s*<', frontend_text):
+    if re.search(r'\b(?:class|className)\s*=\s*\{?["\'`][^"\'`]*\bbtn-back\b', frontend_text) or re.search(r'>\s*[←]?\s*Back\s*<', frontend_text):
         findings.append({
             "file": "(frontend)", "field": "(navigation)", "category": "conditional_logic",
             "expected": "no Back button on steps 2-6 (EMAP does not support replaying an accepted step)",
@@ -349,7 +419,7 @@ DROPDOWNS_BY_INTEGRATION = {
 }
 
 
-def check_dropdown_routes(schema: dict, frontend_text: str, integration: str) -> list:
+def check_dropdown_routes(schema: dict, frontend_text: str, integration: str, fallback_text: str) -> list:
     findings = []
     endpoints = schema.get("dynamicDropdownEndpoints", {})
     expected_names = DROPDOWNS_BY_INTEGRATION.get(integration, set(endpoints.keys()))
@@ -371,6 +441,56 @@ def check_dropdown_routes(schema: dict, frontend_text: str, integration: str) ->
             "expected": "an embedded fallback dataset used when a live EMAP dropdown call fails, times out, or returns empty data",
             "actual": "no fallback reference found anywhere in the frontend file", "severity": "blocker",
         })
+    for name, (value_key, minimum) in FALLBACK_MIN_ROWS.items():
+        if name not in expected_names:
+            continue
+        rows = len(FALLBACK_ROW_RE[value_key].findall(fallback_text))
+        if rows < minimum:
+            findings.append({
+                "file": "(frontend)", "field": f"dropdown-fallback:{name}", "category": "dropdown_route",
+                "expected": (f"an embedded {name} fallback with at least {minimum} `{value_key}` rows, "
+                             "copied from references/dropdown-fallbacks.json"),
+                "actual": f"found {rows} `{value_key}` rows in the form's files", "severity": "blocker",
+            })
+    return findings
+
+
+# Minimum rows the embedded fallback must carry, counted as `code: "XX"` /
+# `slug: "..."` entries across the form's files (a .json file in the form
+# folder counts too). references/dropdown-fallbacks.json has ~248 countries
+# and ~100 industry types; the thresholds leave room for trimming but fail a
+# stub like [{name: 'United States', code: 'US'}]. 150 country codes can't be
+# met by the ~65 US states alone.
+FALLBACK_MIN_ROWS = {"countries": ("code", 150), "industry_types": ("slug", 50)}
+_Q = r"""\\?["']"""
+FALLBACK_ROW_RE = {
+    "code": re.compile(rf"(?:{_Q})?\bcode(?:{_Q})?\s*:\s*{_Q}[A-Za-z]{{2}}{_Q}"),
+    "slug": re.compile(rf"(?:{_Q})?\bslug(?:{_Q})?\s*:\s*{_Q}[^\"'\\\n]+{_Q}"),
+}
+
+
+# ── Category: error_handling ────────────────────────────────────────────────
+
+# Integrations 1 and 3 POST to EMAP; Integration 2 only redirects.
+POSTING_INTEGRATIONS = {"1", "3"}
+
+
+def check_error_handling(frontend_text: str, integration: str) -> list:
+    """EMAP answers a rate-limited request with 429 and invalid fields with
+    422 (often with a non-JSON body for 429). A form that treats both as a
+    generic failure hides the reason from the merchant and invites retries.
+    Textual check only: the status code must be compared somewhere."""
+    if integration not in POSTING_INTEGRATIONS:
+        return []
+    findings = []
+    for code, meaning in (("429", "rate limited: ask the merchant to wait before retrying"),
+                          ("422", "validation failed: show the per-field `errors`")):
+        if not re.search(rf"\b{code}\b", frontend_text):
+            findings.append({
+                "file": "(frontend)", "field": f"http-{code}", "category": "error_handling",
+                "expected": f"an explicit HTTP {code} branch ({meaning}), see references/api-errors.md",
+                "actual": f"no {code} status check found in the form's files", "severity": "blocker",
+            })
     return findings
 
 
@@ -421,8 +541,8 @@ def print_findings(grouped: list) -> None:
 
 # ── Caching (fingerprint of inputs) ─────────────────────────────────────────
 
-def fingerprint(paths: list) -> str:
-    h = hashlib.sha256()
+def fingerprint(paths: list, extra: str = "") -> str:
+    h = hashlib.sha256(extra.encode())
     for p in sorted(paths):
         try:
             h.update(p.read_bytes())
@@ -446,67 +566,131 @@ def save_cache(cache_path: Path, fp: str, passed: bool) -> None:
 
 # ── Main ─────────────────────────────────────────────────────────────────
 
-def detect_frontend(form_dir: Path) -> Path | None:
-    for candidate in ("plain-html.html", "index.php", "index.html"):
-        p = form_dir / candidate
-        if p.exists():
-            return p
-    html_files = list(form_dir.glob("*.html"))
-    return html_files[0] if html_files else None
+def discover_frontend_files(form_dir: Path) -> list:
+    """Every frontend source file under form_dir, recursively, in any stack.
+    Build output, dependencies and test files are skipped."""
+    found = []
+    for p in sorted(form_dir.rglob("*")):
+        rel_parts = p.relative_to(form_dir).parts
+        if any(part in SKIP_DIRS for part in rel_parts[:-1]):
+            continue
+        if p.is_file() and p.suffix.lower() in FRONTEND_EXTS and not SKIP_FILE_RE.search(p.name):
+            found.append(p)
+    return found
 
 
-def detect_backend(form_dir: Path, frontend: Path | None) -> Path | None:
-    candidates = []
-    for ext in ("*.php", "*.js", "*.ts"):
-        candidates.extend(form_dir.glob(ext))
-    candidates = [c for c in candidates if c != frontend]
-    return candidates[0] if candidates else None
+def discover_data_files(form_dir: Path) -> list:
+    """JSON files under form_dir, read only for the fallback-dataset check
+    (a port may keep the dropdown fallback snapshot in its own .json file)."""
+    found = []
+    for p in sorted(form_dir.rglob("*.json")):
+        rel_parts = p.relative_to(form_dir).parts
+        if any(part in SKIP_DIRS for part in rel_parts[:-1]):
+            continue
+        if p.is_file() and not p.name.startswith(("package", "tsconfig", "verify-cache")):
+            found.append(p)
+    return found
+
+
+def decode_long_js_strings(text: str) -> tuple:
+    """Return (text with long double-quoted literals replaced by "", list of
+    decoded literal contents). Literals that aren't valid JSON string syntax
+    are left in place untouched."""
+    decoded = []
+
+    def repl(m):
+        try:
+            decoded.append(json.loads(m.group(0)))
+            return '""'
+        except json.JSONDecodeError:
+            return m.group(0)
+
+    return LONG_JS_STRING_RE.sub(repl, text), decoded
+
+
+def load_sources(paths: list) -> tuple:
+    """Read every frontend file and return (widget_text, logic_lines).
+
+    widget_text: all markup/code, used for widget, label, country-pattern
+    and dropdown checks.
+    logic_lines: script code only, used for conditional_logic proximity —
+    markup proximity alone would false-pass two adjacent fields with no JS
+    wiring between them. Files are separated by blank lines wider than
+    WINDOW_LINES so references in different files never count as "near"."""
+    widget_parts, logic_parts, template_texts = [], [], []
+    for p in paths:
+        text = p.read_text(encoding="utf-8", errors="replace")
+        if p.suffix.lower() in COMPONENT_EXTS:
+            stripped, decoded = decode_long_js_strings(text)
+            widget_parts.append(text + "\n" + "\n".join(decoded))
+            logic = [stripped] + [d for d in decoded
+                                  if JS_CODE_RE.search(d) and not d.lstrip().startswith("<")]
+            logic_parts.append("\n".join(logic))
+        else:
+            widget_parts.append(text)
+            template_texts.append(text)
+            scripts = extract_script_lines(text)
+            if scripts:
+                logic_parts.append("\n".join(scripts))
+    if not logic_parts:
+        # No JS found anywhere (e.g. a template whose script tags are
+        # rendered by a helper) — fall back to the whole template text.
+        logic_parts = template_texts
+    sep = "\n" * (WINDOW_LINES + 2)
+    return "\n".join(widget_parts), sep.join(logic_parts).splitlines()
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--schema", type=Path, default=DEFAULT_SCHEMA)
     ap.add_argument("--form-dir", type=Path, default=Path("."))
-    ap.add_argument("--frontend", type=Path, default=None)
-    ap.add_argument("--backend", type=Path, default=None)
+    ap.add_argument("--frontend", type=Path, action="append", default=None,
+                    help="frontend file to check (repeatable); default: every frontend source file under --form-dir")
+    ap.add_argument("--backend", type=Path, default=None,
+                    help="optional extra file whose validation code also counts for country_validation")
     ap.add_argument("--integration", choices=["1", "2", "3"], default="1")
-    ap.add_argument("--category", choices=["widget_type", "country_validation", "conditional_logic", "dropdown_route"])
+    ap.add_argument("--category", choices=CATEGORIES)
     ap.add_argument("--step", type=int)
     ap.add_argument("--fields", type=str, help="comma-separated schema field keys to check")
     ap.add_argument("--json", action="store_true", help="print raw findings JSON instead of grouped text")
     ap.add_argument("--no-cache", action="store_true")
+    ap.add_argument("--cache-file", type=Path, default=None,
+                    help=f"where to keep the pass cache (default: {CACHE_FILE_NAME} next to this script "
+                         "when it is installed in .emap/, otherwise no cache)")
     args = ap.parse_args()
 
     schema = load_schema(args.schema)
     form_dir = args.form_dir
-    frontend_path = args.frontend or detect_frontend(form_dir)
-    if not frontend_path or not frontend_path.exists():
-        print(f"ERROR: no frontend file found in {form_dir} (looked for plain-html.html / index.php / index.html / *.html)", file=sys.stderr)
+    frontend_paths = args.frontend or discover_frontend_files(form_dir)
+    missing = [p for p in frontend_paths if not p.exists()]
+    if not frontend_paths or missing:
+        where = ", ".join(str(p) for p in missing) if missing else str(form_dir)
+        print(f"ERROR: no frontend file found ({where}). Looked recursively for "
+              f"{' '.join(sorted(FRONTEND_EXTS))} files, skipping {', '.join(sorted(SKIP_DIRS))}.",
+              file=sys.stderr)
         return 2
-    backend_path = args.backend or detect_backend(form_dir, frontend_path)
+    backend_path = args.backend
 
-    cache_path = form_dir / CACHE_FILE_NAME
-    fp_inputs = [args.schema, frontend_path] + ([backend_path] if backend_path else [])
-    fp = fingerprint(fp_inputs)
+    cache_path = args.cache_file or default_cache_path()
+    data_paths = discover_data_files(form_dir) if not args.frontend else []
+    fp_inputs = [args.schema] + list(frontend_paths) + data_paths + ([backend_path] if backend_path else [])
+    # The integration is part of the key: the same files pass or fail differently per integration.
+    fp = fingerprint(fp_inputs, extra=f"integration={args.integration}")
     scoped = args.category or args.step or args.fields
-    if not args.no_cache and not scoped:
+    use_cache = cache_path is not None and not args.no_cache and not scoped
+    if use_cache:
         cached = load_cache(cache_path)
         if cached.get("fingerprint") == fp and cached.get("passed"):
             print("PASS (cached — no changes since last verified run)")
             return 0
 
-    frontend_text = frontend_path.read_text(encoding="utf-8", errors="replace")
+    frontend_text, script_lines = load_sources(frontend_paths)
     backend_text = backend_path.read_text(encoding="utf-8", errors="replace") if backend_path else ""
-    # conditional_logic must check actual JS wiring, not markup proximity —
-    # if the backend is JS/TS (no separate frontend script), fall back to
-    # scanning the frontend file whole (it's likely already JS-only in that case).
-    script_lines = extract_script_lines(frontend_text) or frontend_text.splitlines()
 
     fields = all_fields(schema)
 
-    # Integration-aware scope: 2 and 3 only render Step 1, and have no
-    # dropdown-proxy backend in the Integration-1 sense (2 has none at all;
-    # 3's single endpoint isn't a dropdown proxy) — see verify/SKILL.md.
+    # Integration-aware scope: 2 and 3 only render Step 1 (their dropdown
+    # checks are scoped by DROPDOWNS_BY_INTEGRATION) — see verify/README.md.
     if args.integration in ("2", "3"):
         fields = [f for f in fields if f["step"] == 1]
 
@@ -521,6 +705,7 @@ def main() -> int:
     run_country = args.category in (None, "country_validation")
     run_cond = args.category in (None, "conditional_logic")
     run_dropdown = args.category in (None, "dropdown_route") and not args.step and not args.fields
+    run_errors = args.category in (None, "error_handling") and not args.step and not args.fields
 
     combined_text = frontend_text + "\n" + backend_text
 
@@ -535,7 +720,11 @@ def main() -> int:
     if run_cond and not args.fields:
         findings.extend(check_no_back_navigation(frontend_text))
     if run_dropdown:
-        findings.extend(check_dropdown_routes(schema, frontend_text, args.integration))
+        fallback_text = frontend_text + "\n" + "\n".join(
+            p.read_text(encoding="utf-8", errors="replace") for p in data_paths)
+        findings.extend(check_dropdown_routes(schema, frontend_text, args.integration, fallback_text))
+    if run_errors:
+        findings.extend(check_error_handling(frontend_text, args.integration))
 
     blockers = [f for f in findings if f.get("severity", "blocker") == "blocker"]
     passed = len(blockers) == 0
@@ -552,7 +741,7 @@ def main() -> int:
     else:
         print_findings(group_findings(findings))
 
-    if not args.no_cache and not scoped:
+    if use_cache:
         save_cache(cache_path, fp, passed)
 
     return 0 if passed else 1

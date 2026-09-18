@@ -1,4 +1,4 @@
-# Integration 3: API Submission — Deep Reference
+# Integration 3: Email-Based Signup — Deep Reference
 
 ## Endpoint
 
@@ -8,10 +8,17 @@ Content-Type: application/json
 Accept: application/json
 ```
 
-Call this endpoint directly from the browser via `fetch()` — this integration is pure client-side,
-no backend of its own. EMAP sets CORS headers that allow this from any origin
-(`Access-Control-Allow-Origin` reflects the request's `Origin`, verified directly against the live
-API).
+Call this endpoint directly from the merchant's browser via `fetch()`. The integration is pure
+client-side, with no backend of its own, so EMAP rate-limits by the merchant's IP. EMAP's API allows
+these cross-origin calls via CORS. If EMAP limits that to registered partner sites, the partner's
+origin must be registered with Easy Pay Direct.
+
+`{EMAP_BASE_URL}` is `https://emap.epd.dev` (EMAP's **test server**) during development. Switch to
+the production URL Easy Pay Direct gives you before launch. Don't create test applications on
+production.
+
+The form is filled in by the merchant, so all its wording speaks to the merchant: "Start Your
+Merchant Application", "Email Me a Secure Link", "Check Your Email".
 
 ---
 
@@ -42,7 +49,7 @@ API).
 |---|---|
 | `first_name` | required, string, max 255 |
 | `last_name` | required, string, max 255 |
-| `email` | required, valid RFC email format, must not already exist in EMAP's users table |
+| `email` | required, valid email format. An email EMAP already knows returns the [existing-user response](#existing-emap-user), not an error |
 | `phone` | required, string, max 20, digits/hyphens/plus/parentheses/spaces only |
 | `name` | required, string, max 255 — **this is the company name** |
 | `website` | required, string, valid URL pattern |
@@ -50,10 +57,9 @@ API).
 | `annual_sales` | required, integer, min 1, max 999999999999 |
 | `business_state` | required when country=US, string, max 2 chars, valid US state code (e.g. `CA`, `TX`) |
 | `industry_type` | required, string — slug from `GET /api/partner/industry-types` (use the `slug` field, e.g. `e-commerce`) |
-| `industry_type_other` | required when `industry_type = other`, string, max 255 |
+| `industry_type_other` | required when `industry_type` is `other` (compare case-insensitively; EMAP returns `Other`), string, max 255 |
 | `promo_code` | optional, string, max 255 |
-| `partner_key` | optional, string — your partner `security_key` from EMAP |
-| `partner_id` | optional, integer — your partner user ID in EMAP (alternative to `partner_key`) |
+| `partner_key` | optional, string — your partner key from the partner portal (Integration → API Integration). An attribution value, not a secret |
 | `trigger_email` | optional, boolean, default `false` — when `true`, EMAP dispatches the welcome/verification email as part of this same call. **Required for the Integration 3 email-signup flow**; without it, the account/application is created but no email is sent. |
 
 ---
@@ -73,8 +79,10 @@ HTTP 422 is used only for field validation failures. Check the body to determine
 }
 ```
 
-The `uuid` is the application's UUID. You can display it in your confirmation page or store it for
-reference. The merchant will also receive a welcome email with their password and a link to continue.
+The `uuid` identifies the application, and anyone who holds it can continue that application.
+Treat it like a password: **don't display it, log it, send it to analytics or store it.** The
+template shows only "Check Your Email" and the address the link went to. The merchant continues
+from the link in their email.
 
 ### Existing EMAP user
 
@@ -86,9 +94,10 @@ reference. The merchant will also receive a welcome email with their password an
 }
 ```
 
-The merchant already has an EMAP account. Redirect the merchant to `url` or tell them to check
-their email — EMAP has sent a verification email. Note: `status` key is absent in this shape.
-Detect it by checking for `verificationLink: true`.
+The merchant already has an EMAP account, and EMAP has emailed them a verification link. Show the
+same "Check Your Email" panel with a note that the email is already registered. Don't navigate to
+`url`: the email is how EMAP confirms the person owns the address. Note: the `status` key is absent
+in this shape. Detect it by checking for `verificationLink: true`.
 
 ### Company already exists
 
@@ -100,8 +109,9 @@ Detect it by checking for `verificationLink: true`.
 }
 ```
 
-The company name + country combination already exists in EMAP. Tell the merchant to check their
-email for their existing application.
+The company name + country combination already exists in EMAP. Tell the merchant an application
+already exists for this company and to check their inbox for an earlier email from Easy Pay Direct,
+or contact its support team. Don't show anything from `data`.
 
 ### Validation failed (HTTP 422)
 
@@ -132,29 +142,29 @@ Show a generic "please try again" message. Do not surface the raw error to the m
 
 ### Rate limited (HTTP 429)
 
-Standard 429 response. Implement exponential backoff. Tell the merchant to try again in a few minutes.
+Standard 429 response; the body may not be JSON. Re-enable the button and tell the merchant to try
+again in a few minutes. Don't retry automatically.
 
 ---
 
-## What EMAP does after a successful submission
+## What happens after a successful submission
 
-Understanding this helps you set the right expectations with the merchant.
-
-1. **Creates records:** User, Company, Application records are created atomically.
-2. **Fraud screening:** `ScreenApplicationForFraudJob` is queued. Scans the website asynchronously.
-3. **Deal assignment:** The rules engine assigns a sales rep (deal owner) based on the application data.
-4. **HubSpot sync:** Contact and deal objects are created/updated in HubSpot.
-5. **Partner webhook:** If `partner_id` / `partner_key` is set, a webhook fires to notify the partner.
-6. **Welcome email (new users):** if `trigger_email: true` was sent, `TriggerMerchantSignupEmail` dispatches with a password reset link.
-7. **Verification email (existing users):** if `trigger_email: true` was sent, `MerchantSignupVerificationEmail` dispatches with a secure token URL.
+EMAP creates the merchant's account and application, runs its own review of the application, and,
+because `trigger_email: true` was sent, emails the merchant. If a partner key was sent, the
+application is attributed to that partner.
 
 The merchant should expect:
-- **New user:** an email with their temporary password and a link to continue at step 2.
+- **New user:** an email with a link to set up access and continue at step 2.
 - **Existing user:** an email with a verification link to access their application.
+
+Emails can take a few minutes and may land in spam; the success panel says so.
 
 ---
 
 ## Example: cURL
+
+For checking the API contract by hand on the **test server** only. A real integration never calls
+EMAP from a terminal or server: the request must come from the merchant's browser.
 
 ```bash
 curl -X POST https://emap.epd.dev/api/v1/signup \
@@ -163,7 +173,7 @@ curl -X POST https://emap.epd.dev/api/v1/signup \
   -d '{
     "first_name": "Jane",
     "last_name": "Smith",
-    "email": "jane@acme.com",
+    "email": "you+emap-test@your-domain.com",
     "phone": "+12025551234",
     "name": "Acme Corp",
     "website": "https://acme.com",
@@ -186,7 +196,7 @@ HTTP status?
   ├── 422 → validation failed; show errors from response.errors
   ├── 400 → server error; show generic "please try again"
   └── 200 → check body:
-        ├── response.verificationLink === true → existing user; show verification message
-        ├── response.status === true → new user; show success + "check your inbox"
+        ├── response.verificationLink === true → existing user; show "Check Your Email" + note
+        ├── response.status === true → new user; show "Check Your Email" (never the uuid)
         └── response.status === false → company exists or other error; check response.message
 ```

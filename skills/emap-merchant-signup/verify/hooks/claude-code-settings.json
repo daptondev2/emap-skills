@@ -1,0 +1,15 @@
+{
+  "_comment": "Claude Code only (optional). Merge the 'hooks' key into the target project's .claude/settings.json: create the file if it doesn't exist; if hooks.Stop already has entries, append this entry instead of overwriting them. See SKILL.md Step 1.",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/.emap/emap_gate.py\" --claude-stop-hook"
+          }
+        ]
+      }
+    ]
+  }
+}
