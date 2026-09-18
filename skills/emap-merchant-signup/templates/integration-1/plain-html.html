@@ -960,7 +960,7 @@
       <div class="form-row">
         <div class="form-group">
           <label id="routing_number_label" for="routing_number">Routing Number <span class="required">*</span></label>
-          <input id="routing_number" name="routing_number" type="text" maxlength="20" autocomplete="off" required placeholder="9-digit routing number">
+          <input id="routing_number" name="routing_number" type="text" maxlength="20" autocomplete="off" required placeholder="Routing Number">
           <span class="sensitive-note" id="routing_number_hint">US: exactly 9 digits</span>
           <span class="field-error" id="err_routing_number"></span>
         </div>
@@ -1615,20 +1615,29 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       // Routing Number label
       var rLabel = document.getElementById('routing_number_label');
       var rHint  = document.getElementById('routing_number_hint');
+      var rText  = COUNTRY_LABELS.routing_number[c] || COUNTRY_LABELS.routing_number._default;
       if (rLabel) {
-        var rText = COUNTRY_LABELS.routing_number[c] || COUNTRY_LABELS.routing_number._default;
         rLabel.innerHTML = rText + ' <span class="required">*</span>';
       }
       if (rHint) {
-        rHint.textContent = c === 'US' ? 'US: exactly 9 digits' :
-                            c === 'CA' ? 'CA: 5-digit transit number' :
-                            c === 'AU' ? 'AU: 6-digit BSB code' :
-                            c === 'GB' ? 'UK: 6-digit sort code (e.g. 12-34-56)' : '';
+        // Only US actually has a length requirement (exactly 9 digits) —
+        // CA/AU/GB/PR/every other country has no length rule at all, just
+        // "required". The CA/AU/GB digit counts this used to show ("5-digit
+        // transit number", "6-digit BSB code", "6-digit sort code") were
+        // invented, not a real constraint, so don't claim one for them.
+        rHint.textContent = c === 'US' ? 'US: exactly 9 digits' : '';
       }
       var rInput = document.getElementById('routing_number');
       if (rInput) {
         if (c === 'US') { rInput.setAttribute('maxlength', '9'); rInput.setAttribute('pattern', '[0-9]{9}'); }
         else { rInput.setAttribute('maxlength', '20'); rInput.removeAttribute('pattern'); }
+        // Placeholder was previously hardcoded to a static HTML string and
+        // never updated for other countries. Per the schema, routing_number's
+        // countryVariants.<country>.placeholder is always identical to that
+        // variant's label (e.g. CA: both "Transit Number / Routing Number")
+        // — so just reuse the label text already computed above as rText,
+        // rather than inventing separate placeholder wording.
+        rInput.placeholder = rText;
       }
 
       // Account Number label
@@ -2634,6 +2643,21 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         localStorage.removeItem('emap_country');
         localStorage.removeItem('emap_step');
         localStorage.removeItem('emap_marketing_model');
+
+        // EMAP collects documents in its own UI after Step 6 — send the
+        // merchant straight there instead of stopping on a local success
+        // panel. The backend builds this URL (it already knows EMAP_BASE_URL
+        // server-side) rather than exposing that config to the browser just
+        // to construct it here. redirect=1 tells EMAP this is a fresh
+        // handoff so it can resume the merchant's session and route them
+        // appropriately (e.g. straight to their dashboard if already complete).
+        if (result.redirect_url) {
+          window.location.href = result.redirect_url;
+          return;
+        }
+
+        // Fallback only — should not normally be reached, since the backend
+        // always attaches redirect_url on a successful Step 6 response.
         document.getElementById('form-step6').style.display = 'none';
         document.getElementById('progress-bar').style.display = 'none';
         document.getElementById('success-panel').style.display = 'block';

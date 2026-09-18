@@ -2116,7 +2116,7 @@ app.get('/api/referral-sources', dropdownProxy('/api/partner/referral-sources'))
 app.get('/api/interest-details', dropdownProxy('/api/partner/interest-details'));
 
 // ── Step proxy helper ─────────────────────────────────────────────────────────
-async function proxyStep(emapPath, body, res) {
+async function proxyStep(emapPath, body, res, extraOnSuccess) {
   let emapResponse, emapData;
   try {
     emapResponse = await fetch(`${emapOrigin}${emapPath}`, {
@@ -2146,6 +2146,11 @@ async function proxyStep(emapPath, body, res) {
       status: false,
       message: 'EMAP is temporarily unavailable. Please try again.',
     });
+  }
+
+  if (extraOnSuccess && emapResponse.status >= 200 && emapResponse.status < 300
+      && emapData && typeof emapData === 'object') {
+    Object.assign(emapData, extraOnSuccess);
   }
 
   return res.status(emapResponse.status).json(emapData);
@@ -2358,7 +2363,13 @@ app.post('/api/step/6', async function (req, res) {
   if (!uuid) return res.status(422).json({ status: false, message: 'uuid is required' });
 
   const payload = Object.assign({}, req.body, { step_count: 6 });
-  return proxyStep('/api/v1/application/step', payload, res);
+  // On a successful Step 6, EMAP takes over from here — the merchant uploads
+  // supporting documents on EMAP's own site, not ours. Hand the frontend a
+  // ready-to-use redirect URL rather than exposing EMAP_BASE_URL to the
+  // browser just so it can build this URL itself.
+  return proxyStep('/api/v1/application/step', payload, res, {
+    redirect_url: `${emapOrigin}/upload-document/${encodeURIComponent(uuid)}?redirect=1`,
+  });
 });
 
 // ── Serve the form ────────────────────────────────────────────────────────────

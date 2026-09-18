@@ -39,7 +39,11 @@ const NO_STORE = { 'Cache-Control': 'no-store' } as const;
 
 // ── Shared helper: proxy a POST to EMAP ───────────────────────────────────────
 
-async function proxyPost(emapPath: string, body: unknown): Promise<NextResponse> {
+async function proxyPost(
+  emapPath: string,
+  body: unknown,
+  extraOnSuccess?: Record<string, unknown>
+): Promise<NextResponse> {
   let emapRes: Response;
   let emapData: unknown;
 
@@ -71,6 +75,11 @@ async function proxyPost(emapPath: string, body: unknown): Promise<NextResponse>
       { status: false, message: 'EMAP is temporarily unavailable. Please try again.' },
       { status: 502, headers: NO_STORE }
     );
+  }
+
+  if (extraOnSuccess && emapRes.status >= 200 && emapRes.status < 300
+      && emapData && typeof emapData === 'object') {
+    Object.assign(emapData as Record<string, unknown>, extraOnSuccess);
   }
 
   return NextResponse.json(emapData, { status: emapRes.status, headers: NO_STORE });
@@ -396,7 +405,13 @@ export async function POST_step6(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ status: false, message: 'uuid is required' }, { status: 422, headers: NO_STORE });
   }
 
-  return proxyPost('/api/v1/application/step', { ...body, step_count: 6 });
+  // On a successful Step 6, EMAP takes over from here — the merchant uploads
+  // supporting documents on EMAP's own site, not ours. Hand the frontend a
+  // ready-to-use redirect URL rather than exposing EMAP_BASE_URL to the
+  // browser just so it can build this URL itself.
+  return proxyPost('/api/v1/application/step', { ...body, step_count: 6 }, {
+    redirect_url: `${emapOrigin}/upload-document/${encodeURIComponent(String(body.uuid))}?redirect=1`,
+  });
 }
 
 /**

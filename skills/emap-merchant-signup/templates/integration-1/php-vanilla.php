@@ -371,6 +371,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $input['step_count'] = $step;
         $result = emapPost($emapOrigin . '/api/v1/application/step', $input);
+
+        // On a successful Step 6, EMAP takes over from here — the merchant
+        // uploads supporting documents on EMAP's own site, not ours. Hand the
+        // frontend a ready-to-use redirect URL rather than exposing EMAP_BASE_URL
+        // to the browser just so it can build this URL itself.
+        if ($step === 6 && $result['status_code'] >= 200 && $result['status_code'] < 300 && is_array($result['body'])) {
+            $result['body']['redirect_url'] = $emapOrigin . '/upload-document/' . rawurlencode($uuid) . '?redirect=1';
+        }
+
         http_response_code($result['status_code']);
         echo json_encode($result['body']);
         exit;
