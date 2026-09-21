@@ -315,7 +315,7 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
    > the evidence for each.
    - `industry_type` is collected in **Step 1** (not Step 2) and submitted with `POST /api/v1/signup`. Show `industry_type_other` when `industry_type = other`, matched **case-insensitively** — the live `/api/partner/industry-types` endpoint's catch-all slug is `Other` (capitalized), not `other` (step 1).
    - `country=US` → show `business_state` (step 1) and `state.1` (step 4).
-   - `emap_country` (Step 1) = `CA` → hide/disable & un-require `federal_tax_id` (step 2). This is the ONLY exemption the API grants — do not also exempt Sole-Proprietorship. Otherwise it's shown, required, and masked per `countryVariants` (see point 9).
+   - `emap_country` (Step 1) = `CA` **or** `business_organized` = `Sole-Proprietorship` → hide/disable & un-require `federal_tax_id` (step 2). Otherwise it's shown, required, and masked per `countryVariants` (see point 9). Re-evaluate whenever either field changes.
    - `emap_country` (Step 1) = `US` → hide/un-require `business_register_number` (step 2). This is the ONLY exemption the API grants — do not also exempt Puerto Rico or CA+Sole-Proprietorship.
    - `is_physical_address_same_as_legal_address=0` → show the physical address block (step 2).
    - `marketingModel` includes `2` → show `subscription_frequency`; if frequency=`3` show `subscription_frequency_other` (step 2).

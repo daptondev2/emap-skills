@@ -119,7 +119,7 @@ For an existing user (`verificationLink: true`), tell the merchant to check thei
 | `business_organized` | Yes | One of: `Corporation`, `LLC`, `Partnership`, `Government`, `Sole-Proprietorship`, `Non-Profit`, `Other` |
 | `business_location` | Yes | One of: `Home-Based`, `Co-Working`, `Corporate-Office`, `Storefront`, `Others` |
 | `business_formed` | Yes | Business formation date, format `YYYY-MM-DD` |
-| `federal_tax_id` | Required unless Step 1 country=`CA`. Don't also exempt Sole-Proprietorship: the API doesn't, whatever EMAP's signup page does ([why](api-quirks.md#federal_tax_id-only-canada-is-exempt)). | Numeric only, masked `XXX-XX-XXXX` (3-2-4) for US/CA/PR, `XX-XXXXXXX` (2-7) otherwise — never free-form alphanumeric, in any country. Use `country_from_step1` (the Step 1 formation country), not `address_country`. |
+| `federal_tax_id` | Required unless Step 1 country=`CA` or `business_organized`=`Sole-Proprietorship` ([note](api-quirks.md#federal_tax_id-canada-and-sole-proprietorship-are-exempt)). | Numeric only, masked `XXX-XX-XXXX` (3-2-4) for US/CA/PR, `XX-XXXXXXX` (2-7) otherwise — never free-form alphanumeric, in any country. Use `country_from_step1` (the Step 1 formation country), not `address_country`. |
 | `business_register_number` | Required for every Step 1 country except `US`. Don't also exempt PR or CA sole-props ([why](api-quirks.md#business_register_number-only-the-us-is-exempt)). | Max 20 (11 for CA). Use `country_from_step1` (the Step 1 formation country), not `address_country`. |
 | `street_number` | Yes | Max 10 |
 | `street_address` | Yes | Max 255 |

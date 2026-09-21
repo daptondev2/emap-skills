@@ -9,17 +9,20 @@ rejects the submission, and the two have been seen to disagree.
 
 ---
 
-## `federal_tax_id`: only Canada is exempt
+## `federal_tax_id`: Canada and Sole-Proprietorship are exempt
 
-EMAP's signup page exempts `federal_tax_id` when the Step 1 country is `CA` **or** the business is
-a Sole-Proprietorship. The API only honours the Canada exemption. A US and a German
-Sole-Proprietorship submitted without it were both rejected with 422:
+The field is not required when the Step 1 country is `CA` **or** `business_organized` is
+`Sole-Proprietorship`. This is EMAP's signup page rule, and the API's own error text says the same:
 
 > "Federal tax ID (or equivalent) is required for all companies except Canada and
 > Sole-Proprietorships"
 
-The message names an exemption the API doesn't grant. Rule: hide and un-require the field only when
-`emap_country` (the Step 1 country) is `CA`.
+Rule: hide, disable and un-require the field when either condition is true, and re-check whenever
+either field changes.
+
+Open issue: one earlier test submission of a US and a German Sole-Proprietorship without the field
+was rejected with that same 422 message. The cause wasn't found. If real sole-prop merchants hit it,
+EMAP's API needs to match its own message; the form follows the rule above.
 
 The field is numeric only in every country: masked `XXX-XX-XXXX` for US/CA/PR and `XX-XXXXXXX`
 elsewhere, despite its generic `^[0-9A-Za-z\-]+$` pattern and "EIN" placeholder. See its

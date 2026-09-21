@@ -599,14 +599,14 @@
           "maxLength": 20,
           "pattern": "^[0-9]{2}-[0-9]{7}$",
           "placeholder": "XX-XXXXXXX",
-          "hint": "Required unless country is Canada",
+          "hint": "Not required for Canada or Sole-Proprietorship",
           "countryDependent": true,
           "dependsOn": {
-            "logic": "NOT (country_from_step1 == 'CA')",
+            "logic": "NOT (country_from_step1 == 'CA' OR business_organized == 'Sole-Proprietorship')",
             "effect": "required"
           },
           "visibleIf": {
-            "logic": "NOT (country_from_step1 == 'CA')"
+            "logic": "NOT (country_from_step1 == 'CA' OR business_organized == 'Sole-Proprietorship')"
           },
           "countryVariants": {
             "US": {
@@ -666,7 +666,7 @@
               "validationNote": "All other countries: 9 digits masked as XX-XXXXXXX (blocks [2,7])."
             }
           },
-          "note": "Required for every Step 1 country except Canada — country_from_step1=='CA' is the ONLY exemption. EMAP's signup form also treats business_organized=='Sole-Proprietorship' as exempt, but live testing shows the API does not honor that exemption: a US and a Germany Sole-Proprietorship submitted without federal_tax_id both got a 422 'required for all companies except Canada and Sole-Proprietorships' — the message names an exemption the API doesn't actually grant. A form built to match the signup UI's leniency (hiding/un-requiring this field for any non-CA Sole-Proprietorship) will hit that same 422. Label and mask still key off country_from_step1 independent of this: US/CA/PR grouped identically ('Federal Tax ID', XXX-XX-XXXX mask) versus every other country ('...or Corporation Tax Number equivalent', XX-XXXXXXX mask)."
+          "note": "Not required (hidden, disabled, un-required) when country_from_step1=='CA' OR business_organized=='Sole-Proprietorship'; required in every other case. This follows EMAP's signup page and the API's own error text ('required for all companies except Canada and Sole-Proprietorships'). Caveat: one earlier test submission of a US and a German Sole-Proprietorship without federal_tax_id was rejected with that same 422 — unresolved; if it recurs, EMAP's API needs to match its own message. Label and mask key off country_from_step1 independent of this: US/CA/PR grouped identically ('Federal Tax ID', XXX-XX-XXXX mask) versus every other country ('...or Corporation Tax Number equivalent', XX-XXXXXXX mask)."
         },
         {
           "key": "business_register_number",
