@@ -286,9 +286,10 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
    embedded fallback data along with the rest of the file.
 
 4. **Understand the step flow:**
-   - Step 1 (`POST /api/v1/signup`) returns a `uuid`. Collect: first name, last name, email, phone, company name, website, country, annual sales, **industry type**, and (if US) business state. Store the `uuid` in `localStorage('emap_uuid')`.
+   - **Every step's request carries `step_count`** (1–6) in its JSON body, including Step 1 and Step 4.
+   - Step 1 (`POST /api/v1/signup`, `step_count: 1`) returns a `uuid`. Collect: first name, last name, email, phone, company name, website, country, annual sales, **industry type**, and (if US) business state. Store the `uuid` in `localStorage('emap_uuid')`.
    - Steps 2, 3, 5, 6 call `POST /api/v1/application/step` with the `uuid` and the appropriate `step_count`.
-   - Step 4 calls `POST /api/v1/ownership` (no `step_count`; uses dot-notation field names).
+   - Step 4 calls `POST /api/v1/ownership` with `step_count: 4` and the dot-notation owner fields.
    - Step 6 success → clear `localStorage` and redirect the top-level window to EMAP's
      `{EMAP_BASE_URL}/upload-document/{uuid}?redirect=1` page, where the merchant uploads their
      documents.

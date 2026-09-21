@@ -132,8 +132,9 @@ Always use `textContent`, never `innerHTML`, for anything that came from EMAP.
 ## Steps 2–6 (Integration 1)
 
 Steps 2, 3, 5 and 6 `POST {EMAP_BASE_URL}/api/v1/application/step` with the `uuid` and a
-`step_count`. Step 4 `POST`s `{EMAP_BASE_URL}/api/v1/ownership` with the `uuid` and dot-notation
-owner fields. The template's `submitStep()` handles all five the same way:
+`step_count`. Step 4 `POST`s `{EMAP_BASE_URL}/api/v1/ownership` with the `uuid`, `step_count: 4` and
+dot-notation owner fields. Step 1 (`/api/v1/signup`) also sends `step_count: 1`. The template's
+`submitStep()` handles all five the same way:
 
 | HTTP | Response | Action |
 |---|---|---|

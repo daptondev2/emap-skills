@@ -52,7 +52,9 @@ stack, and for the porting rules if you rewrite it natively.
    `EMAP /api/v1/signup`. EMAP returns a `uuid` that identifies the in-progress application.
 2. The `uuid` is stored in `localStorage` and sent with every subsequent step.
 3. Steps 2, 3, 5, and 6 POST to `EMAP /api/v1/application/step` with the appropriate `step_count`.
-4. Step 4 (ownership) POSTs to `EMAP /api/v1/ownership`.
+4. Step 4 (ownership) POSTs to `EMAP /api/v1/ownership` with `step_count: 4`.
+
+Every request, including Step 1, carries its `step_count` (1–6) in the JSON body.
 5. On Step 6 success, the browser redirects the merchant to
    `{EMAP_BASE_URL}/upload-document/{uuid}?redirect=1` to continue on EMAP.
 
@@ -71,10 +73,10 @@ that to registered partner sites, register your site's origin with Easy Pay Dire
 | Dropdown load | `GET /api/partner/shopping-carts` | Same fallback behavior |
 | Dropdown load | `GET /api/partner/referral-sources` | Same fallback behavior |
 | Dropdown load | `GET /api/partner/interest-details` | Same fallback behavior |
-| Step 1 submit | `POST /api/v1/signup` | Sends `partner_key` from the `EMAP_PARTNER_KEY` constant, if set |
+| Step 1 submit | `POST /api/v1/signup` (`step_count=1`) | Sends `partner_key` from the `EMAP_PARTNER_KEY` constant, if set |
 | Step 2 submit | `POST /api/v1/application/step` (`step_count=2`) | Requires `uuid` |
 | Step 3 submit | `POST /api/v1/application/step` (`step_count=3`) | Requires `uuid` |
-| Step 4 submit | `POST /api/v1/ownership` | Requires `uuid` |
+| Step 4 submit | `POST /api/v1/ownership` (`step_count=4`) | Requires `uuid` |
 | Step 5 submit | `POST /api/v1/application/step` (`step_count=5`) | Requires `uuid` |
 | Step 6 submit | `POST /api/v1/application/step` (`step_count=6`) | Requires `uuid`; redirects to `/upload-document/{uuid}?redirect=1` on success |
 

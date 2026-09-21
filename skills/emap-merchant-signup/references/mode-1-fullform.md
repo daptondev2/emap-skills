@@ -38,10 +38,10 @@ Each step is called directly: `fetch(EMAP_BASE_URL + '<EMAP endpoint>', ...)` fr
 
 | Step | EMAP endpoint | Notes |
 |---|---|---|
-| 1 | `POST /api/v1/signup` | Returns the `uuid` used by every later step |
+| 1 | `POST /api/v1/signup` | `step_count=1`; returns the `uuid` used by every later step |
 | 2 | `POST /api/v1/application/step` | `step_count=2` |
 | 3 | `POST /api/v1/application/step` | `step_count=3` |
-| 4 | `POST /api/v1/ownership` | Nested dot-notation fields (see Step 4 below) |
+| 4 | `POST /api/v1/ownership` | `step_count=4`; nested dot-notation fields (see Step 4 below) |
 | 5 | `POST /api/v1/application/step` | `step_count=5` |
 | 6 | `POST /api/v1/application/step` | `step_count=6` |
 
@@ -57,6 +57,7 @@ The `uuid` returned by Step 1 must be included in every subsequent request.
 
 ```json
 {
+  "step_count": 1,
   "first_name": "Jane",
   "last_name":  "Smith",
   "email":      "jane@acme.com",
@@ -77,6 +78,7 @@ The `uuid` returned by Step 1 must be included in every subsequent request.
 
 | Field | Required | Type | Constraints |
 |---|---|---|---|
+| `step_count` | Yes | integer | Must be `1` |
 | `first_name` | Yes | string | max 255 |
 | `last_name` | Yes | string | max 255 |
 | `email` | Yes | string | valid email; unique in EMAP |
@@ -175,6 +177,7 @@ Owner 2 is required when `ownership_percentage.1 < 51`.
 | Field | Required | Notes |
 |---|---|---|
 | `uuid` | Yes | From Step 1 |
+| `step_count` | Yes | Must be `4` |
 | `primary_contact` | Yes | `1` = the person filling the form IS the owner; `0` = someone else is filling it on behalf of the owner |
 | `primary_contact_job_title` | Required if primary_contact=`0` | Max 255 |
 

@@ -345,6 +345,10 @@
       "api": {
         "method": "POST",
         "url": "/api/v1/signup",
+        "requiredBodyFields": [
+          "step_count"
+        ],
+        "step_count": 1,
         "successResponse": {
           "status": true,
           "message": "Success",
@@ -357,6 +361,13 @@
         }
       },
       "fields": [
+        {
+          "key": "step_count",
+          "label": null,
+          "type": "hidden",
+          "required": true,
+          "value": 1
+        },
         {
           "key": "first_name",
           "label": "First Name",
@@ -1151,8 +1162,10 @@
         "url": "/api/v1/ownership",
         "requiredBodyFields": [
           "uuid",
+          "step_count",
           "primary_contact"
         ],
+        "step_count": 4,
         "successResponse": {
           "status": true,
           "message": "Owners created successfully",

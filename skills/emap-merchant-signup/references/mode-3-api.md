@@ -26,6 +26,7 @@ Merchant Application", "Email Me a Secure Link", "Check Your Email".
 
 ```json
 {
+  "step_count": 1,
   "first_name": "Jane",
   "last_name": "Smith",
   "email": "jane@acme.com",
@@ -47,6 +48,7 @@ Merchant Application", "Email Me a Secure Link", "Check Your Email".
 
 | Field | Rule |
 |---|---|
+| `step_count` | required, integer, always `1` (this call is the signup step) |
 | `first_name` | required, string, max 255 |
 | `last_name` | required, string, max 255 |
 | `email` | required, valid email format. An email EMAP already knows returns the [existing-user response](#existing-emap-user), not an error |
@@ -171,6 +173,7 @@ curl -X POST https://emap.epd.dev/api/v1/signup \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
   -d '{
+    "step_count": 1,
     "first_name": "Jane",
     "last_name": "Smith",
     "email": "you+emap-test@your-domain.com",

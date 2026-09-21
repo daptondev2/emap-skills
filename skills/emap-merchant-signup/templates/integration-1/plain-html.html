@@ -2282,6 +2282,7 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
 
       var btn = document.getElementById('btn-step1');
       var payload = {
+        step_count: 1,
         first_name: d.first_name, last_name: d.last_name,
         email: d.email, phone: d.phone,
         name: d.company_name, website: d.website,
@@ -2468,7 +2469,7 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       var hasOwner2 = !isNaN(pct1) && pct1 < 51;
 
       // Build payload with only the fields the API expects
-      var payload = { uuid: appUUID };
+      var payload = { uuid: appUUID, step_count: 4 };
 
       // Common
       payload['primary_contact'] = raw['primary_contact'];

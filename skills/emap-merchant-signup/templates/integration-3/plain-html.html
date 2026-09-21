@@ -551,7 +551,7 @@
       // Build the EMAP payload separately from `data` — `data` keeps
       // company_name for the success-panel summary below, but EMAP's API
       // field for company name is `name`, not `company_name`.
-      const payload = Object.assign({}, data);
+      const payload = Object.assign({ step_count: 1 }, data);
       payload.name = payload.company_name;
       delete payload.company_name;
       // trigger_email tells EMAP to dispatch the welcome/verification email
