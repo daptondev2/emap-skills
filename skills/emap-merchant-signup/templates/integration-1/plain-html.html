@@ -2348,10 +2348,11 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         delete payload['marketingModel[]'];
       }
 
-      // federal_tax_id: hidden+disabled+non-required whenever country=CA OR
-      // org=Sole-Proprietorship (OR, matching EMAP's real dependsOn/manageFederalTaxId
-      // logic — see the note in updateFederalTaxVisibility() above). Disabled
-      // fields are never in FormData, so this only fires when the group is visible.
+      // federal_tax_id: hidden+disabled+non-required only when country=CA
+      // (CA-only, see the note in updateFederalTaxVisibility() above — NOT
+      // also exempt for Sole-Proprietorship, verified against the live API).
+      // Disabled fields are never in FormData, so this only fires when the
+      // group is visible.
       var einGrp = document.getElementById('federal_tax_id_group');
       var einVal = (payload.federal_tax_id || '').trim();
       var einCountry = (step1Country || '').toUpperCase();
@@ -2374,9 +2375,10 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         }
       }
 
-      // business_register_number: hidden+non-required when country=US, country=PR,
-      // OR (country=CA AND org=Sole-Proprietorship) — matches EMAP's own signup
-      // form's exemption rule exactly (not just "non-US").
+      // business_register_number: hidden+non-required only when country=US
+      // (US-only, see the note in updateFederalTaxVisibility() above — NOT
+      // also exempt for PR or CA+Sole-Proprietorship, verified against the
+      // live API).
       var regGrp = document.getElementById('business_register_number_group');
       if (regGrp && window.getComputedStyle(regGrp).display !== 'none') {
         var regVal = (payload.business_register_number || '').trim();
