@@ -386,7 +386,7 @@
         },
         {
           "key": "email",
-          "label": "Email",
+          "label": "Email Address",
           "type": "email",
           "required": true,
           "format": "email",
@@ -395,7 +395,7 @@
         },
         {
           "key": "phone",
-          "label": "Phone",
+          "label": "Phone Number",
           "type": "tel",
           "required": true,
           "maxLength": 20,
@@ -451,14 +451,15 @@
         },
         {
           "key": "annual_sales",
-          "label": "Estimated Annual Sales (USD)",
+          "label": "Estimated Annual Sales",
           "type": "number",
           "required": true,
           "min": 1,
           "max": 999999999999,
           "maxLength": 16,
           "inputmode": "numeric",
-          "placeholder": "1000000"
+          "placeholder": "1000000",
+          "note": "EMAP's own label has no '(USD)' suffix — USD is shown only as separate hint text next to the field. Also, EMAP's variantA UI does not always collect this in Step 1: for the 'no_apollo' and 'textract' experiment variants it appears in Step 1 as shown here, but for the default 'mos_variant_a' variant Step 1 omits it entirely and it instead appears in Step 2 (Company Information) with this same label and hint. A partner form built against this skill only needs to send it once in Step 1 regardless of EMAP's own variant-dependent placement."
         },
         {
           "key": "industry_type",
@@ -472,7 +473,7 @@
         },
         {
           "key": "industry_type_other",
-          "label": "Industry Type (Other)",
+          "label": "Industry Type Other",
           "type": "text",
           "required": false,
           "maxLength": 255,
@@ -615,8 +616,15 @@
               "inputMask": {
                 "library": "Cleave.js",
                 "numericOnly": true,
-                "blocks": [3, 2, 4],
-                "delimiters": ["-", "-"]
+                "blocks": [
+                  3,
+                  2,
+                  4
+                ],
+                "delimiters": [
+                  "-",
+                  "-"
+                ]
               },
               "pattern": "^\\d{3}-\\d{2}-\\d{4}$",
               "minLength": 11,
@@ -629,8 +637,15 @@
               "inputMask": {
                 "library": "Cleave.js",
                 "numericOnly": true,
-                "blocks": [3, 2, 4],
-                "delimiters": ["-", "-"]
+                "blocks": [
+                  3,
+                  2,
+                  4
+                ],
+                "delimiters": [
+                  "-",
+                  "-"
+                ]
               },
               "pattern": "^\\d{3}-\\d{2}-\\d{4}$",
               "minLength": 11,
@@ -643,8 +658,15 @@
               "inputMask": {
                 "library": "Cleave.js",
                 "numericOnly": true,
-                "blocks": [3, 2, 4],
-                "delimiters": ["-", "-"]
+                "blocks": [
+                  3,
+                  2,
+                  4
+                ],
+                "delimiters": [
+                  "-",
+                  "-"
+                ]
               },
               "pattern": "^\\d{3}-\\d{2}-\\d{4}$",
               "minLength": 11,
@@ -657,8 +679,13 @@
               "inputMask": {
                 "library": "Cleave.js",
                 "numericOnly": true,
-                "blocks": [2, 7],
-                "delimiters": ["-"]
+                "blocks": [
+                  2,
+                  7
+                ],
+                "delimiters": [
+                  "-"
+                ]
               },
               "pattern": "^\\d{2}-\\d{7}$",
               "minLength": 10,
@@ -703,7 +730,7 @@
         },
         {
           "key": "industry_type_other",
-          "label": "Industry Type (Other)",
+          "label": "Industry Type Other",
           "type": "text",
           "required": false,
           "maxLength": 255,
@@ -749,12 +776,13 @@
         },
         {
           "key": "subscription_frequency_other",
-          "label": "Subscription Frequency (Other)",
+          "label": "Other",
           "type": "text",
           "required": false,
           "minLength": 5,
           "maxLength": 255,
           "placeholder": "Describe frequency",
+          "note": "EMAP's own label for this field is just 'Other' (it sits directly beneath the Subscription Frequency dropdown, whose 'Other' option it explains) — not 'Subscription Frequency (Other)'.",
           "dependsOn": {
             "field": "subscription_frequency",
             "operator": "equals",
@@ -796,20 +824,22 @@
         },
         {
           "key": "state",
-          "label": "State / Province",
+          "label": "State",
           "section": "Legal Address",
           "type": "text",
           "required": true,
-          "placeholder": "NY"
+          "placeholder": "NY",
+          "note": "EMAP's Legal Address section (company_address.blade.php) always renders this label as plain 'State', never 'State/Province', regardless of the company's formation country — verified as a template bug: the label is chosen with `isset($otherCountry) ? \"State\" : \"State/Province\"`, but the controller always passes `otherCountry` as a boolean key (`in_array($userCompanyRecord->country, ['1','2','3'])`), so `isset()` is true whether the value is true or false. By contrast, the Owner 1/2 home-address sections (step 4) use a direct truthy check (`$otherCountry ? \"State\" : \"State/Province\"`) and DO correctly show 'State' for US/CA/PR and 'State/Province' for every other formation country — see state.1/state.2 below."
         },
         {
           "key": "postal_code",
-          "label": "Postal Code",
+          "label": "Zip",
           "section": "Legal Address",
           "type": "text",
           "required": true,
           "maxLength": 20,
-          "placeholder": "10001"
+          "placeholder": "10001",
+          "note": "Same isset() bug as the `state` field above: EMAP's Legal Address section always renders this label as 'Zip', never 'Postal code', regardless of formation country. The Owner 1/2 home-address sections correctly toggle between 'Postal code' and 'Zip' by country — see postal_code.1/postal_code.2 below."
         },
         {
           "key": "address_country",
@@ -822,27 +852,29 @@
         },
         {
           "key": "is_physical_address_same_as_legal_address",
-          "label": "Is physical address the same as legal address?",
+          "label": "Is the mailing or physical address different from the legal address?",
           "type": "radio",
           "required": true,
+          "note": "EMAP's real question and Yes/No polarity are inverted from a literal reading of the field name: EMAP asks whether the address is DIFFERENT (not whether it's the same), and its 'Yes' (different) is sent to the API as is_physical_address_same_as_legal_address=0, while its 'No' (same) is sent as =1 (confirmed in variantA/step2/js.blade.php, where the radio option with DOM value 'yes' sets the submitted value to 0 and the default/unset state submits 1). The options below already carry the corrected values so 'value' matches what EMAP actually sends; the dependsOn/visibleIf blocks on the physical_address_* fields below (keyed to value '0') were already correct under this real polarity.",
           "options": [
             {
               "label": "Yes",
-              "value": "1"
+              "value": "0"
             },
             {
               "label": "No",
-              "value": "0"
+              "value": "1"
             }
           ]
         },
         {
           "key": "physical_address_street_number",
-          "label": "Physical Street Number",
+          "label": "Street Number",
           "section": "Physical Address",
           "type": "text",
           "required": false,
           "maxLength": 10,
+          "note": "EMAP's Physical/Mailing Address card drops the 'Physical' prefix on every field label in this section — it's implied by the card header instead.",
           "dependsOn": {
             "field": "is_physical_address_same_as_legal_address",
             "operator": "equals",
@@ -857,7 +889,7 @@
         },
         {
           "key": "physical_address_street_address",
-          "label": "Physical Street Address",
+          "label": "Street Address",
           "section": "Physical Address",
           "type": "text",
           "required": false,
@@ -876,7 +908,7 @@
         },
         {
           "key": "physical_address_city",
-          "label": "Physical City",
+          "label": "City",
           "section": "Physical Address",
           "type": "text",
           "required": false,
@@ -895,10 +927,11 @@
         },
         {
           "key": "physical_address_state",
-          "label": "Physical State / Province",
+          "label": "State",
           "section": "Physical Address",
           "type": "text",
           "required": false,
+          "note": "Same isset($otherCountry) template bug as the Legal Address `state` field above — EMAP's Physical/Mailing Address card always renders 'State', never 'State/Province', regardless of formation country.",
           "dependsOn": {
             "field": "is_physical_address_same_as_legal_address",
             "operator": "equals",
@@ -913,11 +946,12 @@
         },
         {
           "key": "physical_address_postal_code",
-          "label": "Physical Postal Code",
+          "label": "Zip",
           "section": "Physical Address",
           "type": "text",
           "required": false,
           "maxLength": 20,
+          "note": "Same isset($otherCountry) template bug as the Legal Address `postal_code` field above — always renders 'Zip', never 'Postal code', regardless of formation country.",
           "dependsOn": {
             "field": "is_physical_address_same_as_legal_address",
             "operator": "equals",
@@ -932,7 +966,7 @@
         },
         {
           "key": "physical_address_country",
-          "label": "Physical Country",
+          "label": "Country",
           "section": "Physical Address",
           "type": "select",
           "required": false,
@@ -1086,55 +1120,60 @@
         },
         {
           "key": "card_swiped",
-          "label": "Customer presents card at point of sale (%)",
+          "label": "Customer presents card at point of sale",
           "type": "number",
           "required": true,
           "min": 0,
           "max": 100,
           "multipleOf": 5,
-          "crossField": "entry_method_pct_sum"
+          "crossField": "entry_method_pct_sum",
+          "note": "EMAP's label has no '(%)' suffix — the field is a slider whose three segment labels are plain text, with the running percentage shown in a separate adjacent span."
         },
         {
           "key": "customer_entered",
-          "label": "Customer enters card details online (%)",
+          "label": "Customer enters card details online",
           "type": "number",
           "required": true,
           "min": 0,
           "max": 100,
           "multipleOf": 5,
-          "crossField": "entry_method_pct_sum"
+          "crossField": "entry_method_pct_sum",
+          "note": "EMAP's label has no '(%)' suffix — see card_swiped note above."
         },
         {
           "key": "staff_entered",
-          "label": "Card details are manually entered (%)",
+          "label": "Card details are manually entered",
           "type": "number",
           "required": true,
           "min": 0,
           "max": 100,
           "multipleOf": 5,
-          "crossField": "entry_method_pct_sum"
+          "crossField": "entry_method_pct_sum",
+          "note": "EMAP's label has no '(%)' suffix — see card_swiped note above."
         },
         {
           "key": "average_transaction_amount",
-          "label": "Average Transaction Amount (USD)",
+          "label": "Average Transaction Amount",
           "type": "number",
           "required": true,
           "min": 1,
           "max": 999999999999,
           "maxLength": 16,
           "inputmode": "numeric",
-          "placeholder": "200"
+          "placeholder": "200",
+          "note": "EMAP's label has no '(USD)' suffix — USD is mentioned only in the hint text below the field ('The average transaction amount (USD) you expect to process')."
         },
         {
           "key": "highest_transaction_amount",
-          "label": "Highest Transaction Amount (USD)",
+          "label": "Highest Transaction Amount",
           "type": "number",
           "required": true,
           "min": 1,
           "max": 999999999999,
           "maxLength": 16,
           "inputmode": "numeric",
-          "placeholder": "1000"
+          "placeholder": "1000",
+          "note": "EMAP's label has no '(USD)' suffix — USD is mentioned only in the hint text below the field."
         },
         {
           "key": "describe_services",
@@ -1199,7 +1238,7 @@
         },
         {
           "key": "primary_contact",
-          "label": "Are you the business owner / primary contact?",
+          "label": "Are you the business owner?",
           "type": "radio",
           "required": true,
           "options": [
@@ -1238,7 +1277,7 @@
           "fields": [
             {
               "key": "first_name.1",
-              "label": "Owner 1 First Name",
+              "label": "First Name",
               "type": "text",
               "required": false,
               "maxLength": 60,
@@ -1257,7 +1296,7 @@
             },
             {
               "key": "last_name.1",
-              "label": "Owner 1 Last Name",
+              "label": "Last Name",
               "type": "text",
               "required": false,
               "maxLength": 60,
@@ -1275,7 +1314,7 @@
             },
             {
               "key": "email.1",
-              "label": "Owner 1 Email",
+              "label": "Email Address",
               "type": "email",
               "required": false,
               "dependsOn": {
@@ -1292,7 +1331,7 @@
             },
             {
               "key": "phone.1",
-              "label": "Owner 1 Phone",
+              "label": "Mobile Phone",
               "type": "tel",
               "required": true,
               "inputMethod": "intl-tel-input",
@@ -1300,7 +1339,7 @@
             },
             {
               "key": "title.1",
-              "label": "Owner 1 Job Title",
+              "label": "Title",
               "type": "select",
               "required": true,
               "optionsSource": "staticDropdowns.owner_job_title",
@@ -1308,7 +1347,7 @@
             },
             {
               "key": "ssn.1",
-              "label": "Owner 1 SSN / Tax ID",
+              "label": "SSN/SIN",
               "type": "text",
               "required": true,
               "sensitive": true,
@@ -1318,7 +1357,7 @@
               "countryDependsOnNote": "Verified against EMAP's own live behavior: the SSN mask and pattern for BOTH owners are driven by the SAME country — the Step 1 formation country, applied identically to Owner 1 AND Owner 2. The country that resolves this field's countryVariants is that SINGLE Step 1 formation country — NOT each owner's own country.1/country.2 (home address/residence, a separate field used only for driver_license_state gating, see the driver_license_state.1 field below). Do not key this off country.1.",
               "countryVariants": {
                 "US": {
-                  "label": "Owner 1 Social Security Number (SSN)",
+                  "label": "SSN/SIN",
                   "placeholder": "XXX-XX-XXXX",
                   "inputMask": {
                     "library": "Cleave.js",
@@ -1339,7 +1378,7 @@
                   "validationNote": "9-digit SSN in XXX-XX-XXXX format. Cleave.js applies mask automatically. Validate: ssn.replace(/-/g, '').length >= 9 (displays as 11 chars with dashes). Error: 'Please enter at least 9 digits'."
                 },
                 "CA": {
-                  "label": "Owner 1 Social Insurance Number (SIN)",
+                  "label": "SSN/SIN",
                   "placeholder": "XXX-XX-XXXX",
                   "inputMask": {
                     "library": "Cleave.js",
@@ -1360,7 +1399,7 @@
                   "validationNote": "9-digit Canadian SIN in XXX-XX-XXXX format. Same mask as US SSN."
                 },
                 "PR": {
-                  "label": "Owner 1 Social Security Number (SSN)",
+                  "label": "SSN/SIN",
                   "placeholder": "XXX-XX-XXXX",
                   "inputMask": {
                     "library": "Cleave.js",
@@ -1381,17 +1420,17 @@
                   "validationNote": "Puerto Rico uses the US SSN in XXX-XX-XXXX format. Same mask as US SSN."
                 },
                 "default": {
-                  "label": "Owner 1 Personal Tax ID / Government ID Number",
+                  "label": "SSN (or personal Tax ID equivalent)",
                   "placeholder": "Personal Tax ID",
                   "maxLength": 10,
                   "validationNote": "For countries other than US/CA/PR: accept plain-text tax identification or government ID number. No input mask or pattern applied — only enforce length < 11 (maxLength 10)."
                 }
               },
-              "note": "Never store or log this value. Send over HTTPS only. For US, CA, and PR: 9 digits masked as XXX-XX-XXXX via Cleave.js (blocks [3,2,4]). The backend receives the masked value with dashes. For all other countries: plain text, no mask/pattern, length must be < 11 characters (maxLength 10). The country driving this is country_from_step1 (see countryDependsOn) — the same value for both owners."
+              "note": "Verified directly in EMAP's own signup form (variantA/step4/form.blade.php, span#first_owner_ssn_label / span#second_owner_ssn_label): the label is NOT split by country the way one might expect from the mask/pattern differences below — EMAP renders the identical generic text \"SSN/SIN\" for US, CA, and PR alike (it never shows a distinct Social Insurance Number label for Canada, nor any Owner 1/Owner 2 prefix), and \"SSN (or personal Tax ID equivalent)\" for every other country. Unlike federal_tax_id (which IS corrected client-side by manageFederalTaxIdLabel() after page load — see the Step 2 federal_tax_id note), no corrective JS exists here; this is a genuine, permanent EMAP UI quirk, not a transient bug. The label above intentionally matches EMAP's real flattened wording so a partner form built from this skill looks identical to EMAP's own — the underlying mask/pattern/validation still correctly differ per country even though the visible text does not. Never store or log this value. Send over HTTPS only. For US, CA, and PR: 9 digits masked as XXX-XX-XXXX via Cleave.js (blocks [3,2,4]). The backend receives the masked value with dashes. For all other countries: plain text, no mask/pattern, length must be < 11 characters (maxLength 10). The country driving this is country_from_step1 (see countryDependsOn) — the same value for both owners."
             },
             {
               "key": "dob.1",
-              "label": "Owner 1 Date of Birth",
+              "label": "Date of Birth (YYYY-MM-DD)",
               "type": "date",
               "required": true,
               "sensitive": true,
@@ -1406,7 +1445,7 @@
             },
             {
               "key": "ownership_percentage.1",
-              "label": "Owner 1 Ownership %",
+              "label": "% of Company Owned",
               "type": "number",
               "required": true,
               "min": 1,
@@ -1419,7 +1458,7 @@
             },
             {
               "key": "street_number.1",
-              "label": "Owner 1 Street Number",
+              "label": "Street Number",
               "section": "Owner 1 Home Address",
               "type": "text",
               "required": true,
@@ -1427,7 +1466,7 @@
             },
             {
               "key": "street_address.1",
-              "label": "Owner 1 Street Address",
+              "label": "Street Address",
               "section": "Owner 1 Home Address",
               "type": "text",
               "required": true,
@@ -1435,7 +1474,7 @@
             },
             {
               "key": "city.1",
-              "label": "Owner 1 City",
+              "label": "City",
               "section": "Owner 1 Home Address",
               "type": "text",
               "required": true,
@@ -1443,22 +1482,24 @@
             },
             {
               "key": "state.1",
-              "label": "Owner 1 State / Province",
-              "section": "Owner 1 Home Address",
-              "type": "text",
-              "required": true
-            },
-            {
-              "key": "postal_code.1",
-              "label": "Owner 1 Postal Code",
+              "label": "State",
               "section": "Owner 1 Home Address",
               "type": "text",
               "required": true,
-              "maxLength": 20
+              "note": "Correctly toggles in EMAP (unlike the Step 2 Legal/Physical Address bug documented above): shows 'State' when country_from_step1 (the company's Step 1 formation country, NOT this owner's own country.1) is US/CA/PR, and 'State/Province' otherwise — verified via a direct truthy check `$otherCountry ? \"State\" : \"State/Province\"` in owner1_home_address.blade.php."
+            },
+            {
+              "key": "postal_code.1",
+              "label": "Zip",
+              "section": "Owner 1 Home Address",
+              "type": "text",
+              "required": true,
+              "maxLength": 20,
+              "note": "Correctly toggles: 'Zip' when country_from_step1 is US/CA/PR, 'Postal code' otherwise — same country_from_step1 driver as state.1 above, correctly implemented (contrast with the Step 2 bug)."
             },
             {
               "key": "country.1",
-              "label": "Owner 1 Country",
+              "label": "Country",
               "section": "Owner 1 Home Address",
               "type": "select",
               "required": true,
@@ -1467,7 +1508,7 @@
             },
             {
               "key": "license.1",
-              "label": "Owner 1 Driver License Number",
+              "label": "Driver's License / Passport Number",
               "type": "text",
               "required": true,
               "sensitive": true,
@@ -1476,7 +1517,7 @@
             },
             {
               "key": "driver_license_state.1",
-              "label": "Owner 1 Driver License State",
+              "label": "Driver's License State",
               "type": "select",
               "required": false,
               "optionsSource": "dynamicDropdownEndpoints.states",
@@ -1495,7 +1536,7 @@
             },
             {
               "key": "driver_license_expiration_date.1",
-              "label": "Owner 1 License Expiration Date",
+              "label": "Driver’s License Expiration",
               "type": "date",
               "required": false,
               "sensitive": true,
@@ -1516,7 +1557,7 @@
             },
             {
               "key": "bankruptcy_filed.1",
-              "label": "Owner 1: Has a bankruptcy been filed?",
+              "label": "Has {owner_name} ever filed bankruptcy?",
               "type": "radio",
               "required": true,
               "options": [
@@ -1528,11 +1569,12 @@
                   "label": "No",
                   "value": "0"
                 }
-              ]
+              ],
+              "note": "Dynamic/personalized in EMAP, not a static 'Owner 1:' prefix — the real template is \"Has <span>{name}</span> ever filed bankruptcy?\" where {name} resolves to Auth::user()->full_name (the account holder's real name)."
             },
             {
               "key": "bankruptcy_discharged.1",
-              "label": "Owner 1: Was the bankruptcy discharged?",
+              "label": "Has the bankruptcy been discharged?",
               "type": "radio",
               "required": false,
               "options": [
@@ -1559,7 +1601,7 @@
             },
             {
               "key": "bankruptcy_discharged_date.1",
-              "label": "Owner 1: Bankruptcy Discharge Date",
+              "label": "Bankruptcy Discharge Date",
               "type": "date",
               "required": false,
               "format": "YYYY-MM-DD",
@@ -1577,7 +1619,8 @@
                 "value": "1"
               }
             }
-          ]
+          ],
+          "labelNote": "EMAP's real 'Owner Information' step (variantA/step4/form.blade.php and its owner1_*/owner2_* partials) never labels these fields with an 'Owner 1'/'Owner 2' prefix — ownership is conveyed only via the enclosing card's header (e.g. \"{name}'s Details\", \"{name}'s Home Address\", \"{name}'s Driver's License Details\"). Every field below whose label in this schema starts with 'Owner 1'/'Owner 2' renders in EMAP without that prefix (e.g. 'Owner 1 First Name' shows as just 'First Name'); fields with a different discrepancy (ssn, license, driver_license_state, driver_license_expiration_date, bankruptcy_*, ownership_percentage, phone) are annotated individually below since their wording differs by more than just the prefix."
         },
         {
           "section": "Owner 2",
@@ -1590,7 +1633,7 @@
           "fields": [
             {
               "key": "first_name.2",
-              "label": "Owner 2 First Name",
+              "label": "First Name",
               "type": "text",
               "required": false,
               "maxLength": 60,
@@ -1602,7 +1645,7 @@
             },
             {
               "key": "last_name.2",
-              "label": "Owner 2 Last Name",
+              "label": "Last Name",
               "type": "text",
               "required": false,
               "maxLength": 60,
@@ -1614,7 +1657,7 @@
             },
             {
               "key": "email.2",
-              "label": "Owner 2 Email",
+              "label": "Email Address",
               "type": "email",
               "required": false,
               "conditionalRequired": {
@@ -1625,7 +1668,7 @@
             },
             {
               "key": "phone.2",
-              "label": "Owner 2 Phone",
+              "label": "Mobile Phone",
               "type": "tel",
               "required": false,
               "inputMethod": "intl-tel-input",
@@ -1638,7 +1681,7 @@
             },
             {
               "key": "title.2",
-              "label": "Owner 2 Job Title",
+              "label": "Title",
               "type": "select",
               "required": false,
               "optionsSource": "staticDropdowns.owner_job_title",
@@ -1651,7 +1694,7 @@
             },
             {
               "key": "ssn.2",
-              "label": "Owner 2 SSN / Tax ID",
+              "label": "SSN/SIN",
               "type": "text",
               "required": false,
               "sensitive": true,
@@ -1661,7 +1704,7 @@
               "countryDependsOnNote": "Same country_from_step1 value as ssn.1 — see its countryDependsOnNote. Owner 2's own country.2 (home address) plays no part in SSN formatting.",
               "countryVariants": {
                 "US": {
-                  "label": "Owner 2 Social Security Number (SSN)",
+                  "label": "SSN/SIN",
                   "placeholder": "XXX-XX-XXXX",
                   "inputMask": {
                     "library": "Cleave.js",
@@ -1682,7 +1725,7 @@
                   "validationNote": "9-digit SSN in XXX-XX-XXXX format. Validate: ssn.replace(/-/g, '').length >= 9."
                 },
                 "CA": {
-                  "label": "Owner 2 Social Insurance Number (SIN)",
+                  "label": "SSN/SIN",
                   "placeholder": "XXX-XX-XXXX",
                   "inputMask": {
                     "library": "Cleave.js",
@@ -1703,7 +1746,7 @@
                   "validationNote": "9-digit Canadian SIN in XXX-XX-XXXX format. Same mask as US SSN."
                 },
                 "PR": {
-                  "label": "Owner 2 Social Security Number (SSN)",
+                  "label": "SSN/SIN",
                   "placeholder": "XXX-XX-XXXX",
                   "inputMask": {
                     "library": "Cleave.js",
@@ -1724,13 +1767,13 @@
                   "validationNote": "Puerto Rico uses the US SSN in XXX-XX-XXXX format. Same mask as US SSN."
                 },
                 "default": {
-                  "label": "Owner 2 Personal Tax ID / Government ID Number",
+                  "label": "SSN (or personal Tax ID equivalent)",
                   "placeholder": "Personal Tax ID",
                   "maxLength": 10,
                   "validationNote": "For countries other than US/CA/PR: accept plain-text tax identification or government ID number. No input mask or pattern applied — only enforce length < 11 (maxLength 10)."
                 }
               },
-              "note": "Never store or log. Send over HTTPS only. For US, CA, and PR: 9 digits masked as XXX-XX-XXXX via Cleave.js. For all other countries: plain text, no mask/pattern, length must be < 11 characters (maxLength 10). The country driving this is country_from_step1 (see countryDependsOn) — the same value used for ssn.1.",
+              "note": "Verified directly in EMAP's own signup form (variantA/step4/form.blade.php, span#second_owner_ssn_label): same generic \"SSN/SIN\" text as ssn.1 for US/CA/PR alike (no distinct SIN wording for Canada, no Owner 1/Owner 2 prefix), and \"SSN (or personal Tax ID equivalent)\" for every other country — see ssn.1's note for the full explanation. The label above intentionally matches EMAP's real flattened wording. Never store or log. Send over HTTPS only. For US, CA, and PR: 9 digits masked as XXX-XX-XXXX via Cleave.js. For all other countries: plain text, no mask/pattern, length must be < 11 characters (maxLength 10). The country driving this is country_from_step1 (see countryDependsOn) — the same value used for ssn.1.",
               "conditionalRequired": {
                 "field": "ownership_percentage.1",
                 "operator": "lessThan",
@@ -1739,7 +1782,7 @@
             },
             {
               "key": "dob.2",
-              "label": "Owner 2 Date of Birth",
+              "label": "Date of Birth (YYYY-MM-DD)",
               "type": "date",
               "required": false,
               "sensitive": true,
@@ -1759,7 +1802,7 @@
             },
             {
               "key": "ownership_percentage.2",
-              "label": "Owner 2 Ownership %",
+              "label": "% of Company Owned",
               "type": "number",
               "required": false,
               "min": 1,
@@ -1776,7 +1819,7 @@
             },
             {
               "key": "street_number.2",
-              "label": "Owner 2 Street Number",
+              "label": "Street Number",
               "type": "text",
               "required": false,
               "maxLength": 10,
@@ -1788,7 +1831,7 @@
             },
             {
               "key": "street_address.2",
-              "label": "Owner 2 Street Address",
+              "label": "Street Address",
               "type": "text",
               "required": false,
               "maxLength": 255,
@@ -1800,7 +1843,7 @@
             },
             {
               "key": "city.2",
-              "label": "Owner 2 City",
+              "label": "City",
               "type": "text",
               "required": false,
               "maxLength": 100,
@@ -1812,18 +1855,19 @@
             },
             {
               "key": "state.2",
-              "label": "Owner 2 State / Province",
+              "label": "State",
               "type": "text",
               "required": false,
               "conditionalRequired": {
                 "field": "ownership_percentage.1",
                 "operator": "lessThan",
                 "value": 51
-              }
+              },
+              "note": "Correctly toggles in EMAP (unlike the Step 2 Legal/Physical Address bug documented above): shows 'State' when country_from_step1 (the company's Step 1 formation country, NOT this owner's own country.2) is US/CA/PR, and 'State/Province' otherwise — verified via a direct truthy check `$otherCountry ? \"State\" : \"State/Province\"` in owner2_home_address.blade.php."
             },
             {
               "key": "postal_code.2",
-              "label": "Owner 2 Postal Code",
+              "label": "Zip",
               "type": "text",
               "required": false,
               "maxLength": 20,
@@ -1831,11 +1875,12 @@
                 "field": "ownership_percentage.1",
                 "operator": "lessThan",
                 "value": 51
-              }
+              },
+              "note": "Correctly toggles: 'Zip' when country_from_step1 is US/CA/PR, 'Postal code' otherwise — same country_from_step1 driver as state.2 above, correctly implemented (contrast with the Step 2 bug)."
             },
             {
               "key": "country.2",
-              "label": "Owner 2 Country",
+              "label": "Country",
               "type": "select",
               "required": false,
               "optionsSource": "dynamicDropdownEndpoints.countries",
@@ -1848,7 +1893,7 @@
             },
             {
               "key": "license.2",
-              "label": "Owner 2 Driver License Number",
+              "label": "Driver's License / Passport Number",
               "type": "text",
               "required": false,
               "sensitive": true,
@@ -1862,7 +1907,7 @@
             },
             {
               "key": "driver_license_state.2",
-              "label": "Owner 2 Driver License State",
+              "label": "Driver's License State",
               "type": "select",
               "required": false,
               "optionsSource": "dynamicDropdownEndpoints.states",
@@ -1876,7 +1921,7 @@
             },
             {
               "key": "driver_license_expiration_date.2",
-              "label": "Owner 2 License Expiration Date",
+              "label": "Driver’s License Expiration",
               "type": "date",
               "required": false,
               "sensitive": true,
@@ -1892,7 +1937,7 @@
             },
             {
               "key": "bankruptcy_filed.2",
-              "label": "Owner 2: Has a bankruptcy been filed?",
+              "label": "Has {owner_name} ever filed bankruptcy?",
               "type": "radio",
               "required": false,
               "options": [
@@ -1909,11 +1954,12 @@
                 "field": "ownership_percentage.1",
                 "operator": "lessThan",
                 "value": 51
-              }
+              },
+              "note": "Dynamic/personalized in EMAP, not a static 'Owner 2:' prefix — the real template is \"Has <span>{name}</span> ever filed bankruptcy?\" where {name} resolves to $owner2Title (\"{first} {last}\" once Owner 2's name fields are filled in, else the placeholder \"Owner #2\")."
             },
             {
               "key": "bankruptcy_discharged.2",
-              "label": "Owner 2: Was the bankruptcy discharged?",
+              "label": "Has the bankruptcy been discharged?",
               "type": "radio",
               "required": false,
               "options": [
@@ -1939,7 +1985,7 @@
             },
             {
               "key": "bankruptcy_discharged_date.2",
-              "label": "Owner 2: Bankruptcy Discharge Date",
+              "label": "Bankruptcy Discharge Date",
               "type": "date",
               "required": false,
               "format": "YYYY-MM-DD",
@@ -1956,7 +2002,8 @@
                 "value": "1"
               }
             }
-          ]
+          ],
+          "labelNote": "EMAP's real 'Owner Information' step (variantA/step4/form.blade.php and its owner1_*/owner2_* partials) never labels these fields with an 'Owner 1'/'Owner 2' prefix — ownership is conveyed only via the enclosing card's header (e.g. \"{name}'s Details\", \"{name}'s Home Address\", \"{name}'s Driver's License Details\"). Every field below whose label in this schema starts with 'Owner 1'/'Owner 2' renders in EMAP without that prefix (e.g. 'Owner 1 First Name' shows as just 'First Name'); fields with a different discrepancy (ssn, license, driver_license_state, driver_license_expiration_date, bankruptcy_*, ownership_percentage, phone) are annotated individually below since their wording differs by more than just the prefix."
         }
       ]
     },
@@ -2007,8 +2054,8 @@
               "pattern": "^[0-9]{9}$"
             },
             "CA": {
-              "label": "Transit Number / Routing Number",
-              "placeholder": "Transit Number / Routing Number"
+              "label": "Transit Number/Routing Number",
+              "placeholder": "Transit Number/Routing Number"
             },
             "AU": {
               "label": "BSB Code",
@@ -2019,10 +2066,11 @@
               "placeholder": "Sort Code"
             },
             "default": {
-              "label": "BIC Code / SWIFT Code / Routing Number",
-              "placeholder": "BIC Code / SWIFT Code / Routing Number"
+              "label": "BIC Code/SWIFT Code/Routing Number",
+              "placeholder": "BIC Code/SWIFT Code/Routing Number"
             }
-          }
+          },
+          "note": "EMAP's real labels have no spaces around the '/' (verified in partial/plaid.blade.php: 'Transit Number/Routing Number', 'BIC Code/SWIFT Code/Routing Number')."
         },
         {
           "key": "account_number",
@@ -2043,6 +2091,9 @@
             "CA": {
               "label": "Account Number"
             },
+            "PR": {
+              "label": "Account Number"
+            },
             "AU": {
               "label": "Account Number"
             },
@@ -2050,9 +2101,10 @@
               "label": "Account Number"
             },
             "default": {
-              "label": "IBAN / Account Number"
+              "label": "IBAN/Account Number"
             }
-          }
+          },
+          "note": "EMAP groups PR with US/CA/AU/GB (plain 'Account Number') rather than falling through to the IBAN default — verified in partial/plaid.blade.php's country check. The 'default' label also has no space around the '/' in EMAP's real markup ('IBAN/Account Number')."
         },
         {
           "key": "institution_number",
@@ -2196,7 +2248,7 @@
         },
         {
           "key": "transaction_device",
-          "label": "What device will you use to process transactions?",
+          "label": "What device will you use to process your transactions?",
           "type": "select",
           "required": false,
           "optionsSource": "staticDropdowns.transaction_device",
@@ -2220,7 +2272,7 @@
         },
         {
           "key": "bad_experience_happened",
-          "label": "What provider did you have a bad experience with?",
+          "label": "What Provider did you have a bad experience with?",
           "type": "text",
           "required": false,
           "maxLength": 500,
@@ -2249,11 +2301,11 @@
         },
         {
           "key": "terms_and_conditions_agreed",
-          "label": "I have read and accept the terms and conditions",
+          "label": "I have read and accept terms and conditions",
           "type": "checkbox",
           "required": true,
           "sendValue": "1",
-          "note": "Must be checked / send value 1"
+          "note": "Must be checked / send value 1. EMAP's own copy omits 'the' before 'terms and conditions'."
         }
       ]
     }

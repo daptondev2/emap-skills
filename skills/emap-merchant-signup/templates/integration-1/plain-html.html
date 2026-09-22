@@ -125,7 +125,7 @@
     .emap-signup .radio-item label { font-weight: 400; cursor: pointer; margin-bottom: 0; }
 
     .emap-signup .pct-sliders { display: flex; flex-direction: column; gap: 14px; margin-top: 8px; }
-    .emap-signup .pct-slider-row { display: grid; grid-template-columns: 170px 1fr 44px; align-items: center; gap: 12px; }
+    .emap-signup .pct-slider-row { display: grid; grid-template-columns: 220px 1fr 44px; align-items: center; gap: 12px; }
     .emap-signup .pct-slider-row label { font-size: .85rem; font-weight: 500; color: #374151; margin: 0; }
     .emap-signup .pct-slider-row input[type="range"] { width: 100%; accent-color: #3b82f6; cursor: pointer; height: 4px; }
     .emap-signup .pct-val { font-size: .92rem; font-weight: 600; color: #1d4ed8; text-align: right; white-space: nowrap; }
@@ -285,7 +285,7 @@
       </div>
 
       <div class="form-group">
-        <label for="annual_sales">Estimated Annual Sales (USD) <span class="required">*</span></label>
+        <label for="annual_sales">Estimated Annual Sales <span class="required">*</span> <span class="hint">(USD)</span></label>
         <input id="annual_sales" name="annual_sales" type="number" min="1" required placeholder="e.g. 500000">
         <span class="field-error" id="err_annual_sales"></span>
       </div>
@@ -299,13 +299,13 @@
       </div>
 
       <div class="form-group" id="industry_type_other_group" style="display:none">
-        <label for="industry_type_other">Describe your industry <span class="required">*</span></label>
+        <label for="industry_type_other">Industry Type Other <span class="required">*</span></label>
         <input id="industry_type_other" name="industry_type_other" type="text" maxlength="255" placeholder="Briefly describe your industry">
         <span class="field-error" id="err_industry_type_other"></span>
       </div>
 
       <div class="form-group">
-        <label for="promo_code">Referral / Promo Code <span class="hint">(optional)</span></label>
+        <label for="promo_code">Referral Code <span class="hint">(optional)</span></label>
         <input id="promo_code" name="promo_code" type="text" maxlength="255" autocomplete="off">
       </div>
 
@@ -326,20 +326,20 @@
       </div>
 
       <div class="form-group">
-        <label for="dba_name">DBA / Trading Name <span class="required">*</span></label>
+        <label for="dba_name">Company Name (DBA) <span class="required">*</span></label>
         <input id="dba_name" name="name" type="text" maxlength="255" required>
         <span class="field-error" id="err_name"></span>
       </div>
 
       <div class="form-group">
-        <label for="customer_service_telephone_number">Customer Service Phone <span class="required">*</span></label>
+        <label for="customer_service_telephone_number">Customer Service Phone Number <span class="required">*</span></label>
         <input id="customer_service_telephone_number" name="customer_service_telephone_number" type="tel" maxlength="20" placeholder="+1 800 000 0000" required>
         <span class="field-error" id="err_customer_service_telephone_number"></span>
       </div>
 
       <div class="form-row">
         <div class="form-group">
-          <label for="business_organized">Legal Structure <span class="required">*</span></label>
+          <label for="business_organized">Company Legal Structure <span class="required">*</span></label>
           <select id="business_organized" name="business_organized" required>
             <option value="">Select…</option>
             <option value="Corporation">Corporation</option>
@@ -353,7 +353,7 @@
           <span class="field-error" id="err_business_organized"></span>
         </div>
         <div class="form-group">
-          <label for="business_location">Company Location Type <span class="required">*</span></label>
+          <label for="business_location">Type of Company Location <span class="required">*</span></label>
           <select id="business_location" name="business_location" required>
             <option value="">Select…</option>
             <option value="Home-Based">Home Based</option>
@@ -415,7 +415,7 @@
       </div>
 
       <div class="form-group" id="subscription_frequency_other_group" style="display:none">
-        <label for="subscription_frequency_other">Describe frequency <span class="required">*</span></label>
+        <label for="subscription_frequency_other">Other <span class="required">*</span></label>
         <input id="subscription_frequency_other" name="subscription_frequency_other" type="text" maxlength="255" minlength="5" placeholder="e.g. Quarterly">
         <span class="field-error" id="err_subscription_frequency_other"></span>
       </div>
@@ -430,7 +430,7 @@
             <span class="field-error" id="err_street_number"></span>
           </div>
           <div class="form-group">
-            <label for="street_address">Street Name <span class="required">*</span></label>
+            <label for="street_address">Street Address <span class="required">*</span></label>
             <input id="street_address" name="street_address" type="text" maxlength="255" required placeholder="Main St">
             <span class="field-error" id="err_street_address"></span>
           </div>
@@ -442,14 +442,19 @@
             <span class="field-error" id="err_city"></span>
           </div>
           <div class="form-group">
-            <label for="state">State / Province <span class="required">*</span></label>
+            <!-- EMAP's Legal Address label is always the short "State" / "Zip"
+                 form, never "State/Province" / "Postal code" — a real isset()
+                 bug in EMAP's own template (see signup-steps-schema.json's
+                 `state`/`postal_code` notes for Step 2), replicated here on
+                 purpose so this reference form matches EMAP's actual UI. -->
+            <label for="state">State <span class="required">*</span></label>
             <input id="state" name="state" type="text" maxlength="100" required>
             <span class="field-error" id="err_state"></span>
           </div>
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label for="postal_code">Postal Code <span class="required">*</span></label>
+            <label for="postal_code">Zip <span class="required">*</span></label>
             <input id="postal_code" name="postal_code" type="text" maxlength="20" required>
             <span class="field-error" id="err_postal_code"></span>
           </div>
@@ -464,10 +469,17 @@
       </div>
 
       <div class="form-group">
-        <label>Is your physical address the same as your legal address? <span class="required">*</span></label>
+        <!-- Wording and Yes/No value mapping match EMAP's own signup form
+             exactly (verified in variantA/step2/js.blade.php): EMAP asks
+             whether the address is DIFFERENT, not whether it's the same, and
+             sends "Yes" (different) as 0, "No" (same) as 1 — see
+             signup-steps-schema.json's is_physical_address_same_as_legal_address
+             note. The submitted values (0=different, 1=same) are unchanged
+             from before this edit, only which button says "Yes" vs "No". -->
+        <label>Is the mailing or physical address different from the legal address? <span class="required">*</span></label>
         <div class="radio-group">
-          <div class="radio-item"><input type="radio" id="phys_same" name="is_physical_address_same_as_legal_address" value="1" checked><label for="phys_same">Yes</label></div>
-          <div class="radio-item"><input type="radio" id="phys_diff" name="is_physical_address_same_as_legal_address" value="0"><label for="phys_diff">No — enter separate address</label></div>
+          <div class="radio-item"><input type="radio" id="phys_diff" name="is_physical_address_same_as_legal_address" value="0"><label for="phys_diff">Yes — enter separate address</label></div>
+          <div class="radio-item"><input type="radio" id="phys_same" name="is_physical_address_same_as_legal_address" value="1" checked><label for="phys_same">No</label></div>
         </div>
       </div>
 
@@ -482,7 +494,7 @@
               <span class="field-error" id="err_physical_address_street_number"></span>
             </div>
             <div class="form-group">
-              <label for="physical_address_street_address">Street Name <span class="required">*</span></label>
+              <label for="physical_address_street_address">Street Address <span class="required">*</span></label>
               <input id="physical_address_street_address" name="physical_address_street_address" type="text" maxlength="255">
               <span class="field-error" id="err_physical_address_street_address"></span>
             </div>
@@ -494,14 +506,14 @@
               <span class="field-error" id="err_physical_address_city"></span>
             </div>
             <div class="form-group">
-              <label for="physical_address_state">State / Province <span class="required">*</span></label>
+              <label for="physical_address_state">State <span class="required">*</span></label>
               <input id="physical_address_state" name="physical_address_state" type="text" maxlength="100">
               <span class="field-error" id="err_physical_address_state"></span>
             </div>
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label for="physical_address_postal_code">Postal Code <span class="required">*</span></label>
+              <label for="physical_address_postal_code">Zip <span class="required">*</span></label>
               <input id="physical_address_postal_code" name="physical_address_postal_code" type="text" maxlength="20">
               <span class="field-error" id="err_physical_address_postal_code"></span>
             </div>
@@ -582,7 +594,7 @@
       </div>
 
       <div class="form-group">
-        <label for="leave_deposit">Are customers required to pay a deposit? <span class="required">*</span></label>
+        <label for="leave_deposit">Required Deposits <span class="required">*</span> <span class="hint">(are customers required to leave deposits?)</span></label>
         <select id="leave_deposit" name="leave_deposit" required>
           <option value="">Select…</option>
           <option value="1">Yes</option>
@@ -595,17 +607,17 @@
         <h3>Transaction Entry Methods <span class="hint" style="text-transform:none;font-size:.8rem;color:#6b7280">(must total 100%)</span></h3>
         <div class="pct-sliders">
           <div class="pct-slider-row">
-            <label for="card_swiped">Card Presented</label>
+            <label for="card_swiped">Customer presents card at point of sale</label>
             <input id="card_swiped" name="card_swiped" type="range" min="0" max="100" step="5" value="40" required>
             <span class="pct-val" id="val_card_swiped">40%</span>
           </div>
           <div class="pct-slider-row">
-            <label for="customer_entered">Customer Keyed-In</label>
+            <label for="customer_entered">Customer enters card details online</label>
             <input id="customer_entered" name="customer_entered" type="range" min="0" max="100" step="5" value="30" required>
             <span class="pct-val" id="val_customer_entered">30%</span>
           </div>
           <div class="pct-slider-row">
-            <label for="staff_entered">Staff Keyed-In</label>
+            <label for="staff_entered">Card details are manually entered</label>
             <input id="staff_entered" name="staff_entered" type="range" min="0" max="100" step="5" value="30" required>
             <span class="pct-val" id="val_staff_entered">30%</span>
           </div>
@@ -616,25 +628,25 @@
 
       <div class="form-row">
         <div class="form-group">
-          <label for="average_transaction_amount">Avg. Transaction (USD) <span class="required">*</span></label>
+          <label for="average_transaction_amount">Average Transaction Amount <span class="required">*</span> <span class="hint">(USD)</span></label>
           <input id="average_transaction_amount" name="average_transaction_amount" type="number" min="1" required placeholder="200">
           <span class="field-error" id="err_average_transaction_amount"></span>
         </div>
         <div class="form-group">
-          <label for="highest_transaction_amount">Highest Transaction (USD) <span class="required">*</span></label>
+          <label for="highest_transaction_amount">Highest Transaction Amount <span class="required">*</span> <span class="hint">(USD)</span></label>
           <input id="highest_transaction_amount" name="highest_transaction_amount" type="number" min="1" required placeholder="1000">
           <span class="field-error" id="err_highest_transaction_amount"></span>
         </div>
       </div>
 
       <div class="form-group">
-        <label for="describe_services">Describe Your Products / Services <span class="required">*</span></label>
+        <label for="describe_services">Products or Services Description <span class="required">*</span></label>
         <textarea id="describe_services" name="describe_services" required placeholder="Briefly describe your primary products or services"></textarea>
         <span class="field-error" id="err_describe_services"></span>
       </div>
 
       <div class="form-group">
-        <label for="describe_highest_transaction">Describe Your Highest-Value Transaction <span class="required">*</span></label>
+        <label for="describe_highest_transaction">Highest Transaction Description <span class="required">*</span></label>
         <textarea id="describe_highest_transaction" name="describe_highest_transaction" minlength="15" required placeholder="Describe the product or service behind your largest single transaction"></textarea>
         <span class="field-error" id="err_describe_highest_transaction"></span>
       </div>
@@ -650,7 +662,7 @@
       <p class="step-subtitle">Identity information for the primary owner. If the applicant owns &lt;51%, a second owner is required.</p>
 
       <div class="form-group">
-        <label>Are you the business owner / primary contact? <span class="required">*</span></label>
+        <label>Are you the business owner? <span class="required">*</span></label>
         <div class="radio-group">
           <div class="radio-item"><input type="radio" id="pc_yes" name="primary_contact" value="1" checked><label for="pc_yes">Yes, I am</label></div>
           <div class="radio-item"><input type="radio" id="pc_no" name="primary_contact" value="0"><label for="pc_no">No — I'm a representative</label></div>
@@ -681,7 +693,7 @@
             </div>
           </div>
           <div class="form-group">
-            <label for="email_1">Email <span class="required">*</span></label>
+            <label for="email_1">Email Address <span class="required">*</span></label>
             <input id="email_1" name="email.1" type="email">
             <span class="field-error" id="err_email_1"></span>
           </div>
@@ -689,12 +701,12 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label for="phone_1">Phone <span class="required">*</span></label>
+            <label for="phone_1">Mobile Phone <span class="required">*</span></label>
             <input id="phone_1" name="phone.1" type="tel" maxlength="20" placeholder="+1 202 555 1234">
             <span class="field-error" id="err_phone_1"></span>
           </div>
           <div class="form-group">
-            <label for="title_1">Job Title <span class="required">*</span></label>
+            <label for="title_1">Title <span class="required">*</span></label>
             <select id="title_1" name="title.1" required>
               <option value="">Select…</option>
               <option value="ceo">CEO</option>
@@ -718,13 +730,13 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label id="ssn_1_label" for="ssn_1">SSN / Tax ID <span class="required">*</span></label>
+            <label id="ssn_1_label" for="ssn_1">SSN/SIN <span class="required">*</span></label>
             <input id="ssn_1" name="ssn.1" type="text" maxlength="20" autocomplete="off" placeholder="XXX-XX-XXXX">
             <span class="sensitive-note" id="ssn_1_hint">US/CA/PR: enter 9 digits as XXX-XX-XXXX</span>
             <span class="field-error" id="err_ssn_1"></span>
           </div>
           <div class="form-group">
-            <label for="dob_1">Date of Birth <span class="required">*</span></label>
+            <label for="dob_1">Date of Birth (YYYY-MM-DD) <span class="required">*</span></label>
             <input id="dob_1" name="dob.1" type="date" required>
             <span class="sensitive-note">Must be 18–100 years old</span>
             <span class="field-error" id="err_dob_1"></span>
@@ -732,7 +744,7 @@
         </div>
 
         <div class="form-group">
-          <label for="ownership_percentage_1">Ownership % <span class="required">*</span></label>
+          <label for="ownership_percentage_1">% of Company Owned <span class="required">*</span></label>
           <input id="ownership_percentage_1" name="ownership_percentage.1" type="number" min="1" max="100" step="1" required placeholder="e.g. 51">
           <span class="field-error" id="err_ownership_percentage_1"></span>
         </div>
@@ -745,7 +757,7 @@
             <span class="field-error" id="err_street_number_1"></span>
           </div>
           <div class="form-group">
-            <label for="street_address_1">Street Name <span class="required">*</span></label>
+            <label for="street_address_1">Street Address <span class="required">*</span></label>
             <input id="street_address_1" name="street_address.1" type="text" maxlength="255" required>
             <span class="field-error" id="err_street_address_1"></span>
           </div>
@@ -756,13 +768,18 @@
             <input id="city_1" name="city.1" type="text" maxlength="100" required>
           </div>
           <div class="form-group">
-            <label for="state_1">State / Province <span class="required">*</span></label>
+            <!-- Unlike Legal/Physical Address, EMAP's owner home-address labels
+                 correctly toggle "State"/"Zip" (US/CA/PR) vs "State/Province"/
+                 "Postal code" (everywhere else) based on this owner's own
+                 country — see updateOwnerAddressLabels() below and the
+                 state.1/postal_code.1 notes in signup-steps-schema.json. -->
+            <label for="state_1"><span id="state_1_text">State/Province</span> <span class="required">*</span></label>
             <input id="state_1" name="state.1" type="text" required>
           </div>
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label for="postal_code_1">Postal Code <span class="required">*</span></label>
+            <label for="postal_code_1"><span id="postal_code_1_text">Postal code</span> <span class="required">*</span></label>
             <input id="postal_code_1" name="postal_code.1" type="text" maxlength="20" required>
           </div>
           <div class="form-group">
@@ -776,12 +793,12 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label for="license_1">Driver License # <span class="required">*</span></label>
+            <label for="license_1">Driver's License / Passport Number <span class="required">*</span></label>
             <input id="license_1" name="license.1" type="text" minlength="5" maxlength="25" autocomplete="off" required>
             <span class="field-error" id="err_license_1"></span>
           </div>
           <div class="form-group" id="dl_state_1_group" style="display:none">
-            <label for="driver_license_state_1">License State <span class="required">*</span></label>
+            <label for="driver_license_state_1">Driver's License State <span class="required">*</span></label>
             <select id="driver_license_state_1" name="driver_license_state.1">
               <option value="">Select…</option>
             </select>
@@ -790,14 +807,20 @@
         </div>
 
         <div class="form-group" id="dl_expiry_1_group" style="display:none">
-          <label for="driver_license_expiration_date_1">License Expiration Date <span class="required">*</span></label>
+          <label for="driver_license_expiration_date_1">Driver's License Expiration <span class="required">*</span></label>
           <input id="driver_license_expiration_date_1" name="driver_license_expiration_date.1" type="date" autocomplete="off">
           <span class="sensitive-note">Must be today or a future date</span>
           <span class="field-error" id="err_driver_license_expiration_date_1"></span>
         </div>
 
         <div class="form-group">
-          <label>Has a bankruptcy been filed? <span class="required">*</span></label>
+          <!-- EMAP personalizes this with the owner's real name ("Has {name}
+               ever filed bankruptcy?") rather than a static "Owner 1:" prefix
+               — see bankruptcy_filed.1's note in signup-steps-schema.json.
+               updateBankruptcyName(1) below keeps #bk1_owner_name in sync
+               with first_name_1/last_name_1 (or the Step 1 applicant's own
+               name when they are the primary contact). -->
+          <label>Has <span id="bk1_owner_name">Owner 1</span> ever filed bankruptcy? <span class="required">*</span></label>
           <div class="radio-group">
             <div class="radio-item"><input type="radio" id="bk1_no" name="bankruptcy_filed.1" value="0" checked><label for="bk1_no">No</label></div>
             <div class="radio-item"><input type="radio" id="bk1_yes" name="bankruptcy_filed.1" value="1"><label for="bk1_yes">Yes</label></div>
@@ -806,7 +829,7 @@
 
         <div id="bankruptcy1_details" style="display:none">
           <div class="form-group">
-            <label>Was the bankruptcy discharged? <span class="required">*</span></label>
+            <label>Has the bankruptcy been discharged? <span class="required">*</span></label>
             <div class="radio-group">
               <div class="radio-item"><input type="radio" id="bkd1_no" name="bankruptcy_discharged.1" value="0"><label for="bkd1_no">No</label></div>
               <div class="radio-item"><input type="radio" id="bkd1_yes" name="bankruptcy_discharged.1" value="1"><label for="bkd1_yes">Yes</label></div>
@@ -814,7 +837,7 @@
             <span class="field-error" id="err_bankruptcy_discharged_1"></span>
           </div>
           <div class="form-group" id="bkd_date_1_group" style="display:none">
-            <label for="bankruptcy_discharged_date_1">Discharge Date <span class="required">*</span></label>
+            <label for="bankruptcy_discharged_date_1">Bankruptcy Discharge Date <span class="required">*</span></label>
             <input id="bankruptcy_discharged_date_1" name="bankruptcy_discharged_date.1" type="date">
             <span class="sensitive-note">Must be today or a past date</span>
             <span class="field-error" id="err_bankruptcy_discharged_date_1"></span>
@@ -840,18 +863,18 @@
             </div>
           </div>
           <div class="form-group">
-            <label for="email_2">Email <span class="required">*</span></label>
+            <label for="email_2">Email Address <span class="required">*</span></label>
             <input id="email_2" name="email.2" type="email">
             <span class="field-error" id="err_email_2"></span>
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label for="phone_2">Phone <span class="required">*</span></label>
+              <label for="phone_2">Mobile Phone <span class="required">*</span></label>
               <input id="phone_2" name="phone.2" type="tel" maxlength="20" placeholder="+1 202 555 1234">
               <span class="field-error" id="err_phone_2"></span>
             </div>
             <div class="form-group">
-              <label for="title_2">Job Title <span class="required">*</span></label>
+              <label for="title_2">Title <span class="required">*</span></label>
               <select id="title_2" name="title.2">
                 <option value="">Select…</option>
                 <option value="ceo">CEO</option><option value="cfo">CFO</option>
@@ -867,19 +890,19 @@
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label id="ssn_2_label" for="ssn_2">SSN / Tax ID <span class="required">*</span></label>
+              <label id="ssn_2_label" for="ssn_2">SSN/SIN <span class="required">*</span></label>
               <input id="ssn_2" name="ssn.2" type="text" maxlength="20" autocomplete="off" placeholder="XXX-XX-XXXX">
               <span class="field-error" id="err_ssn_2"></span>
             </div>
             <div class="form-group">
-              <label for="dob_2">Date of Birth <span class="required">*</span></label>
+              <label for="dob_2">Date of Birth (YYYY-MM-DD) <span class="required">*</span></label>
               <input id="dob_2" name="dob.2" type="date">
               <span class="sensitive-note">Must be 18–100 years old</span>
               <span class="field-error" id="err_dob_2"></span>
             </div>
           </div>
           <div class="form-group">
-            <label for="ownership_percentage_2">Ownership % <span class="required">*</span></label>
+            <label for="ownership_percentage_2">% of Company Owned <span class="required">*</span></label>
             <input id="ownership_percentage_2" name="ownership_percentage.2" type="number" min="1" max="100" step="1" placeholder="e.g. 49">
             <span class="field-error" id="err_ownership_percentage_2"></span>
           </div>
@@ -890,7 +913,7 @@
               <input id="street_number_2" name="street_number.2" type="text" maxlength="10">
             </div>
             <div class="form-group">
-              <label for="street_address_2">Street Name <span class="required">*</span></label>
+              <label for="street_address_2">Street Address <span class="required">*</span></label>
               <input id="street_address_2" name="street_address.2" type="text" maxlength="255">
             </div>
           </div>
@@ -900,13 +923,13 @@
               <input id="city_2" name="city.2" type="text" maxlength="100">
             </div>
             <div class="form-group">
-              <label for="state_2">State / Province <span class="required">*</span></label>
+              <label for="state_2"><span id="state_2_text">State/Province</span> <span class="required">*</span></label>
               <input id="state_2" name="state.2" type="text">
             </div>
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label for="postal_code_2">Postal Code <span class="required">*</span></label>
+              <label for="postal_code_2"><span id="postal_code_2_text">Postal code</span> <span class="required">*</span></label>
               <input id="postal_code_2" name="postal_code.2" type="text" maxlength="20">
             </div>
             <div class="form-group">
@@ -920,12 +943,12 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label for="license_2">Driver License # <span class="required">*</span></label>
+              <label for="license_2">Driver's License / Passport Number <span class="required">*</span></label>
               <input id="license_2" name="license.2" type="text" minlength="5" maxlength="25" autocomplete="off">
               <span class="field-error" id="err_license_2"></span>
             </div>
             <div class="form-group" id="dl_state_2_group" style="display:none">
-              <label for="driver_license_state_2">License State <span class="required">*</span></label>
+              <label for="driver_license_state_2">Driver's License State <span class="required">*</span></label>
               <select id="driver_license_state_2" name="driver_license_state.2">
                 <option value="">Select…</option>
               </select>
@@ -933,14 +956,18 @@
             </div>
           </div>
           <div class="form-group" id="dl_expiry_2_group" style="display:none">
-            <label for="driver_license_expiration_date_2">License Expiration Date <span class="required">*</span></label>
+            <label for="driver_license_expiration_date_2">Driver's License Expiration <span class="required">*</span></label>
             <input id="driver_license_expiration_date_2" name="driver_license_expiration_date.2" type="date" autocomplete="off">
             <span class="sensitive-note">Must be today or a future date</span>
             <span class="field-error" id="err_driver_license_expiration_date_2"></span>
           </div>
 
           <div class="form-group">
-            <label>Has a bankruptcy been filed? <span class="required">*</span></label>
+            <!-- See the Owner 1 comment above updateBankruptcyName(1) — same
+                 personalization, updated by updateBankruptcyName(2), defaulting
+                 to $owner2Title ("{first} {last}" once known, else "Owner #2")
+                 to match EMAP's own template exactly. -->
+            <label>Has <span id="bk2_owner_name">Owner #2</span> ever filed bankruptcy? <span class="required">*</span></label>
             <div class="radio-group">
               <div class="radio-item"><input type="radio" id="bk2_no" name="bankruptcy_filed.2" value="0" checked><label for="bk2_no">No</label></div>
               <div class="radio-item"><input type="radio" id="bk2_yes" name="bankruptcy_filed.2" value="1"><label for="bk2_yes">Yes</label></div>
@@ -948,7 +975,7 @@
           </div>
           <div id="bankruptcy2_details" style="display:none">
             <div class="form-group">
-              <label>Was the bankruptcy discharged?</label>
+              <label>Has the bankruptcy been discharged?</label>
               <div class="radio-group">
                 <div class="radio-item"><input type="radio" id="bkd2_no" name="bankruptcy_discharged.2" value="0"><label for="bkd2_no">No</label></div>
                 <div class="radio-item"><input type="radio" id="bkd2_yes" name="bankruptcy_discharged.2" value="1"><label for="bkd2_yes">Yes</label></div>
@@ -956,7 +983,7 @@
               <span class="field-error" id="err_bankruptcy_discharged_2"></span>
             </div>
             <div class="form-group" id="bkd_date_2_group" style="display:none">
-              <label for="bankruptcy_discharged_date_2">Discharge Date</label>
+              <label for="bankruptcy_discharged_date_2">Bankruptcy Discharge Date</label>
               <input id="bankruptcy_discharged_date_2" name="bankruptcy_discharged_date.2" type="date">
               <span class="sensitive-note">Must be today or a past date</span>
               <span class="field-error" id="err_bankruptcy_discharged_date_2"></span>
@@ -999,7 +1026,7 @@
             <span class="field-error" id="err_institution_number"></span>
           </div>
           <div class="form-group">
-            <label for="customer_pay_currency">Customer Pays In <span class="required">*</span></label>
+            <label for="customer_pay_currency">Currency your customers will pay in <span class="required">*</span></label>
             <div class="radio-group" style="margin-top:10px">
               <div class="radio-item"><input type="radio" id="cur_usd" name="customer_pay_currency" value="USD"><label for="cur_usd">USD</label></div>
               <div class="radio-item"><input type="radio" id="cur_cad" name="customer_pay_currency" value="CAD"><label for="cur_cad">CAD</label></div>
@@ -1044,7 +1071,7 @@
       </div>
 
       <div class="form-group" id="hear_other_group" style="display:none">
-        <label for="hear_about_us_other">Tell us more <span class="required">*</span></label>
+        <label for="hear_about_us_other">Additional Information <span class="required">*</span></label>
         <input id="hear_about_us_other" name="hear_about_us_other" type="text" maxlength="255" placeholder="e.g. Friend's name or referral details">
         <span class="field-error" id="err_hear_about_us_other"></span>
       </div>
@@ -1060,7 +1087,7 @@
       </div>
 
       <div class="form-group">
-        <label for="transaction_device">Transaction Device</label>
+        <label for="transaction_device">What device will you use to process your transactions?</label>
         <select id="transaction_device" name="transaction_device">
           <option value="">Select…</option>
           <option value="Easy-Pay-Direct-Gateway">Easy Pay Direct Gateway</option>
@@ -1073,7 +1100,7 @@
       </div>
 
       <div class="form-group">
-        <label for="bad_experience">Have you had a bad experience with a payment provider? <span class="required">*</span></label>
+        <label for="bad_experience">Have you had a bad experience with a provider? <span class="required">*</span></label>
         <select id="bad_experience" name="bad_experience" required>
           <option value="">Select…</option>
           <option value="0">No</option>
@@ -1083,7 +1110,7 @@
       </div>
 
       <div class="form-group" id="bad_exp_detail_group" style="display:none">
-        <label for="bad_experience_happened">Which provider? <span class="required">*</span></label>
+        <label for="bad_experience_happened">What Provider did you have a bad experience with? <span class="required">*</span></label>
         <input id="bad_experience_happened" name="bad_experience_happened" type="text" maxlength="500" placeholder="Provider name">
         <span class="field-error" id="err_bad_experience_happened"></span>
       </div>
@@ -1276,7 +1303,7 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       <div class="terms-group">
         <input type="checkbox" id="terms_agreed" name="terms_and_conditions_agreed" value="1" required>
         <label for="terms_agreed">
-          I have read and accept the Terms and Conditions above
+          I have read and accept terms and conditions
           <span class="required">*</span>
         </label>
       </div>
@@ -1694,16 +1721,18 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
 
     // ── Conditional field logic ──────────────────────────────────────────────
     // Country-dependent label map for banking and SSN fields
+    // No spaces around "/" below — matches EMAP's own labels exactly
+    // (verified in partial/plaid.blade.php), not a formatting choice.
     var COUNTRY_LABELS = {
       routing_number: {
-        US: 'Routing Number', CA: 'Transit Number / Routing Number',
+        US: 'Routing Number', CA: 'Transit Number/Routing Number',
         AU: 'BSB Code', GB: 'Sort Code',
-        _default: 'BIC Code / SWIFT Code / Routing Number'
+        _default: 'BIC Code/SWIFT Code/Routing Number'
       },
       account_number: {
-        US: 'Account Number', CA: 'Account Number',
+        US: 'Account Number', CA: 'Account Number', PR: 'Account Number',
         AU: 'Account Number', GB: 'Account Number',
-        _default: 'IBAN / Account Number'
+        _default: 'IBAN/Account Number'
       }
     };
 
@@ -1804,7 +1833,10 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       var isMasked = c === 'US' || c === 'CA' || c === 'PR';
       var ssnText = isMasked ? 'SSN/SIN' : 'SSN (or personal Tax ID equivalent)';
 
-      if (label) label.innerHTML = 'Owner ' + n + ' ' + ssnText + ' <span class="required">*</span>';
+      // No "Owner N" prefix — EMAP's real label is the bare generic text
+      // itself (ownership is conveyed by the enclosing card, not the field
+      // label); see ssn.1/ssn.2's note in signup-steps-schema.json.
+      if (label) label.innerHTML = ssnText + ' <span class="required">*</span>';
       if (hint) {
         hint.textContent = isMasked
           ? 'Enter 9 digits — formatted as XXX-XX-XXXX'
@@ -2104,17 +2136,33 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       document.getElementById('owner2_section').style.display = show ? 'block' : 'none';
     });
 
+    // Owner home-address "State"/"Zip" vs "State/Province"/"Postal code" toggle
+    // — driven by EACH owner's own country.1/country.2 (unlike SSN masking,
+    // which is driven by the single Step 1 formation country). EMAP's real
+    // owner1_home_address.blade.php / owner2_home_address.blade.php correctly
+    // implement this toggle (unlike the Legal/Physical Address bug above) —
+    // see state.1/state.2/postal_code.1/postal_code.2 notes in
+    // signup-steps-schema.json.
+    function updateOwnerAddressLabels(n, country) {
+      var isUsCaPr = ['US', 'CA', 'PR'].indexOf((country || '').toUpperCase()) !== -1;
+      var stateText = document.getElementById('state_' + n + '_text');
+      var postalText = document.getElementById('postal_code_' + n + '_text');
+      if (stateText) stateText.textContent = isUsCaPr ? 'State' : 'State/Province';
+      if (postalText) postalText.textContent = isUsCaPr ? 'Zip' : 'Postal code';
+    }
+
     // Step 4: owner 1 country (home address/residence — separate from
-    // step1Country, which drives SSN masking above) → DL state/expiry only.
+    // step1Country, which drives SSN masking above) → DL state/expiry + labels.
     document.getElementById('country_1').addEventListener('change', function () {
       var isUS = this.value === 'US';
       document.getElementById('dl_state_1_group').style.display = isUS ? 'block' : 'none';
       document.getElementById('dl_expiry_1_group').style.display = isUS ? 'block' : 'none';
       document.getElementById('driver_license_state_1').required = isUS;
       document.getElementById('driver_license_expiration_date_1').required = isUS;
+      updateOwnerAddressLabels(1, this.value);
     });
 
-    // Step 4: owner 2 country (home address/residence) → DL state/expiry only.
+    // Step 4: owner 2 country (home address/residence) → DL state/expiry + labels.
     // Owner 2's DL state/expiry are only required when Owner 2 is actually
     // shown (ownership_percentage.1 < 51) AND their country is US.
     document.getElementById('country_2').addEventListener('change', function () {
@@ -2125,6 +2173,40 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       document.getElementById('dl_expiry_2_group').style.display = show ? 'block' : 'none';
       document.getElementById('driver_license_state_2').required = show;
       document.getElementById('driver_license_expiration_date_2').required = show;
+      updateOwnerAddressLabels(2, this.value);
+    });
+
+    // Bankruptcy question personalization — matches EMAP's own template,
+    // which names the owner instead of saying "Owner 1:"/"Owner 2:" (see
+    // bankruptcy_filed.1/.2 notes in signup-steps-schema.json). Owner 1 is
+    // either the Step 1 applicant (when primary_contact=1) or the
+    // first_name_1/last_name_1 fields (when primary_contact=0); Owner 2 falls
+    // back to the placeholder "Owner #2" until both name fields are filled,
+    // matching $owner2Title's own fallback in EMAP's template.
+    function updateBankruptcyName(n) {
+      var el = document.getElementById('bk' + n + '_owner_name');
+      if (!el) return;
+      var first, last;
+      if (n === 1 && document.querySelector('[name="primary_contact"]:checked').value === '1') {
+        first = (document.getElementById('first_name').value || '').trim();
+        last = (document.getElementById('last_name').value || '').trim();
+      } else {
+        first = (document.getElementById('first_name_' + n).value || '').trim();
+        last = (document.getElementById('last_name_' + n).value || '').trim();
+      }
+      var full = (first + ' ' + last).trim();
+      el.textContent = full || (n === 1 ? 'Owner 1' : 'Owner #2');
+    }
+    ['first_name_1', 'last_name_1'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener('input', function () { updateBankruptcyName(1); });
+    });
+    ['first_name_2', 'last_name_2'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener('input', function () { updateBankruptcyName(2); });
+    });
+    document.querySelectorAll('[name="primary_contact"]').forEach(function (r) {
+      r.addEventListener('change', function () { updateBankruptcyName(1); });
     });
 
     // Step 4: bankruptcy owner 1
