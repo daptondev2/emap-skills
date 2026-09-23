@@ -296,6 +296,33 @@ def check_widget_type(field: dict, frontend_text: str, schema: dict) -> list:
     return findings
 
 
+def check_us_state_select(field: dict, frontend_text: str, script_lines: list) -> list:
+    """A field with `usStateSelect` is a text box for most countries and a
+    US-state dropdown when its country field is US. Both controls must exist
+    under the field's name, and the country field must be wired to the swap."""
+    findings = []
+    spec = field.get("usStateSelect")
+    if not spec:
+        return findings
+    key = field["key"]
+    name_attr = attr_re("name|formControlName", [key])
+    if not re.search(rf"<select\b{TAG_GAP}{name_attr}", frontend_text):
+        findings.append(_finding(field, "widget_type",
+            f"'{key}' needs a US-state <select> named '{key}' for when {spec['countryField']} is US",
+            "no <select> with that name found"))
+    key_lines = []
+    for v in html_id_variants(key):
+        key_lines.extend(find_line_numbers(script_lines, v))
+    country_lines = []
+    for v in html_id_variants(spec["countryField"]):
+        country_lines.extend(find_line_numbers(script_lines, v))
+    if not any_pair_within_window(key_lines, country_lines, WINDOW_LINES):
+        findings.append(_finding(field, "conditional_logic",
+            f"'{key}' switches between a text box and a US-state dropdown on {spec['countryField']}",
+            f"no reference to '{spec['countryField']}' near '{key}'s wiring (within {WINDOW_LINES} lines)"))
+    return findings
+
+
 # ── Category B: country_validation ──────────────────────────────────────────
 
 def check_country_validation(field: dict, combined_text: str) -> list:
@@ -712,6 +739,8 @@ def main() -> int:
     for field in fields:
         if run_widget:
             findings.extend(check_widget_type(field, frontend_text, schema))
+        if run_widget or run_cond:
+            findings.extend(check_us_state_select(field, frontend_text, script_lines))
         if run_country:
             findings.extend(check_country_validation(field, combined_text))
         if run_cond:

@@ -124,16 +124,16 @@ For an existing user (`verificationLink: true`), tell the merchant to check thei
 | `street_number` | Yes | Max 10 |
 | `street_address` | Yes | Max 255 |
 | `city` | Yes | Max 100 |
-| `state` | Yes | State/province |
+| `address_country` | Yes | 2-char ISO country code. Render it before `state`. |
+| `state` | Yes | US: dropdown of the states list, send the `code` (e.g. `NY`). Other countries: text box ([note](api-quirks.md#state-is-a-dropdown-only-for-the-us)). |
 | `postal_code` | Yes | Max 20 |
-| `address_country` | Yes | 2-char ISO country code |
 | `is_physical_address_same_as_legal_address` | Yes | `1` = same, `0` = different |
 | `physical_address_street_number` | Required if is_physical_address_same_as_legal_address=`0` | Max 10 |
 | `physical_address_street_address` | Required if is_physical_address_same_as_legal_address=`0` | Max 255 |
 | `physical_address_city` | Required if is_physical_address_same_as_legal_address=`0` | Max 100 |
-| `physical_address_state` | Required if is_physical_address_same_as_legal_address=`0` | State/province |
+| `physical_address_country` | Required if is_physical_address_same_as_legal_address=`0` | 2-char ISO. Render it before the state. |
+| `physical_address_state` | Required if is_physical_address_same_as_legal_address=`0` | US-state dropdown when `physical_address_country`=`US`, text box otherwise |
 | `physical_address_postal_code` | Required if is_physical_address_same_as_legal_address=`0` | Max 20 |
-| `physical_address_country` | Required if is_physical_address_same_as_legal_address=`0` | 2-char ISO |
 | `marketingModel` | Yes | Array of integer IDs — hardcoded: `1`=One Time Purchase, `2`=Recurring/Continuity/Subscription, `3`=Trial Offer + Subscription |
 | `subscription_frequency` | Required if `marketingModel` includes `2` | `1`=Monthly `2`=Yearly `3`=Other (`staticDropdowns.subscription_frequency` in the schema) |
 | `subscription_frequency_other` | Required if subscription_frequency=`3` | Min 5, max 255 |
@@ -196,9 +196,9 @@ Owner 2 is required when `ownership_percentage.1 < 51`.
 | `street_number.1` | Yes | Max 10 |
 | `street_address.1` | Yes | Max 255 |
 | `city.1` | Yes | Max 100 |
-| `state.1` | Yes | State/province |
+| `country.1` | Yes | 2-char ISO code. Render it before the state. |
+| `state.1` | Yes | US-state dropdown when `country.1`=`US`, text box otherwise |
 | `postal_code.1` | Yes | Max 20 |
-| `country.1` | Yes | 2-char ISO code |
 | `license.1` | Yes | Driver license number; min 5, max 25 |
 | `driver_license_state.1` | Required if country.1=`US` | 2-char state code |
 | `driver_license_expiration_date.1` | Required if country.1=`US` | Format `YYYY-MM-DD`; must be a future date |
@@ -210,7 +210,7 @@ Owner 2 is required when `ownership_percentage.1 < 51`.
 
 All Owner 2 fields use the `.2` suffix. Required fields mirror Owner 1:
 `first_name.2`, `last_name.2`, `email.2`, `phone.2`, `title.2`, `ssn.2`, `dob.2`, `ownership_percentage.2`,
-`street_number.2`, `street_address.2`, `city.2`, `state.2`, `postal_code.2`, `country.2`,
+`street_number.2`, `street_address.2`, `city.2`, `country.2`, `state.2`, `postal_code.2`,
 `license.2`, `driver_license_state.2` (if country.2=US), `driver_license_expiration_date.2` (if country.2=US),
 `bankruptcy_filed.2`, `bankruptcy_discharged.2` (if filed), `bankruptcy_discharged_date.2` (if discharged).
 

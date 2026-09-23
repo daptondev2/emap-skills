@@ -70,6 +70,21 @@ The test server's data includes rows with no usable value, such as a country who
 The templates drop rows whose `code` (countries, states) or `slug` (industry types, shopping carts,
 referral sources) is empty, for live data and for the fallback snapshot.
 
+## Dropdown order comes from the API
+
+`/api/partner/shopping-carts` and `/api/partner/referral-sources` return rows in EMAP's
+`sort_order`, the same order as the EMAP signup page. That puts "I don't know, Other" and "I don't
+use one" first in the Step 3 shopping cart list, and "Other" last in the Step 6 referral list.
+Render the rows in the order they arrive and don't re-sort them. `references/dropdown-fallbacks.json`
+keeps the same order, so the fallback matches the live list.
+
+## State is a dropdown only for the US
+
+When an address's country is `US`, the state is a dropdown of `/api/partner/states` and sends the
+`code` (`NY`), which is how EMAP's own signup page stores US states. For every other country it's a free
+text box. The country field comes before the state so the right control is showing. EMAP's API
+accepts any text for the state, so the dropdown is the only thing that keeps US states consistent.
+
 ---
 
 ## Testing against the live API

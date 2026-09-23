@@ -823,13 +823,29 @@
           "placeholder": "New York"
         },
         {
+          "key": "address_country",
+          "label": "Country",
+          "section": "Legal Address",
+          "type": "select",
+          "required": true,
+          "optionsSource": "dynamicDropdownEndpoints.countries",
+          "sendField": "code"
+        },
+        {
           "key": "state",
           "label": "State",
           "section": "Legal Address",
           "type": "text",
           "required": true,
           "placeholder": "NY",
-          "note": "EMAP's Legal Address section (company_address.blade.php) always renders this label as plain 'State', never 'State/Province', regardless of the company's formation country — verified as a template bug: the label is chosen with `isset($otherCountry) ? \"State\" : \"State/Province\"`, but the controller always passes `otherCountry` as a boolean key (`in_array($userCompanyRecord->country, ['1','2','3'])`), so `isset()` is true whether the value is true or false. By contrast, the Owner 1/2 home-address sections (step 4) use a direct truthy check (`$otherCountry ? \"State\" : \"State/Province\"`) and DO correctly show 'State' for US/CA/PR and 'State/Province' for every other formation country — see state.1/state.2 below."
+          "note": "EMAP's Legal Address section (company_address.blade.php) always renders this label as plain 'State', never 'State/Province', regardless of the company's formation country — verified as a template bug: the label is chosen with `isset($otherCountry) ? \"State\" : \"State/Province\"`, but the controller always passes `otherCountry` as a boolean key (`in_array($userCompanyRecord->country, ['1','2','3'])`), so `isset()` is true whether the value is true or false. By contrast, the Owner 1/2 home-address sections (step 4) use a direct truthy check (`$otherCountry ? \"State\" : \"State/Province\"`) and DO correctly show 'State' for US/CA/PR and 'State/Province' for every other formation country — see state.1/state.2 below.",
+          "usStateSelect": {
+            "countryField": "address_country",
+            "value": "US",
+            "optionsSource": "dynamicDropdownEndpoints.states",
+            "sendField": "code",
+            "note": "When address_country is US, render this field as a dropdown of dynamicDropdownEndpoints.states (send `code`, e.g. NY). For every other country, render a free-text box. Place the country field before this one, and re-check whenever the country changes."
+          }
         },
         {
           "key": "postal_code",
@@ -840,15 +856,6 @@
           "maxLength": 20,
           "placeholder": "10001",
           "note": "Same isset() bug as the `state` field above: EMAP's Legal Address section always renders this label as 'Zip', never 'Postal code', regardless of formation country. The Owner 1/2 home-address sections correctly toggle between 'Postal code' and 'Zip' by country — see postal_code.1/postal_code.2 below."
-        },
-        {
-          "key": "address_country",
-          "label": "Country",
-          "section": "Legal Address",
-          "type": "select",
-          "required": true,
-          "optionsSource": "dynamicDropdownEndpoints.countries",
-          "sendField": "code"
         },
         {
           "key": "is_physical_address_same_as_legal_address",
@@ -926,6 +933,26 @@
           }
         },
         {
+          "key": "physical_address_country",
+          "label": "Country",
+          "section": "Physical Address",
+          "type": "select",
+          "required": false,
+          "optionsSource": "dynamicDropdownEndpoints.countries",
+          "sendField": "code",
+          "dependsOn": {
+            "field": "is_physical_address_same_as_legal_address",
+            "operator": "equals",
+            "value": "0",
+            "effect": "required"
+          },
+          "visibleIf": {
+            "field": "is_physical_address_same_as_legal_address",
+            "operator": "equals",
+            "value": "0"
+          }
+        },
+        {
           "key": "physical_address_state",
           "label": "State",
           "section": "Physical Address",
@@ -942,6 +969,13 @@
             "field": "is_physical_address_same_as_legal_address",
             "operator": "equals",
             "value": "0"
+          },
+          "usStateSelect": {
+            "countryField": "physical_address_country",
+            "value": "US",
+            "optionsSource": "dynamicDropdownEndpoints.states",
+            "sendField": "code",
+            "note": "When physical_address_country is US, render this field as a dropdown of dynamicDropdownEndpoints.states (send `code`, e.g. NY). For every other country, render a free-text box. Place the country field before this one, and re-check whenever the country changes."
           }
         },
         {
@@ -952,26 +986,6 @@
           "required": false,
           "maxLength": 20,
           "note": "Same isset($otherCountry) template bug as the Legal Address `postal_code` field above — always renders 'Zip', never 'Postal code', regardless of formation country.",
-          "dependsOn": {
-            "field": "is_physical_address_same_as_legal_address",
-            "operator": "equals",
-            "value": "0",
-            "effect": "required"
-          },
-          "visibleIf": {
-            "field": "is_physical_address_same_as_legal_address",
-            "operator": "equals",
-            "value": "0"
-          }
-        },
-        {
-          "key": "physical_address_country",
-          "label": "Country",
-          "section": "Physical Address",
-          "type": "select",
-          "required": false,
-          "optionsSource": "dynamicDropdownEndpoints.countries",
-          "sendField": "code",
           "dependsOn": {
             "field": "is_physical_address_same_as_legal_address",
             "operator": "equals",
@@ -1481,12 +1495,28 @@
               "maxLength": 100
             },
             {
+              "key": "country.1",
+              "label": "Country",
+              "section": "Owner 1 Home Address",
+              "type": "select",
+              "required": true,
+              "optionsSource": "dynamicDropdownEndpoints.countries",
+              "sendField": "code"
+            },
+            {
               "key": "state.1",
               "label": "State",
               "section": "Owner 1 Home Address",
               "type": "text",
               "required": true,
-              "note": "Correctly toggles in EMAP (unlike the Step 2 Legal/Physical Address bug documented above): shows 'State' when country_from_step1 (the company's Step 1 formation country, NOT this owner's own country.1) is US/CA/PR, and 'State/Province' otherwise — verified via a direct truthy check `$otherCountry ? \"State\" : \"State/Province\"` in owner1_home_address.blade.php."
+              "note": "Correctly toggles in EMAP (unlike the Step 2 Legal/Physical Address bug documented above): shows 'State' when country_from_step1 (the company's Step 1 formation country, NOT this owner's own country.1) is US/CA/PR, and 'State/Province' otherwise — verified via a direct truthy check `$otherCountry ? \"State\" : \"State/Province\"` in owner1_home_address.blade.php.",
+              "usStateSelect": {
+                "countryField": "country.1",
+                "value": "US",
+                "optionsSource": "dynamicDropdownEndpoints.states",
+                "sendField": "code",
+                "note": "When country.1 is US, render this field as a dropdown of dynamicDropdownEndpoints.states (send `code`, e.g. NY). For every other country, render a free-text box. Place the country field before this one, and re-check whenever the country changes."
+              }
             },
             {
               "key": "postal_code.1",
@@ -1496,15 +1526,6 @@
               "required": true,
               "maxLength": 20,
               "note": "Correctly toggles: 'Zip' when country_from_step1 is US/CA/PR, 'Postal code' otherwise — same country_from_step1 driver as state.1 above, correctly implemented (contrast with the Step 2 bug)."
-            },
-            {
-              "key": "country.1",
-              "label": "Country",
-              "section": "Owner 1 Home Address",
-              "type": "select",
-              "required": true,
-              "optionsSource": "dynamicDropdownEndpoints.countries",
-              "sendField": "code"
             },
             {
               "key": "license.1",
@@ -1854,6 +1875,19 @@
               }
             },
             {
+              "key": "country.2",
+              "label": "Country",
+              "type": "select",
+              "required": false,
+              "optionsSource": "dynamicDropdownEndpoints.countries",
+              "sendField": "code",
+              "conditionalRequired": {
+                "field": "ownership_percentage.1",
+                "operator": "lessThan",
+                "value": 51
+              }
+            },
+            {
               "key": "state.2",
               "label": "State",
               "type": "text",
@@ -1863,7 +1897,14 @@
                 "operator": "lessThan",
                 "value": 51
               },
-              "note": "Correctly toggles in EMAP (unlike the Step 2 Legal/Physical Address bug documented above): shows 'State' when country_from_step1 (the company's Step 1 formation country, NOT this owner's own country.2) is US/CA/PR, and 'State/Province' otherwise — verified via a direct truthy check `$otherCountry ? \"State\" : \"State/Province\"` in owner2_home_address.blade.php."
+              "note": "Correctly toggles in EMAP (unlike the Step 2 Legal/Physical Address bug documented above): shows 'State' when country_from_step1 (the company's Step 1 formation country, NOT this owner's own country.2) is US/CA/PR, and 'State/Province' otherwise — verified via a direct truthy check `$otherCountry ? \"State\" : \"State/Province\"` in owner2_home_address.blade.php.",
+              "usStateSelect": {
+                "countryField": "country.2",
+                "value": "US",
+                "optionsSource": "dynamicDropdownEndpoints.states",
+                "sendField": "code",
+                "note": "When country.2 is US, render this field as a dropdown of dynamicDropdownEndpoints.states (send `code`, e.g. NY). For every other country, render a free-text box. Place the country field before this one, and re-check whenever the country changes."
+              }
             },
             {
               "key": "postal_code.2",
@@ -1877,19 +1918,6 @@
                 "value": 51
               },
               "note": "Correctly toggles: 'Zip' when country_from_step1 is US/CA/PR, 'Postal code' otherwise — same country_from_step1 driver as state.2 above, correctly implemented (contrast with the Step 2 bug)."
-            },
-            {
-              "key": "country.2",
-              "label": "Country",
-              "type": "select",
-              "required": false,
-              "optionsSource": "dynamicDropdownEndpoints.countries",
-              "sendField": "code",
-              "conditionalRequired": {
-                "field": "ownership_percentage.1",
-                "operator": "lessThan",
-                "value": 51
-              }
             },
             {
               "key": "license.2",

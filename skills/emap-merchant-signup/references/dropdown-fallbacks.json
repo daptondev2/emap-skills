@@ -1681,6 +1681,14 @@
     "message": "Shopping Cart List",
     "data": [
       {
+        "name": "I don't know, Other",
+        "slug": "Other"
+      },
+      {
+        "name": "I don't use one",
+        "slug": "Not-Using"
+      },
+      {
         "name": "1Shopping Cart",
         "slug": "1Shopping Cart"
       },
@@ -1731,14 +1739,6 @@
       {
         "name": "Goodsie",
         "slug": "Goodsie"
-      },
-      {
-        "name": "I don't know, Other",
-        "slug": "Other"
-      },
-      {
-        "name": "I don't use one",
-        "slug": "Not-Using"
       },
       {
         "name": "Infusionsoft/Keap",
@@ -1895,10 +1895,6 @@
         "slug": "Online-Ad"
       },
       {
-        "name": "Other",
-        "slug": "Other"
-      },
-      {
         "name": "Pompa",
         "slug": "Pompa"
       },
@@ -1917,6 +1913,10 @@
       {
         "name": "Wall Street Journal",
         "slug": "Wall-Street-Journal"
+      },
+      {
+        "name": "Other",
+        "slug": "Other"
       }
     ]
   },
