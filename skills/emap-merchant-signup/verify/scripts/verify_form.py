@@ -323,6 +323,22 @@ def check_us_state_select(field: dict, frontend_text: str, script_lines: list) -
     return findings
 
 
+def check_pinned_first(field: dict, script_text: str) -> list:
+    """A field with `pinnedFirst` must move those option slugs to the top of the
+    list, in order. Look for them as an ordered list literal (`['A', 'B']`), so
+    the slugs inside the embedded fallback JSON don't count."""
+    findings = []
+    spec = field.get("pinnedFirst")
+    if not spec:
+        return findings
+    listed = r"\s*,\s*".join(r"""['"]""" + re.escape(s) + r"""['"]""" for s in spec["slugs"])
+    if not re.search(r"\[\s*" + listed + r"\s*\]", script_text):
+        findings.append(_finding(field, "widget_type",
+            f"'{field['key']}' lists {', '.join(spec['slugs'])} first, in that order",
+            f"no list {spec['slugs']} found in the scripts"))
+    return findings
+
+
 # ── Category B: country_validation ──────────────────────────────────────────
 
 def check_country_validation(field: dict, combined_text: str) -> list:
@@ -741,6 +757,7 @@ def main() -> int:
             findings.extend(check_widget_type(field, frontend_text, schema))
         if run_widget or run_cond:
             findings.extend(check_us_state_select(field, frontend_text, script_lines))
+            findings.extend(check_pinned_first(field, "\n".join(script_lines)))
         if run_country:
             findings.extend(check_country_validation(field, combined_text))
         if run_cond:

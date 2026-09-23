@@ -1099,7 +1099,14 @@
           "required": true,
           "optionsSource": "dynamicDropdownEndpoints.shopping_carts",
           "sendField": "slug",
-          "hint": "Shopping cart or CRM system you use"
+          "hint": "Shopping cart or CRM system you use",
+          "pinnedFirst": {
+            "slugs": [
+              "Not-Using",
+              "Other"
+            ],
+            "note": "Show \"I don't use one\" (Not-Using), then \"I don't know, Other\" (Other) at the top of the list, then the remaining rows in the order the API returns them. Match on slug, not position, and skip a pinned slug the API doesn't return."
+          }
         },
         {
           "key": "shopping_cart_other",

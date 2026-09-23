@@ -73,10 +73,13 @@ referral sources) is empty, for live data and for the fallback snapshot.
 ## Dropdown order comes from the API
 
 `/api/partner/shopping-carts` and `/api/partner/referral-sources` return rows in EMAP's
-`sort_order`, the same order as the EMAP signup page. That puts "I don't know, Other" and "I don't
-use one" first in the Step 3 shopping cart list, and "Other" last in the Step 6 referral list.
-Render the rows in the order they arrive and don't re-sort them. `references/dropdown-fallbacks.json`
-keeps the same order, so the fallback matches the live list.
+`sort_order`, the same order as the EMAP signup page. That puts "Other" last in the Step 6 referral
+list. Render the rows in the order they arrive and don't re-sort them alphabetically.
+
+One exception: the Step 3 shopping cart list always starts with "I don't use one" (`Not-Using`),
+then "I don't know, Other" (`Other`), whatever order EMAP returns them in. Most merchants pick one
+of these two, so they go at the top. Move them by slug (the schema's `pinnedFirst`) and keep the
+rest in the API's order. `references/dropdown-fallbacks.json` is stored in this final order.
 
 ## State is a dropdown only for the US
 

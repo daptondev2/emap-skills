@@ -1681,12 +1681,12 @@
     "message": "Shopping Cart List",
     "data": [
       {
-        "name": "I don't know, Other",
-        "slug": "Other"
-      },
-      {
         "name": "I don't use one",
         "slug": "Not-Using"
+      },
+      {
+        "name": "I don't know, Other",
+        "slug": "Other"
       },
       {
         "name": "1Shopping Cart",
