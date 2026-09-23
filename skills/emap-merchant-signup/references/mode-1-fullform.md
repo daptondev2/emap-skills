@@ -153,7 +153,7 @@ For an existing user (`verificationLink: true`), tell the merchant to check thei
 | `card_swiped` | Yes | Numeric 0–100; must be a multiple of 5 |
 | `customer_entered` | Yes | Numeric 0–100; must be a multiple of 5 |
 | `staff_entered` | Yes | Numeric 0–100; must be a multiple of 5 |
-| `fulfillment_by` | Yes | One of: `Direct-By-You`, `Vendor`, `Others` |
+| `fulfillment_by` | Yes | One of: `Direct-By-You`, `Service-Only`, `Vendor`, `Others` |
 | `fullfillment_company` | Required if fulfillment_by=`Vendor` or `Others` | Max 300 (note: two l's) |
 | `average_transaction_amount` | Yes | Numeric, min 1 |
 | `highest_transaction_amount` | Yes | Numeric, min 1 |
@@ -201,7 +201,7 @@ Owner 2 is required when `ownership_percentage.1 < 51`.
 | `postal_code.1` | Yes | Max 20 |
 | `license.1` | Yes | Driver license number; min 5, max 25 |
 | `driver_license_state.1` | Required if country.1=`US` | 2-char state code |
-| `driver_license_expiration_date.1` | Required if country.1=`US` | Format `YYYY-MM-DD`; must be a future date |
+| `driver_license_expiration_date.1` | Required if country.1=`US` | Format `YYYY-MM-DD`; a past (expired) date is accepted |
 | `bankruptcy_filed.1` | Yes | `1`=Yes `0`=No |
 | `bankruptcy_discharged.1` | Required if bankruptcy_filed.1=`1` | `1`=Yes `0`=No |
 | `bankruptcy_discharged_date.1` | Required if bankruptcy_discharged.1=`1` | Format `YYYY-MM-DD`; must be a past date |

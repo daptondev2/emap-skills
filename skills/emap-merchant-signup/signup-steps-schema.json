@@ -182,6 +182,10 @@
         "slug": "Direct-By-You"
       },
       {
+        "label": "Service Only",
+        "slug": "Service-Only"
+      },
+      {
         "label": "Vendor",
         "slug": "Vendor"
       },
@@ -242,11 +246,11 @@
         "slug": "Another-Payment-Gateway"
       },
       {
-        "label": "Need Terminal / POS System",
+        "label": "I need a terminal / POS system",
         "slug": "Need-terminal/POS-system"
       },
       {
-        "label": "Own Terminal / POS System",
+        "label": "My own terminal / POS system",
         "slug": "Own-terminal/POS-system"
       },
       {
@@ -1569,8 +1573,6 @@
               "required": false,
               "sensitive": true,
               "format": "YYYY-MM-DD",
-              "minDate": "today",
-              "validationNote": "Must be today or in the future. Reject past dates.",
               "dependsOn": {
                 "field": "country.1",
                 "operator": "equals",
@@ -1581,7 +1583,8 @@
                 "field": "country.1",
                 "operator": "equals",
                 "value": "US"
-              }
+              },
+              "validationNote": "Any valid date, including a past one. EMAP's signup accepts an expired licence, so don't reject it here."
             },
             {
               "key": "bankruptcy_filed.1",
@@ -1961,14 +1964,13 @@
               "required": false,
               "sensitive": true,
               "format": "YYYY-MM-DD",
-              "minDate": "today",
-              "validationNote": "Must be today or in the future. Reject past dates.",
               "conditionalRequired": {
                 "logic": "ownership_percentage.1 < 51 AND country.2 == 'US'"
               },
               "visibleIf": {
                 "logic": "ownership_percentage.1 < 51 AND country.2 == 'US'"
-              }
+              },
+              "validationNote": "Any valid date, including a past one. EMAP's signup accepts an expired licence, so don't reject it here."
             },
             {
               "key": "bankruptcy_filed.2",

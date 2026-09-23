@@ -552,6 +552,7 @@
           <select id="fulfillment_by" name="fulfillment_by" required>
             <option value="">Select…</option>
             <option value="Direct-By-You">Direct By You</option>
+            <option value="Service-Only">Service Only</option>
             <option value="Vendor">Vendor</option>
             <option value="Others">Others</option>
           </select>
@@ -823,7 +824,6 @@
         <div class="form-group" id="dl_expiry_1_group" style="display:none">
           <label for="driver_license_expiration_date_1">Driver's License Expiration <span class="required">*</span></label>
           <input id="driver_license_expiration_date_1" name="driver_license_expiration_date.1" type="date" autocomplete="off">
-          <span class="sensitive-note">Must be today or a future date</span>
           <span class="field-error" id="err_driver_license_expiration_date_1"></span>
         </div>
 
@@ -976,7 +976,6 @@
           <div class="form-group" id="dl_expiry_2_group" style="display:none">
             <label for="driver_license_expiration_date_2">Driver's License Expiration <span class="required">*</span></label>
             <input id="driver_license_expiration_date_2" name="driver_license_expiration_date.2" type="date" autocomplete="off">
-            <span class="sensitive-note">Must be today or a future date</span>
             <span class="field-error" id="err_driver_license_expiration_date_2"></span>
           </div>
 
@@ -1110,8 +1109,8 @@
           <option value="">Select…</option>
           <option value="Easy-Pay-Direct-Gateway">Easy Pay Direct Gateway</option>
           <option value="Another-Payment-Gateway">Another Payment Gateway</option>
-          <option value="Need-terminal/POS-system">Need Terminal / POS System</option>
-          <option value="Own-terminal/POS-system">Own Terminal / POS System</option>
+          <option value="Need-terminal/POS-system">I need a terminal / POS system</option>
+          <option value="Own-terminal/POS-system">My own terminal / POS system</option>
           <option value="iPhone/Android">iPhone / Android</option>
           <option value="Other">Other</option>
         </select>
