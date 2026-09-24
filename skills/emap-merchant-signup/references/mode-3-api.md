@@ -62,6 +62,7 @@ Merchant Application", "Email Me a Secure Link", "Check Your Email".
 | `industry_type_other` | required when `industry_type` is `other` (compare case-insensitively; EMAP returns `Other`), string, max 255 |
 | `promo_code` | optional, string, max 255 |
 | `partner_key` | optional, string — your partner key from the partner portal (Integration → API Integration). An attribution value, not a secret |
+| `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`, `gclid`, `gbraid`, `wbraid`, `fbclid` | optional, string, max 255 each — campaign attribution read from the landing page URL by `getTracking()`. EMAP saves them on the user and application (`utm_tracking`) and syncs them to the HubSpot deal |
 | `trigger_email` | optional, boolean, default `false` — when `true`, EMAP dispatches the welcome/verification email as part of this same call. **Required for the Integration 3 email-signup flow**; without it, the account/application is created but no email is sent. |
 
 ---

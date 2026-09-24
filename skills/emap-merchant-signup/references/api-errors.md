@@ -147,11 +147,11 @@ dot-notation owner fields. Step 1 (`/api/v1/signup`) also sends `step_count: 1`.
 | network error | `fetch` throws | "A network error occurred. Please check your connection and try again." |
 
 Every branch re-enables the button. None of them clears the saved `uuid`, so the merchant can
-retry the same step. The merchant can't go back to an earlier step: EMAP doesn't accept a step
-again after it's saved. A 422 whose `errors` names a field from an earlier step (for example a
-missing `industry_type` reported at step 6) can't be fixed in this session. The page-level alert
-still shows. After a reload, the resume notice's "Start a new application" button lets the merchant
-start again.
+retry the same step. The merchant can go back to steps 2 to 5 with the Back button, fix a field, and
+re-submit that step. A 422 whose `errors` names a Step 1 field (for example a missing
+`industry_type` reported at step 6) can't be fixed in this session, because Step 1 is read-only
+once saved. The page-level alert still shows. After a reload, the resume notice's "Start a new
+application" button lets the merchant start again.
 
 ---
 

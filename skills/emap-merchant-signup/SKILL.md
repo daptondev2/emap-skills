@@ -301,12 +301,14 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
    The merchant can edit these fields in Step 2 if the legal name differs from the trading name.
    Only pre-fill when the fields are currently empty (do not overwrite if the merchant has already typed something or if the session was restored from localStorage).
 
-6. **No back-navigation between steps:**
-   Once a merchant submits a step successfully, they **cannot** return to a previous step.
-   - Do **not** render Back buttons on any step (steps 2–6).
-   - Do **not** call `goToStep(n)` with a lower step number from any UI action.
-   This is intentional — each step is persisted to EMAP's API on submit, and EMAP does not
-   support replaying an earlier step after it has been accepted.
+6. **Back-navigation between steps:**
+   Render a Back button on steps 2–6. Going back keeps what the merchant typed, and they can edit
+   and re-submit that step: the API accepts a step again with the same `uuid`.
+   - **Step 1 is read-only** when returned to. `POST /api/v1/signup` can't be replayed (the email
+     is now registered), so disable its inputs and have Continue go to step 2 without calling the API.
+   - Each re-submit sends that step's own `step_count`. Never skip a re-submit to jump ahead.
+   - After a page reload the earlier answers are gone, so hide Back on the restored step.
+   - No Back on the upload-document page: step 6 success redirects to EMAP.
 
 7. **Handle conditional fields:**
    > Read `visibleIf` (shown) and `dependsOn` (required) separately for every conditional field;
@@ -480,8 +482,21 @@ server; see [`references/mode-2-redirect.md`](references/mode-2-redirect.md).)
    ```
 
 3. **Pass UTM params through.** Read `utm_campaign`, `utm_source`, `utm_medium`, `utm_term`,
-   `utm_content`, and Google's click IDs `gclid`, `gbraid`, `wbraid` from the current page URL and
+   `utm_content`, and the click IDs `gclid`, `gbraid`, `wbraid`, `fbclid` from the current page URL and
    append them to the redirect URL. The templates do this automatically.
+
+   Integrations 1 and 3 call the API instead, so their templates send the same values, plus
+   `fbclid`, as extra fields on the Step 1 `POST /api/v1/signup` body. `getTracking()` reads them
+   from the landing page URL and uses them as the current attribution and stores them in `localStorage` (`emap_tracking`) for
+   90 days. New params on the URL replace the stored ones (the old ones are discarded); with none
+   on the URL, the stored ones are reused, so a refresh or a later direct return keeps the source.
+   Send them only when present; EMAP ignores absent ones.
+
+   **Latest attribution wins.** EMAP stores attribution in `utm_tracking` (on the user and the
+   application) as flat keys. A request that carries campaign params replaces the stored ones; a
+   request with none leaves them unchanged. Integration 1 sends the current attribution with every
+   step (Step 1 and steps 2 to 6). The HubSpot deal and contact properties (`utm_*`, `gclid`,
+   `gbraid`, `wbraid`, `fbclid`) carry the stored values.
 
 4. **Set the two constants at the top of the file's `<script>` block** (search for "EDIT THESE"):
    ```js

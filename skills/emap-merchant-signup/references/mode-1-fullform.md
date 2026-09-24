@@ -92,6 +92,10 @@ The `uuid` returned by Step 1 must be included in every subsequent request.
 | `industry_type_other` | Required if industry_type=`other` | string | Max 255 |
 | `promo_code` | No | string | max 255 |
 | `partner_key` | No | string | from the `EMAP_PARTNER_KEY` constant in the script — see the Security notes below |
+| `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content` | No | string | max 255 each. Read from the landing page URL by `getTracking()`; EMAP saves them on the user and the application and syncs them to the HubSpot deal |
+| `gclid`, `gbraid`, `wbraid`, `fbclid` | No | string | max 255 each. Ad click IDs, sent the same way |
+
+The same nine optional fields are accepted on steps 2 to 6 (`/api/v1/application/step`) and step 4 (`/api/v1/ownership`). Send the current attribution (new URL params, else the stored ones); params sent replace what EMAP has stored, none sent leaves it unchanged. See `SKILL.md`.
 
 ### Response
 

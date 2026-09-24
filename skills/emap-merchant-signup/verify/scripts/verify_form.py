@@ -19,7 +19,7 @@ Checks 5 categories:
                     as a hint/placeholder.
   conditional_logic — every dependsOn/visibleIf field has its controlling
                     field id and comparison value referenced near its own
-                    show/hide/require code, and no Back-navigation exists.
+                    show/hide/require code.
   dropdown_route — every dynamicDropdownEndpoints entry the integration uses
                     is fetched directly from the browser, and an embedded
                     fallback dataset (real rows, not just the word) exists.
@@ -436,17 +436,6 @@ def check_conditional_logic(field: dict, frontend_text_lines: list) -> list:
     return findings
 
 
-def check_no_back_navigation(frontend_text: str) -> list:
-    findings = []
-    if re.search(r'\b(?:class|className)\s*=\s*\{?["\'`][^"\'`]*\bbtn-back\b', frontend_text) or re.search(r'>\s*[←]?\s*Back\s*<', frontend_text):
-        findings.append({
-            "file": "(frontend)", "field": "(navigation)", "category": "conditional_logic",
-            "expected": "no Back button on steps 2-6 (EMAP does not support replaying an accepted step)",
-            "actual": "a Back-labeled button or .btn-back element was found", "severity": "blocker",
-        })
-    return findings
-
-
 # ── Category D: dropdown_route ──────────────────────────────────────────────
 
 # Every form here is pure client-side (no backend of any kind) — each fetches
@@ -763,8 +752,6 @@ def main() -> int:
         if run_cond:
             findings.extend(check_conditional_logic(field, script_lines))
 
-    if run_cond and not args.fields:
-        findings.extend(check_no_back_navigation(frontend_text))
     if run_dropdown:
         fallback_text = frontend_text + "\n" + "\n".join(
             p.read_text(encoding="utf-8", errors="replace") for p in data_paths)

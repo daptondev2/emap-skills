@@ -20,9 +20,12 @@ The field is not required when the Step 1 country is `CA` **or** `business_organ
 Rule: hide, disable and un-require the field when either condition is true, and re-check whenever
 either field changes.
 
-Open issue: one earlier test submission of a US and a German Sole-Proprietorship without the field
-was rejected with that same 422 message. The cause wasn't found. If real sole-prop merchants hit it,
-EMAP's API needs to match its own message; the form follows the rule above.
+Cause of the earlier rejections (a US and a German Sole-Proprietorship without the field got that
+422): the API compared `business_organized` to lowercase `sole-proprietorship`, but the accepted slug
+is `Sole-Proprietorship`, so the exemption never matched. The backend now compares
+case-insensitively. Until that fix is deployed to the server you target, sole-props outside Canada
+may still be rejected. As in EMAP's own signup, the owner's SSN from Step 4 is copied into
+`federal_tax_id` for sole-props when the field is empty.
 
 The field is numeric only in every country: masked `XXX-XX-XXXX` for US/CA/PR and `XX-XXXXXXX`
 elsewhere, despite its generic `^[0-9A-Za-z\-]+$` pattern and "EIN" placeholder. See its

@@ -349,15 +349,35 @@
       if (!isUS) stateSelect.value = '';
     });
 
-    // Collect UTM params and Google click IDs from the current page URL for pass-through
+    // Campaign attribution: UTM params and ad click IDs from the landing URL,
+    // passed through to EMAP's /signup page. Params on the URL replace
+    // the stored ones; with none, the stored ones (kept in localStorage for 90
+    // days) are reused, so a refresh or a direct return keeps the source.
+    const TRACKING_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+                           'gclid', 'gbraid', 'wbraid', 'fbclid'];
+    const TRACKING_STORE_KEY = 'emap_tracking';
+    const TRACKING_TTL_MS = 90 * 24 * 60 * 60 * 1000;
     function getTrackingParams() {
+      let values = {}, savedAt = Date.now();
+      try {
+        const saved = JSON.parse(localStorage.getItem(TRACKING_STORE_KEY) || 'null');
+        if (saved && saved.values && Date.now() - saved.savedAt < TRACKING_TTL_MS) {
+          values = saved.values;
+          savedAt = saved.savedAt;
+        }
+      } catch (_) {}
       const current = new URLSearchParams(window.location.search);
-      const tracking = {};
-      ['utm_campaign', 'utm_source', 'utm_medium', 'utm_term', 'utm_content',
-       'gclid', 'gbraid', 'wbraid'].forEach(function (k) {
-        if (current.has(k)) tracking[k] = current.get(k);
+      const fresh = {};
+      TRACKING_KEYS.forEach(function (k) {
+        const v = (current.get(k) || '').trim().slice(0, 255);
+        if (v) fresh[k] = v;
       });
-      return tracking;
+      if (Object.keys(fresh).length) {
+        // New campaign params replace the stored ones; none = keep the stored ones.
+        values = fresh;
+        try { localStorage.setItem(TRACKING_STORE_KEY, JSON.stringify({ values: values, savedAt: Date.now() })); } catch (_) {}
+      }
+      return values;
     }
 
     function setError(fieldId, message) {

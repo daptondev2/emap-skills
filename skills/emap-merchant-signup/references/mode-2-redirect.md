@@ -90,7 +90,8 @@ function buildEmapRedirectUrl(fields, emapBaseUrl, partnerKey) {
 
   // UTM and Google click-ID pass-through from the current page
   const currentParams = new URLSearchParams(window.location.search);
-  ['utm_campaign','utm_source','utm_medium','utm_term','utm_content','gclid','gbraid','wbraid']
+  // (the templates read them through getTrackingParams(): new params replace, else stored ones reused, 90 days in localStorage)
+  ['utm_campaign','utm_source','utm_medium','utm_term','utm_content','gclid','gbraid','wbraid','fbclid']
     .forEach(k => { if (currentParams.has(k)) params.set(k, currentParams.get(k)); });
 
   // Partner attribution. EMAP names this URL param `secretKey`, but the value is
@@ -130,11 +131,17 @@ page:
 function getTrackingParams() {
   const current = new URLSearchParams(window.location.search);
   const tracking = {};
-  ['utm_campaign','utm_source','utm_medium','utm_term','utm_content','gclid','gbraid','wbraid']
+  ['utm_campaign','utm_source','utm_medium','utm_term','utm_content','gclid','gbraid','wbraid','fbclid']
     .forEach(k => { if (current.has(k)) tracking[k] = current.get(k); });
   return tracking;
 }
 ```
+
+The shipped template goes further: `getTrackingParams()` uses new URL params when present
+(replacing the stored ones) and otherwise reuses the stored ones from `localStorage`
+(`emap_tracking`, 90 days), so a refresh or a later direct return keeps the source. Integrations 1
+and 3 use the same storage key and expiry, so one visitor has one attribution across all three. EMAP's `/signup` page doesn't read `fbclid` yet; it's passed
+along in case it does.
 
 `gclid`, `gbraid` and `wbraid` are all Google Ads click IDs. The templates don't pass Bing's
 `msclkid`; confirm with Easy Pay Direct that EMAP stores it before adding it.

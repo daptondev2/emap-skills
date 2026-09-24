@@ -309,6 +309,8 @@
         <input id="promo_code" name="promo_code" type="text" maxlength="255" autocomplete="off">
       </div>
 
+      <p class="hint" id="step1-locked-note" style="display:none">These details were saved when you started your application and can't be changed here. Contact support if something needs correcting.</p>
+
       <div class="btn-row">
         <button type="submit" id="btn-step1">Continue — Company Info →</button>
       </div>
@@ -537,6 +539,7 @@
       </div>
 
       <div class="btn-row">
+        <button type="button" class="btn-back" data-back="2">&larr; Back</button>
         <button type="submit" id="btn-step2">Continue — Products →</button>
       </div>
     </form>
@@ -661,6 +664,7 @@
       </div>
 
       <div class="btn-row">
+        <button type="button" class="btn-back" data-back="3">&larr; Back</button>
         <button type="submit" id="btn-step3">Continue — Owners →</button>
       </div>
     </form>
@@ -1010,6 +1014,7 @@
       </div>
 
       <div class="btn-row">
+        <button type="button" class="btn-back" data-back="4">&larr; Back</button>
         <button type="submit" id="btn-step4">Continue — Banking →</button>
       </div>
     </form>
@@ -1070,6 +1075,7 @@
       </div>
 
       <div class="btn-row">
+        <button type="button" class="btn-back" data-back="5">&larr; Back</button>
         <button type="submit" id="btn-step5">Continue — Final Details →</button>
       </div>
     </form>
@@ -1327,6 +1333,7 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       <span class="field-error" id="err_terms_agreed" style="display:block;margin-top:-10px;margin-bottom:10px"></span>
 
       <div class="btn-row">
+        <button type="button" class="btn-back" data-back="6">&larr; Back</button>
         <button type="submit" id="btn-step6">Submit Application</button>
       </div>
     </form>
@@ -1369,6 +1376,39 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
     var EMAP_BASE_URL = 'https://emap.epd.dev';
 
     var EMAP_PARTNER_KEY = ''; // optional — leave '' to skip partner attribution.
+
+    // Campaign attribution: UTM params and ad click IDs from the landing URL,
+    // sent with Step 1 (POST /api/v1/signup) so EMAP can save them on the
+    // application and in HubSpot. Params on the URL replace the
+    // stored ones; with none, the stored ones (kept in localStorage for 90 days)
+    // are reused, so a refresh or a direct return keeps the source.
+    var TRACKING_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+                         'gclid', 'gbraid', 'wbraid', 'fbclid'];
+    var TRACKING_STORE_KEY = 'emap_tracking';
+    var TRACKING_TTL_MS = 90 * 24 * 60 * 60 * 1000;
+    function getTracking() {
+      var values = {}, savedAt = Date.now();
+      try {
+        var saved = JSON.parse(localStorage.getItem(TRACKING_STORE_KEY) || 'null');
+        if (saved && saved.values && Date.now() - saved.savedAt < TRACKING_TTL_MS) {
+          values = saved.values;
+          savedAt = saved.savedAt;
+        }
+      } catch (_) {}
+      var current = new URLSearchParams(window.location.search);
+      var fresh = {};
+      TRACKING_KEYS.forEach(function (k) {
+        var v = (current.get(k) || '').trim().slice(0, 255);
+        if (v) fresh[k] = v;
+      });
+      if (Object.keys(fresh).length) {
+        // New campaign params replace the stored ones; none = keep the stored ones.
+        values = fresh;
+        try { localStorage.setItem(TRACKING_STORE_KEY, JSON.stringify({ values: values, savedAt: Date.now() })); } catch (_) {}
+      }
+      return values;
+    }
+
     // This key is sent from the browser and is therefore visible to anyone who
     // views this page's source. EMAP treats it purely as an attribution/referral
     // value — it does not grant access to any account or data, so exposing it
@@ -1471,8 +1511,24 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       if (appUUID) localStorage.setItem('emap_step', step);
       updateProgress(step);
       hideAlert();
+      if (step === 1 && appUUID) lockStep1();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+
+    // Step 1 created the application (POST /api/v1/signup). It can't be replayed
+    // (the email is now registered), so returning to it is read-only.
+    function lockStep1() {
+      document.querySelectorAll('#form-step1 input, #form-step1 select').forEach(function (el) {
+        if (el.name !== '_hp') el.disabled = true;
+      });
+      document.getElementById('step1-locked-note').style.display = 'block';
+    }
+
+    // Back buttons (steps 2-6). Earlier steps keep what was typed and can be
+    // edited and re-submitted: the API accepts a step again with the same uuid.
+    document.querySelectorAll('[data-back]').forEach(function (b) {
+      b.addEventListener('click', function () { goToStep(parseInt(b.dataset.back, 10) - 1); });
+    });
 
     // Parses a response body as JSON, or returns null when it isn't JSON.
     // Rate limiters, proxies and CDNs often answer 429/5xx with an HTML page,
@@ -1483,6 +1539,7 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
 
     // ── POST a step directly to EMAP ─────────────────────────────────────────
     async function submitStep(stepNum, payload, btn, btnLabel) {
+      if (stepNum !== 1) Object.assign(payload, getTracking());
       btn.disabled = true;
       btn.textContent = 'Saving…';
       hideAlert();
@@ -1723,7 +1780,7 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       setCaBankingRequired(step1Country === 'CA');
       // Restores owner SSN/SIN masking + labels too (both keyed off step1Country
       // — see updateSsnField(n)); step1Country is always set by the time Step 4
-      // is reachable (no back-nav, Step 1 is always submitted first).
+      // is reachable (Step 1 is always submitted first).
       if (step1Country) updateCountryLabels(step1Country);
 
       // Restore marketingModel checkbox state
@@ -1739,6 +1796,10 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       } catch (_) {}
 
       updateFederalTaxVisibility();
+      // The form was rebuilt after a reload, so the previous step's answers are
+      // gone: don't offer Back to a blank form.
+      var restoredBack = document.querySelector('[data-back="' + savedStep + '"]');
+      if (restoredBack) restoredBack.style.display = 'none';
       goToStep(savedStep);
     }
 
@@ -2383,6 +2444,7 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
     document.getElementById('form-step1').addEventListener('submit', async function (e) {
       e.preventDefault();
       if (document.querySelector('[name="_hp"]').value) return;
+      if (appUUID) { goToStep(2); return; }
       clearStepErrors(this);
       var fd = new FormData(this);
       var d = {};
@@ -2423,6 +2485,7 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       if (d.industry_type_other)   payload.industry_type_other   = d.industry_type_other;
       if (d.promo_code)            payload.promo_code            = d.promo_code;
       if (EMAP_PARTNER_KEY)        payload.partner_key            = EMAP_PARTNER_KEY;
+      Object.assign(payload, getTracking());
 
       var result = await submitStep(1, payload, btn, 'Continue — Company Info →');
       if (!result) return;
