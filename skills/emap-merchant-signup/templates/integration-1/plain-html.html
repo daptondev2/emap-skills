@@ -689,7 +689,6 @@
     <form id="form-step4" class="step-section" novalidate>
       <h2>Business Owners</h2>
       <p class="step-subtitle">Identity information for the primary owner. If the applicant owns &lt;51%, a second owner is required.</p>
-      <p class="hint" id="step4-locked-note" style="display:none">Owner names, emails, ownership percentages and the "Are you the business owner?" answer were saved and can't be changed here. Everything else on this step can be edited. Contact support if one of these needs correcting.</p>
 
       <div class="form-group">
         <label>Are you the business owner? <span class="required">*</span></label>
@@ -1569,7 +1568,6 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         if (el) el.disabled = true;
       });
       document.querySelectorAll('[name="primary_contact"]').forEach(function (r) { r.disabled = true; });
-      document.getElementById('step4-locked-note').style.display = 'block';
     }
 
     // Back buttons (steps 2-6). Earlier steps keep what was typed and can be
