@@ -302,10 +302,19 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
    Only pre-fill when the fields are currently empty (do not overwrite if the merchant has already typed something or if the session was restored from localStorage).
 
 6. **Back-navigation between steps:**
+   The numbered steps in the progress bar are clickable for steps already reached in this page
+   session (not after a reload, when earlier answers are gone). Style every `:disabled` input, select,
+   textarea, radio and checkbox visibly (grey background, muted text, `not-allowed` cursor) so
+   read-only fields are obvious.
    Render a Back button on steps 2–6. Going back keeps what the merchant typed, and they can edit
    and re-submit that step: the API accepts a step again with the same `uuid`.
    - **Step 1 is read-only** when returned to. `POST /api/v1/signup` can't be replayed (the email
      is now registered), so disable its inputs and have Continue go to step 2 without calling the API.
+   - **Step 4: owner identity is read-only** once saved, as in EMAP's single-page signup. Disable
+     "Are you the business owner?", each owner's first name, last name and email, and each
+     ownership percentage; everything else on step 4 (job title, phone, DOB, SSN, address, ID) stays
+     editable. Disabled inputs are left out of `FormData`, so read their values back when building
+     the re-submit payload. Steps 2, 3, 5 and 6 have nothing locked.
    - Each re-submit sends that step's own `step_count`. Never skip a re-submit to jump ahead.
    - After a page reload the earlier answers are gone, so hide Back on the restored step.
    - No Back on the upload-document page: step 6 success redirects to EMAP.

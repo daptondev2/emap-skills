@@ -74,6 +74,11 @@
     }
     .emap-signup .progress-step.active .step-label { color: #3b82f6; font-weight: 600; }
     .emap-signup .progress-step.done .step-label { color: #10b981; }
+    /* Steps already reached can be clicked to jump back (or forward again). */
+    .emap-signup .progress-step.clickable { cursor: pointer; }
+    .emap-signup .progress-step.clickable:hover .step-circle,
+    .emap-signup .progress-step.clickable:focus-visible .step-circle { box-shadow: 0 0 0 3px rgba(59,130,246,.25); }
+    .emap-signup .progress-step.clickable:focus-visible { outline: none; }
 
     .emap-signup h2 { font-size: 1.4rem; margin: 0 0 4px; color: #0f172a; }
     .emap-signup .step-subtitle { color: #64748b; margin: 0 0 24px; font-size: .9rem; }
@@ -112,6 +117,17 @@
       box-shadow: 0 0 0 3px rgba(59,130,246,.15);
     }
     .emap-signup input:not([type="checkbox"]):not([type="radio"]).error, .emap-signup select.error, .emap-signup textarea.error { border-color: #ef4444; }
+    /* Read-only fields (step 1 after submit, step 4 owner identity after save). */
+    .emap-signup input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):disabled, .emap-signup select:disabled, .emap-signup textarea:disabled {
+      background: #f3f4f6;
+      color: #6b7280;
+      -webkit-text-fill-color: #6b7280;
+      border-color: #e5e7eb;
+      cursor: not-allowed;
+      opacity: 1;
+    }
+    .emap-signup input[type="radio"]:disabled, .emap-signup input[type="checkbox"]:disabled { cursor: not-allowed; opacity: .5; }
+    .emap-signup .radio-item input:disabled + label, .emap-signup .checkbox-item input:disabled + label { color: #9ca3af; cursor: not-allowed; }
     .emap-signup .field-error { display: block; color: #ef4444; font-size: .8rem; margin-top: 4px; }
 
     .emap-signup .checkbox-group { display: flex; flex-direction: column; gap: 8px; }
@@ -673,6 +689,7 @@
     <form id="form-step4" class="step-section" novalidate>
       <h2>Business Owners</h2>
       <p class="step-subtitle">Identity information for the primary owner. If the applicant owns &lt;51%, a second owner is required.</p>
+      <p class="hint" id="step4-locked-note" style="display:none">Owner names, emails, ownership percentages and the "Are you the business owner?" answer were saved and can't be changed here. Everything else on this step can be edited. Contact support if one of these needs correcting.</p>
 
       <div class="form-group">
         <label>Are you the business owner? <span class="required">*</span></label>
@@ -1493,14 +1510,30 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
+    // The numbered steps at the top are clickable for steps whose form is filled
+    // in this page session: from minReachable (raised after a reload, when earlier
+    // answers are gone) up to the furthest step reached.
+    var maxReached = 1, minReachable = 1;
     function updateProgress(step) {
+      if (step > maxReached) maxReached = step;
       document.querySelectorAll('.progress-step').forEach(function (el) {
         var n = parseInt(el.dataset.step, 10);
         el.classList.remove('active', 'done');
         if (n === step) el.classList.add('active');
         else if (n < step) el.classList.add('done');
+        var reachable = n !== step && n >= minReachable && n <= maxReached;
+        el.classList.toggle('clickable', reachable);
+        if (reachable) { el.setAttribute('role', 'button'); el.tabIndex = 0; }
+        else { el.removeAttribute('role'); el.removeAttribute('tabindex'); }
       });
     }
+    document.querySelectorAll('.progress-step').forEach(function (el) {
+      function go() { if (el.classList.contains('clickable')) goToStep(parseInt(el.dataset.step, 10)); }
+      el.addEventListener('click', go);
+      el.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
+      });
+    });
 
     function goToStep(step) {
       document.querySelectorAll('.step-section').forEach(function (el) {
@@ -1522,6 +1555,21 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         if (el.name !== '_hp') el.disabled = true;
       });
       document.getElementById('step1-locked-note').style.display = 'block';
+    }
+
+    // Step 4 saved the owners' identities. Like EMAP's single-page signup, going
+    // back leaves these read-only (changing them would create different owner
+    // records): the "Are you the business owner?" answer, each owner's name and
+    // email, and each ownership percentage. Everything else stays editable.
+    var STEP4_LOCKED_IDS = ['first_name_1', 'last_name_1', 'email_1', 'ownership_percentage_1',
+                            'first_name_2', 'last_name_2', 'email_2', 'ownership_percentage_2'];
+    function lockOwnerIdentity() {
+      STEP4_LOCKED_IDS.forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.disabled = true;
+      });
+      document.querySelectorAll('[name="primary_contact"]').forEach(function (r) { r.disabled = true; });
+      document.getElementById('step4-locked-note').style.display = 'block';
     }
 
     // Back buttons (steps 2-6). Earlier steps keep what was typed and can be
@@ -1799,6 +1847,7 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       // gone: don't offer Back to a blank form.
       var restoredBack = document.querySelector('[data-back="' + savedStep + '"]');
       if (restoredBack) restoredBack.style.display = 'none';
+      minReachable = savedStep;
       goToStep(savedStep);
     }
 
@@ -2654,6 +2703,11 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       var fd = new FormData(this);
       var raw = {};
       for (var pair of fd.entries()) raw[pair[0]] = pair[1];
+      // Locked (disabled) fields are left out of FormData, so add their values back.
+      Array.prototype.forEach.call(this.elements, function (el) {
+        if (!el.disabled || !el.name || (el.type === 'radio' && !el.checked)) return;
+        raw[el.name] = el.value;
+      });
 
       var isPrimaryContact = raw['primary_contact'] === '1';
       var pct1 = parseInt(raw['ownership_percentage.1'], 10) || 0;
@@ -2829,7 +2883,10 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
 
       var btn = document.getElementById('btn-step4');
       var result = await submitStep(4, nestedPayload, btn, 'Continue — Banking →');
-      if (result && result.status !== false) goToStep(5);
+      if (result && result.status !== false) {
+        lockOwnerIdentity();
+        goToStep(5);
+      }
     });
 
     // STEP 5
