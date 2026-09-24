@@ -373,12 +373,12 @@
     // Campaign attribution: UTM params and ad click IDs from the landing URL,
     // sent with Step 1 (POST /api/v1/signup) so EMAP can save them on the
     // application and in HubSpot. Params on the URL replace the
-    // stored ones; with none, the stored ones (kept in localStorage for 90 days)
+    // stored ones; with none, the stored ones (kept in localStorage for 30 days)
     // are reused, so a refresh or a direct return keeps the source.
     var TRACKING_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
                          'gclid', 'gbraid', 'wbraid', 'fbclid'];
     var TRACKING_STORE_KEY = 'emap_tracking';
-    var TRACKING_TTL_MS = 90 * 24 * 60 * 60 * 1000;
+    var TRACKING_TTL_MS = 30 * 24 * 60 * 60 * 1000;
     function getTracking() {
       var values = {}, savedAt = Date.now();
       try {

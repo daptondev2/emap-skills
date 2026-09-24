@@ -488,15 +488,15 @@ server; see [`references/mode-2-redirect.md`](references/mode-2-redirect.md).)
    Integrations 1 and 3 call the API instead, so their templates send the same values, plus
    `fbclid`, as extra fields on the Step 1 `POST /api/v1/signup` body. `getTracking()` reads them
    from the landing page URL and uses them as the current attribution and stores them in `localStorage` (`emap_tracking`) for
-   90 days. New params on the URL replace the stored ones (the old ones are discarded); with none
+   30 days. New params on the URL replace the stored ones (the old ones are discarded); with none
    on the URL, the stored ones are reused, so a refresh or a later direct return keeps the source.
    Send them only when present; EMAP ignores absent ones.
 
-   **Latest attribution wins.** EMAP stores attribution in `utm_tracking` (on the user and the
-   application) as flat keys. A request that carries campaign params replaces the stored ones; a
-   request with none leaves them unchanged. Integration 1 sends the current attribution with every
-   step (Step 1 and steps 2 to 6). The HubSpot deal and contact properties (`utm_*`, `gclid`,
-   `gbraid`, `wbraid`, `fbclid`) carry the stored values.
+   **Saved at Step 1 only.** EMAP stores attribution in `utm_tracking` (on the user and the
+   application) as flat keys, from the Step 1 request. Steps 2 to 6 don't send it, and EMAP ignores
+   these fields on those endpoints, so a merchant who changes the URL mid-signup doesn't change what
+   was saved. The HubSpot deal and contact properties (`utm_*`, `gclid`, `gbraid`, `wbraid`,
+   `fbclid`) carry the Step 1 values.
 
 4. **Set the two constants at the top of the file's `<script>` block** (search for "EDIT THESE"):
    ```js
