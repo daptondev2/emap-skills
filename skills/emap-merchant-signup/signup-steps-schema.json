@@ -422,7 +422,8 @@
           "required": true,
           "maxLength": 20,
           "pattern": "^[0-9\\-\\+\\(\\) ]+$",
-          "placeholder": "+1 555 000 0000"
+          "inputMethod": "intl-tel-input",
+          "validationNote": "Use intl-tel-input 22.0.2 (as EMAP's own signup page does): country picker defaulting to US, as-you-type formatting, its example number as the placeholder. Call isValidNumber() before submit and send getNumber() (E.164, e.g. +12025551234), which fits the pattern."
         },
         {
           "key": "name",
@@ -589,7 +590,8 @@
           "required": true,
           "maxLength": 20,
           "pattern": "^[0-9\\-\\+\\(\\) ]+$",
-          "placeholder": "+1 555 000 0000"
+          "inputMethod": "intl-tel-input",
+          "validationNote": "Use intl-tel-input 22.0.2 (as EMAP's own signup page does): country picker defaulting to US, as-you-type formatting, its example number as the placeholder. Call isValidNumber() before submit and send getNumber() (E.164, e.g. +12025551234), which fits the pattern."
         },
         {
           "key": "business_location",

@@ -140,7 +140,7 @@ What still matters:
 - [ ] **Content-Security-Policy header** on your form page, where your host allows setting
   response headers. A starting point:
   ```
-  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'nonce-<RANDOM>'; connect-src 'self' <EMAP_BASE_URL origin>; style-src 'self' 'unsafe-inline'; frame-ancestors 'self'
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'nonce-<RANDOM>'; connect-src 'self' <EMAP_BASE_URL origin>; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' https://cdn.jsdelivr.net; frame-ancestors 'self'
   ```
   - `connect-src` must include the `EMAP_BASE_URL` origin (the production one at launch), or the
     browser blocks every call to EMAP.
@@ -149,9 +149,12 @@ What still matters:
     `sha256-` hash of the exact script). Don't use `'unsafe-inline'` for scripts.
   - `SignupForm.tsx` injects its logic as a `<script>` element at runtime, so under a strict CSP
     it needs the same nonce (set `nonce` on that element) or `'strict-dynamic'`.
-  - `https://cdn.jsdelivr.net` is only needed for Integration 1, which loads Cleave.js. That tag
-    carries an `integrity` hash; keep it if you change the URL (cdnjs serves the same file with the
-    same hash). Or self-host the file and drop the CDN.
+  - `https://cdn.jsdelivr.net` serves the phone field's library, intl-tel-input 22.0.2, in every
+    integration: its stylesheet (`style-src`), `intlTelInput.min.js` and `utils.js` (`script-src`),
+    and the flag sprite that stylesheet loads (`img-src`). Integration 1 also loads Cleave.js from
+    it. Every tag carries an `integrity` hash; keep it if you change the URL. Or self-host the
+    files and drop the CDN. If you self-host intl-tel-input, keep `build/img/` next to
+    `build/css/`, because the stylesheet loads the flags from `../img/`.
 
 - [ ] **X-Frame-Options or CSP frame-ancestors** to prevent clickjacking:
   ```

@@ -55,11 +55,11 @@ The `uuid` returned by Step 1 must be included in every subsequent request.
 ### Step 1 auto-save — `POST /api/v1/signup/auto-save`
 
 Like EMAP's own signup page, the form saves the merchant before Step 1 is submitted. Once first
-name, last name, email and phone are all filled in (valid email, 10–15 phone digits), leaving any
+name, last name, email and phone are all filled in (valid email, and intl-tel-input's `isValidNumber()` is true for the phone), leaving any
 of those four fields POSTs them from the browser:
 
 ```json
-{ "first_name": "Jane", "last_name": "Smith", "email": "jane@acme.com", "phone": "+1 202 555 1234",
+{ "first_name": "Jane", "last_name": "Smith", "email": "jane@acme.com", "phone": "+12025551234",
   "partner_key": "optional", "utm_source": "…any tracking keys from getTracking()" }
 ```
 
@@ -220,7 +220,7 @@ Owner 2 is required when `ownership_percentage.1 < 51`.
 | `first_name.1` | Required if primary_contact=`0` | Max 60; omit when primary_contact=1 (backend uses Step 1 data) |
 | `last_name.1` | Required if primary_contact=`0` | Max 60 |
 | `email.1` | Required if primary_contact=`0` | Valid email |
-| `phone.1` | Yes | Phone number |
+| `phone.1` | Yes | Phone number. Send intl-tel-input's `getNumber()` (E.164). Prefilled from the Step 1 phone when the merchant is the primary contact. |
 | `title.1` | Yes | Slug from owner job title list |
 | `ownership_percentage.1` | Yes | Integer 1–100 |
 | `dob.1` | Yes | Format `YYYY-MM-DD`; owner must be 18–100 years old |

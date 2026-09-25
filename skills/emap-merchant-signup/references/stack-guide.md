@@ -84,7 +84,9 @@ There are two options.
      1. Render a container element with `class="emap-signup"`.
      2. On mount, set its `innerHTML` to the markup inside `plain-html.html`'s
         `<div class="emap-signup">` element.
-     3. Integration 1 only: load Cleave.js.
+     3. Load the CDN libraries `plain-html.html` loads, before the script: intl-tel-input
+        (stylesheet, `intlTelInput.min.js` and `utils.js`, all integrations) and Cleave.js
+        (Integration 1 only). Keep their `integrity` hashes.
      4. Append a `<script>` element whose `text` is the contents of the inline script.
      5. On unmount, remove that script and empty the container.
    - Put the CSS in a **global** stylesheet. Framework-scoped styles don't reach `innerHTML` content:
@@ -115,7 +117,9 @@ Embed the reference into a page template:
    wrap it in the engine's raw block: `@verbatim`, `{% raw %}`, `{% verbatim %}`, or `@@` escapes
    in Razor.
 2. **Paste the markup** (the `<div class="emap-signup">…</div>` element) into the page template.
-3. **Integration 1 only:** add the Cleave.js `<script src>` tag before your `.js` file.
+3. **Copy the CDN tags** before your `.js` file: the intl-tel-input stylesheet `<link>` from
+   `<head>` and its two `<script src>` tags (all integrations), plus the Cleave.js `<script src>`
+   tag (Integration 1 only). Keep their `integrity` and `crossorigin` attributes.
 4. **Do not copy the "Standalone-page chrome" style block.** It styles `body`.
 
 **WordPress:** use a page template (theme or small plugin) with `wp_enqueue_style` /

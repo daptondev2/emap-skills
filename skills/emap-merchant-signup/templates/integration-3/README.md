@@ -101,3 +101,5 @@ control. Never create test applications on production.
 6. Submit a company name that already exists. Verify the warning appears and the button is
    enabled again.
 7. Leave a required field empty and verify the form blocks the submit.
+8. Type `2025551234` in the phone field. Verify it shows `(202) 555-1234`, a short number is
+   blocked with "Please enter a valid phone number", and the panel shows `+1 202-555-1234`.

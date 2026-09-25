@@ -77,3 +77,6 @@ control.
 4. Submit again with an unrecognisable website. Verify EMAP shows its form prefilled and waits
    for you to fix it and submit.
 5. Leave the promo code empty and verify `promo_code` isn't in the redirect URL.
+6. Type `2025551234` in the phone field. Verify it shows `(202) 555-1234`, and the redirect URL
+   carries `phone=%2B12025551234`. A short number should be blocked with "Please enter a valid
+   phone number".

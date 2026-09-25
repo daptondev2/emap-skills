@@ -22,7 +22,7 @@ this table and the schema disagree, the schema wins.
 | First Name | `first_name` | `first_name` | Required | string, max 255 chars | |
 | Last Name | `last_name` | `last_name` | Required | string, max 255 chars | |
 | Email | `email` | `email` | Required | RFC-5322 format; `^[^\s@]+@[^\s@]+\.[^\s@]{2,}$` | Int 3: existing email returns `verificationLink` response |
-| Phone | `phone` | `phone` | Required | max 20 chars; digits, `+`, `-`, `(`, `)`, spaces; `^[0-9+\-()\s]+$` | E.164 recommended: `+12025551234` |
+| Phone | `phone` | `phone` | Required | max 20 chars; digits, `+`, `-`, `(`, `)`, spaces; `^[0-9+\-()\s]+$` | E.164 recommended: `+12025551234`. The templates use intl-tel-input (country picker, as-you-type formatting, `isValidNumber()` check) and send `getNumber()`, which is E.164. |
 | Company Name | `company_name` | `name` | Required | string, max 255 chars | **Different param name per mode — see note above** |
 | Website | `website` | `website` | Required | Domain with an optional `http(s)://` prefix; use the `pattern` on `website` in the schema | EMAP's `/signup` page also checks it before auto-submitting (Int 2) |
 | Country | `country` | `country` | Required | **Int 2:** full country name, e.g. `United States`, `Canada` — use the `name` field from `/api/partner/countries` (the schema's `integration2UrlValue`). **Int 3:** 2-char ISO code, e.g. `US`, `CA` | Value format differs between modes |

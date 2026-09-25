@@ -151,3 +151,7 @@ control. Never create test applications on production.
    Select a non-US country, verify it hides.
 7. Test Owner 2: set ownership_percentage.1 < 51, verify Owner 2 section appears.
 8. Test SSN mask (US/CA): verify Cleave.js formats input as `XXX-XX-XXXX`.
+9. Test the phone fields: typing `2025551234` shows `(202) 555-1234` next to a US flag, a short
+   number is blocked with "Please enter a valid phone number", and the request sends
+   `+12025551234`. With "primary contact" set to Yes, Step 4's Owner 1 mobile phone shows the
+   Step 1 number.

@@ -301,6 +301,17 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
    - `name` (DBA / "doing business as") ← value of `company_name` from Step 1
    The merchant can edit these fields in Step 2 if the legal name differs from the trading name.
    Only pre-fill when the fields are currently empty (do not overwrite if the merchant has already typed something or if the session was restored from localStorage).
+   Also, like EMAP's own form, pre-fill Owner 1's mobile phone (`phone.1`, Step 4) with the Step 1
+   `phone` when "Are you the primary contact?" is Yes. Switching to No clears it if it still holds
+   the Step 1 number; switching back to Yes restores it.
+
+   **Phone fields** (`phone`, `customer_service_telephone_number`, `phone.1`, `phone.2`) use
+   intl-tel-input 22.0.2, the version EMAP's own signup page uses: a country picker (US first,
+   then CA), as-you-type formatting such as `(202) 555-1234`, and its example number as the
+   placeholder. Block submit unless `isValidNumber()` is true, and send `getNumber()`, which is
+   E.164 (`+12025551234`). Load `utils.js` with its own SRI-pinned `<script>` tag and hand it over
+   with `window.intlTelInput.utils = window.intlTelInputUtils`. The library's `utilsScript` option
+   injects the script without an integrity hash.
 
 6. **Back-navigation between steps:**
    The numbered steps in the progress bar are clickable for steps already reached in this page
