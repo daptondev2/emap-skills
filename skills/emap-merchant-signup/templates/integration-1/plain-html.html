@@ -127,6 +127,19 @@
       opacity: 1;
     }
     .emap-signup input[type="radio"]:disabled, .emap-signup input[type="checkbox"]:disabled { cursor: not-allowed; opacity: .5; }
+    /* Date fields: a text box that always shows YYYY-MM-DD (a native date input
+       shows the browser's locale format instead, e.g. MM/DD/YYYY). A transparent
+       native date input over the calendar icon opens the browser's own picker. */
+    .emap-signup .date-field { position: relative; }
+    .emap-signup .date-field input.date-input[type="text"]:not([type="checkbox"]) { padding-right: 42px; }
+    .emap-signup .date-field .date-icon { position: absolute; right: 12px; top: 50%; width: 18px; height: 18px; margin-top: -9px; color: #6b7280; pointer-events: none; }
+    .emap-signup .date-field input.date-picker[type="date"]:not([type="checkbox"]) {
+      position: absolute; top: 0; right: 0; width: 42px; height: 100%; padding: 0; margin: 0;
+      border: 0; background: transparent; box-shadow: none; opacity: 0; cursor: pointer;
+    }
+    .emap-signup .date-field input.date-picker::-webkit-calendar-picker-indicator {
+      position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; cursor: pointer;
+    }
     .emap-signup .radio-item input:disabled + label, .emap-signup .checkbox-item input:disabled + label { color: #9ca3af; cursor: not-allowed; }
     .emap-signup .field-error { display: block; color: #ef4444; font-size: .8rem; margin-top: 4px; }
 
@@ -386,7 +399,11 @@
 
       <div class="form-group">
         <label for="business_formed">Company Formation Date <span class="required">*</span></label>
-        <input id="business_formed" name="business_formed" type="date" required>
+        <div class="date-field">
+          <input id="business_formed" name="business_formed" type="text" class="date-input" inputmode="numeric" maxlength="10" placeholder="YYYY-MM-DD" autocomplete="off" required>
+          <input type="date" class="date-picker" tabindex="-1" aria-hidden="true">
+          <svg class="date-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
         <span class="field-error" id="err_business_formed"></span>
       </div>
 
@@ -766,7 +783,11 @@
           </div>
           <div class="form-group">
             <label for="dob_1">Date of Birth (YYYY-MM-DD) <span class="required">*</span></label>
-            <input id="dob_1" name="dob.1" type="date" required>
+            <div class="date-field">
+              <input id="dob_1" name="dob.1" type="text" class="date-input" inputmode="numeric" maxlength="10" placeholder="YYYY-MM-DD" autocomplete="off" required>
+              <input type="date" class="date-picker" tabindex="-1" aria-hidden="true">
+              <svg class="date-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </div>
             <span class="sensitive-note">Must be 18–100 years old</span>
             <span class="field-error" id="err_dob_1"></span>
           </div>
@@ -843,7 +864,11 @@
 
         <div class="form-group" id="dl_expiry_1_group" style="display:none">
           <label for="driver_license_expiration_date_1">Driver's License Expiration <span class="required">*</span></label>
-          <input id="driver_license_expiration_date_1" name="driver_license_expiration_date.1" type="date" autocomplete="off">
+          <div class="date-field">
+            <input id="driver_license_expiration_date_1" name="driver_license_expiration_date.1" type="text" class="date-input" inputmode="numeric" maxlength="10" placeholder="YYYY-MM-DD" autocomplete="off">
+            <input type="date" class="date-picker" tabindex="-1" aria-hidden="true">
+            <svg class="date-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </div>
           <span class="field-error" id="err_driver_license_expiration_date_1"></span>
         </div>
 
@@ -872,7 +897,11 @@
           </div>
           <div class="form-group" id="bkd_date_1_group" style="display:none">
             <label for="bankruptcy_discharged_date_1">Bankruptcy Discharge Date <span class="required">*</span></label>
-            <input id="bankruptcy_discharged_date_1" name="bankruptcy_discharged_date.1" type="date">
+            <div class="date-field">
+              <input id="bankruptcy_discharged_date_1" name="bankruptcy_discharged_date.1" type="text" class="date-input" inputmode="numeric" maxlength="10" placeholder="YYYY-MM-DD" autocomplete="off">
+              <input type="date" class="date-picker" tabindex="-1" aria-hidden="true">
+              <svg class="date-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </div>
             <span class="sensitive-note">Must be today or a past date</span>
             <span class="field-error" id="err_bankruptcy_discharged_date_1"></span>
           </div>
@@ -930,7 +959,11 @@
             </div>
             <div class="form-group">
               <label for="dob_2">Date of Birth (YYYY-MM-DD) <span class="required">*</span></label>
-              <input id="dob_2" name="dob.2" type="date">
+              <div class="date-field">
+                <input id="dob_2" name="dob.2" type="text" class="date-input" inputmode="numeric" maxlength="10" placeholder="YYYY-MM-DD" autocomplete="off">
+                <input type="date" class="date-picker" tabindex="-1" aria-hidden="true">
+                <svg class="date-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              </div>
               <span class="sensitive-note">Must be 18–100 years old</span>
               <span class="field-error" id="err_dob_2"></span>
             </div>
@@ -995,7 +1028,11 @@
           </div>
           <div class="form-group" id="dl_expiry_2_group" style="display:none">
             <label for="driver_license_expiration_date_2">Driver's License Expiration <span class="required">*</span></label>
-            <input id="driver_license_expiration_date_2" name="driver_license_expiration_date.2" type="date" autocomplete="off">
+            <div class="date-field">
+              <input id="driver_license_expiration_date_2" name="driver_license_expiration_date.2" type="text" class="date-input" inputmode="numeric" maxlength="10" placeholder="YYYY-MM-DD" autocomplete="off">
+              <input type="date" class="date-picker" tabindex="-1" aria-hidden="true">
+              <svg class="date-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </div>
             <span class="field-error" id="err_driver_license_expiration_date_2"></span>
           </div>
 
@@ -1021,7 +1058,11 @@
             </div>
             <div class="form-group" id="bkd_date_2_group" style="display:none">
               <label for="bankruptcy_discharged_date_2">Bankruptcy Discharge Date</label>
-              <input id="bankruptcy_discharged_date_2" name="bankruptcy_discharged_date.2" type="date">
+              <div class="date-field">
+                <input id="bankruptcy_discharged_date_2" name="bankruptcy_discharged_date.2" type="text" class="date-input" inputmode="numeric" maxlength="10" placeholder="YYYY-MM-DD" autocomplete="off">
+                <input type="date" class="date-picker" tabindex="-1" aria-hidden="true">
+                <svg class="date-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              </div>
               <span class="sensitive-note">Must be today or a past date</span>
               <span class="field-error" id="err_bankruptcy_discharged_date_2"></span>
             </div>
@@ -1366,7 +1407,7 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
 
   </div><!-- .emap-signup -->
 
-  <!-- Cleave.js: input masks for federal_tax_id and ssn.1 / ssn.2. The integrity
+  <!-- Cleave.js: input masks for federal_tax_id, ssn.1 / ssn.2 and the YYYY-MM-DD date fields. The integrity
        hash makes the browser refuse the file if the CDN ever serves anything else. -->
   <script src="https://cdn.jsdelivr.net/npm/cleave.js@1.6.0/dist/cleave.min.js"
           integrity="sha384-0l/4N8UmdKZf4HDwajHdZopkL4bSX+rDJa13b96s1VetCeGSFv/G4YJl2Xmv2IDp"
@@ -1852,6 +1893,7 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
     onReady(function () {
       loadAllDropdowns();
       restoreSession();
+      initDateFields();
       setDOBBounds();
     });
 
@@ -1863,12 +1905,68 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       var minDob = new Date(now.getFullYear() - 100, now.getMonth(), now.getDate());
       var toISODate = function (d) { return d.toISOString().slice(0, 10); };
       ['dob_1', 'dob_2'].forEach(function (id) {
-        var el = document.getElementById(id);
+        var el = datePickerFor(id);
         if (el) {
           el.setAttribute('max', toISODate(maxDob));
           el.setAttribute('min', toISODate(minDob));
         }
       });
+    }
+
+    // ── Date fields ──────────────────────────────────────────────────────────
+    // Each date is a text box masked to YYYY-MM-DD (the format EMAP expects),
+    // so it reads the same in every browser and locale. The calendar icon is a
+    // transparent native date input: picking a date copies it into the text box.
+    var ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+    function datePickerFor(id) {
+      var el = document.getElementById(id);
+      return el && el.parentNode.querySelector('.date-picker');
+    }
+
+    function isRealISODate(v) {
+      if (!ISO_DATE_RE.test(v)) return false;
+      var d = new Date(v + 'T00:00:00Z');
+      return !isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
+    }
+
+    function initDateFields() {
+      document.querySelectorAll('.emap-signup .date-field').forEach(function (wrap) {
+        var text = wrap.querySelector('.date-input');
+        var picker = wrap.querySelector('.date-picker');
+        if (!text || !picker || text.dataset.dateReady) return;
+        text.dataset.dateReady = '1';
+        new Cleave(text, { date: true, datePattern: ['Y', 'm', 'd'], delimiter: '-' });
+        // Open the picker on the date already typed, if it's a full one.
+        var syncPicker = function () {
+          var v = text.value.trim();
+          picker.value = isRealISODate(v) ? v : '';
+        };
+        picker.addEventListener('pointerdown', syncPicker);
+        picker.addEventListener('focus', syncPicker);
+        var copyToText = function () {
+          if (!picker.value) return;
+          text.value = picker.value;
+          setError(text.id, '');
+        };
+        picker.addEventListener('change', copyToText);
+        picker.addEventListener('input', copyToText);
+      });
+    }
+
+    // Every date typed in the step must be a full, real YYYY-MM-DD date. Empty
+    // and hidden fields are left to the required checks and to EMAP.
+    function checkDateFields(form) {
+      var ok = true;
+      form.querySelectorAll('input.date-input').forEach(function (el) {
+        var v = el.value.trim();
+        if (!ok || el.disabled || !v || el.offsetParent === null) return;
+        if (!isRealISODate(v)) {
+          setError(el.id, 'Please enter the date as YYYY-MM-DD');
+          ok = false;
+        }
+      });
+      return ok;
     }
 
     // ── Conditional field logic ──────────────────────────────────────────────
@@ -2617,6 +2715,7 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
     document.getElementById('form-step2').addEventListener('submit', async function (e) {
       e.preventDefault();
       clearStepErrors(this);
+      if (!checkDateFields(this)) return;
 
       var fd = new FormData(this);
       var payload = { uuid: appUUID, step_count: 2 };
@@ -2743,6 +2842,7 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
     document.getElementById('form-step4').addEventListener('submit', async function (e) {
       e.preventDefault();
       clearStepErrors(this);
+      if (!checkDateFields(this)) return;
 
       var fd = new FormData(this);
       var raw = {};

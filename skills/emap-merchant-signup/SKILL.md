@@ -385,9 +385,16 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
 
 12. **DOB (step 4):** Owner must be between 18 and 100 years old.
     `maxDate = today − 18 years`, `minDate = today − 100 years`.
-    Enforce this client-side (date input `min`/`max` attributes plus a submit-time check). EMAP's
-    API doesn't check it, so the form's check is the only one; see
+    Enforce this client-side (the calendar picker's `min`/`max` attributes plus a submit-time
+    check). EMAP's API doesn't check it, so the form's check is the only one; see
     [`references/api-quirks.md`](references/api-quirks.md).
+    - **Every date field shows `YYYY-MM-DD`** (`business_formed`, `dob.*`,
+      `driver_license_expiration_date.*`, `bankruptcy_discharged_date.*`). Don't render a bare
+      `<input type="date">`: browsers display it in the visitor's locale format (e.g.
+      `MM/DD/YYYY` in the US). The template uses a text box masked with Cleave.js
+      (`date: true, datePattern: ['Y','m','d'], delimiter: '-'`) plus a transparent, unnamed
+      native date input over a calendar icon; a picked date is copied into the text box. Each
+      step's submit rejects a typed value that isn't a real `YYYY-MM-DD` date.
 
 13. **Handle all response shapes** on each step (see [`references/api-errors.md`](references/api-errors.md)):
     - `{"status":true}` → advance to next step.
