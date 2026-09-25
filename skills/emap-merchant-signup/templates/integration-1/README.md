@@ -73,6 +73,7 @@ that to registered partner sites, register your site's origin with Easy Pay Dire
 | Dropdown load | `GET /api/partner/shopping-carts` | Same fallback behavior |
 | Dropdown load | `GET /api/partner/referral-sources` | Same fallback behavior |
 | Dropdown load | `GET /api/partner/interest-details` | Same fallback behavior |
+| Step 1 auto-save | `POST /api/v1/signup/auto-save` | On leaving first/last name, email or phone once all four are filled in; creates the user and HubSpot contact in the background, no error shown |
 | Step 1 submit | `POST /api/v1/signup` (`step_count=1`) | Sends `partner_key` from the `EMAP_PARTNER_KEY` constant, if set |
 | Step 2 submit | `POST /api/v1/application/step` (`step_count=2`) | Requires `uuid` |
 | Step 3 submit | `POST /api/v1/application/step` (`step_count=3`) | Requires `uuid` |

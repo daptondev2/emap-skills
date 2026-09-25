@@ -8,6 +8,8 @@ the merchant's browser, not from a server proxy.
 ## How it works
 
 1. The **merchant** fills in their step-1 details on a form hosted on the partner's site.
+   Once name, email and phone are filled in, the browser auto-saves them to
+   `POST /api/v1/signup/auto-save` in the background (EMAP creates the user and HubSpot contact).
 2. The merchant's browser POSTs the data directly to EMAP `POST /api/v1/signup` with
    `trigger_email: true` and the partner key.
 3. EMAP creates the account and **emails the merchant a secure link** to finish the application on

@@ -38,6 +38,7 @@ Each step is called directly: `fetch(EMAP_BASE_URL + '<EMAP endpoint>', ...)` fr
 
 | Step | EMAP endpoint | Notes |
 |---|---|---|
+| 1 (auto-save) | `POST /api/v1/signup/auto-save` | Before Step 1 is submitted, once name, email and phone are filled in; see below |
 | 1 | `POST /api/v1/signup` | `step_count=1`; returns the `uuid` used by every later step |
 | 2 | `POST /api/v1/application/step` | `step_count=2` |
 | 3 | `POST /api/v1/application/step` | `step_count=3` |
@@ -50,6 +51,33 @@ The `uuid` returned by Step 1 must be included in every subsequent request.
 ---
 
 ## Step 1 — Basic business info
+
+### Step 1 auto-save — `POST /api/v1/signup/auto-save`
+
+Like EMAP's own signup page, the form saves the merchant before Step 1 is submitted. Once first
+name, last name, email and phone are all filled in (valid email, 10–15 phone digits), leaving any
+of those four fields POSTs them from the browser:
+
+```json
+{ "first_name": "Jane", "last_name": "Smith", "email": "jane@acme.com", "phone": "+1 202 555 1234",
+  "partner_key": "optional", "utm_source": "…any tracking keys from getTracking()" }
+```
+
+EMAP creates an **unconfirmed** user and queues their HubSpot contact, exactly as its own signup
+page's auto-save does, so a merchant who stops here can
+still be followed up. Submitting Step 1 later with the same email confirms that user (and applies
+any name/phone edits) and creates the application as usual.
+
+- `200 {"success":true}` saved. `400` the email is already registered: nothing more to save for it
+  (Step 1's submit handles existing users). `422` validation; don't resend the same values.
+  `429`/`5xx`: ignore. The bodies are EMAP's signup-page ones; see
+  [`api-errors.md`](api-errors.md#step-1-auto-save-post-apiv1signupauto-save).
+- It runs in the background and **never shows the merchant an error**.
+- Send it once per email: don't resend after a `200`/`400` for the same email.
+- Step 1's submit must **wait for a running auto-save** before POSTing `/api/v1/signup`, so the two
+  don't both create the account.
+- Not sent once Step 1 has a `uuid`, or when the honeypot is filled.
+
 
 **EMAP endpoint:** `POST {EMAP_BASE_URL}/api/v1/signup`
 

@@ -4,6 +4,7 @@ How each integration handles EMAP's responses. Every call is made from the merch
 every message here is shown to the merchant: keep it generic and never show EMAP's raw error text.
 
 - [Step 1 signup: `POST /api/v1/signup`](#step-1-signup-post-apiv1signup) (Integrations 1 and 3)
+- [Step 1 auto-save: `POST /api/v1/signup/auto-save`](#step-1-auto-save-post-apiv1signupauto-save) (Integrations 1 and 3)
 - [Steps 2–6 (Integration 1)](#steps-26-integration-1)
 - [Integration 2 (redirect)](#integration-2-redirect)
 - [Dropdown `GET`s](#dropdown-gets-apipartner) (all integrations)
@@ -126,6 +127,24 @@ function displayFieldErrors(errors) {
 ```
 
 Always use `textContent`, never `innerHTML`, for anything that came from EMAP.
+
+---
+
+## Step 1 auto-save: `POST /api/v1/signup/auto-save`
+
+Runs in the background; **never show the merchant anything** for any response.
+
+| HTTP | Condition | Response body | Recommended action |
+|---|---|---|---|
+| 200 | User created (HubSpot contact is created by a queued job) | `{"success":true,"message":"User has been created successfully."}` | Don't auto-save this email again. |
+| 200 | Request refused (blocked region) | `[]` | Ignore. |
+| 400 | Email already registered | `{"success":false,"message":"This email already associated with us. Try different email."}` | Don't auto-save this email again; Step 1's submit handles existing users. |
+| 422 | Validation error (first error only) | `{"status":false,"message":"Validation errors","data":"Phone number must be at least 10 digits."}` | Ignore; don't resend the same values. |
+| 429 | Rate limited (5 per 5 minutes per IP) | `{"success":false,"message":"Too many auto-save attempts. Please try again later.","data":"Rate limit exceeded","retry_after":287}` | Ignore. |
+| 500 | Server error | `{"success":false,"message":"An error occurred while processing your request."}` | Ignore. |
+
+The bodies match EMAP's own signup page auto-save (`/signup/auto-save`), so they use `success`, not
+`status`, except for the 422.
 
 ---
 

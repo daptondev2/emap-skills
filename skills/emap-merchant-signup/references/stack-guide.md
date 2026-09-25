@@ -5,7 +5,7 @@ The form works in any web stack. There is exactly one architectural rule, and it
 
 ## The one rule: EMAP is called from the merchant's device
 
-Every EMAP request (`POST /api/v1/signup`, `/api/v1/application/step`, `/api/v1/ownership`,
+Every EMAP request (`POST /api/v1/signup`, `/api/v1/signup/auto-save`, `/api/v1/application/step`, `/api/v1/ownership`,
 the `/api/partner/*` dropdown GETs) and the Integration 2 redirect must be sent **by the
 merchant's browser** (or app), never by the partner's server.
 

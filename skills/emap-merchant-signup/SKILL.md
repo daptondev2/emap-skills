@@ -288,6 +288,7 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
 4. **Understand the step flow:**
    - **Every step's request carries `step_count`** (1–6) in its JSON body, including Step 1 and Step 4.
    - Step 1 (`POST /api/v1/signup`, `step_count: 1`) returns a `uuid`. Collect: first name, last name, email, phone, company name, website, country, annual sales, **industry type**, and (if US) business state. Store the `uuid` in `localStorage('emap_uuid')`.
+   - **Step 1 auto-save:** once first name, last name, email and phone are filled in, leaving one of them POSTs them to `/api/v1/signup/auto-save` in the background (EMAP creates the user and HubSpot contact, like its own signup page). No error is ever shown; Step 1's submit waits for a running auto-save. See [`references/mode-1-fullform.md`](references/mode-1-fullform.md#step-1-auto-save--post-apiv1signupauto-save).
    - Steps 2, 3, 5, 6 call `POST /api/v1/application/step` with the `uuid` and the appropriate `step_count`.
    - Step 4 calls `POST /api/v1/ownership` with `step_count: 4` and the dot-notation owner fields.
    - Step 6 success → clear `localStorage` and redirect the top-level window to EMAP's
@@ -313,8 +314,11 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
    - **Step 4: owner identity is read-only** once saved, as in EMAP's single-page signup. Disable
      "Are you the business owner?", each owner's first name, last name and email, and each
      ownership percentage; everything else on step 4 (job title, phone, DOB, SSN, address, ID) stays
-     editable. Disabled inputs are left out of `FormData`, so read their values back when building
-     the re-submit payload. Steps 2, 3, 5 and 6 have nothing locked.
+     editable. Disabled inputs are left out of `FormData`, so read the **locked fields'** values back
+     by id when building the re-submit payload. Never copy back every disabled control: the hidden
+     half of each State text box / US-state dropdown pair is also disabled and has the same `name`,
+     so copying it overwrites the chosen state with an empty value (EMAP answers "State is
+     required"). Steps 2, 3, 5 and 6 have nothing locked.
    - Each re-submit sends that step's own `step_count`. Never skip a re-submit to jump ahead.
    - After a page reload the earlier answers are gone, so hide Back on the restored step.
    - No Back on the upload-document page: step 6 success redirects to EMAP.
@@ -565,7 +569,9 @@ Read [`references/mode-3-api.md`](references/mode-3-api.md) before proceeding.
    welcome/verification email as part of this same call; without it, the account is created but no
    email is sent. Note: the API field for company name is `name`, not `company_name` — the
    template already remaps this at submit time (see its comments); it is a UI-only field name
-   chosen for label clarity.
+   chosen for label clarity. Before that, once name, email and phone are filled in, the form
+   auto-saves them to `/api/v1/signup/auto-save` in the background, exactly as Integration 1's
+   Step 1 does (see [`references/mode-3-api.md`](references/mode-3-api.md#auto-save)).
 
 2. **Set the two constants at the top of the file's `<script>` block** (search for "EDIT THESE"):
    ```js

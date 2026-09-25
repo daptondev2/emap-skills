@@ -19,7 +19,10 @@ Checks 5 categories:
                     as a hint/placeholder.
   conditional_logic — every dependsOn/visibleIf field has its controlling
                     field id and comparison value referenced near its own
-                    show/hide/require code.
+                    show/hide/require code. Also: when a usStateSelect field's
+                    text box and US-state dropdown share a name, no code may
+                    copy every disabled control's value into the payload (the
+                    hidden twin would overwrite the chosen state).
   dropdown_route — every dynamicDropdownEndpoints entry the integration uses
                     is fetched directly from the browser, and an embedded
                     fallback dataset (real rows, not just the word) exists.
@@ -320,6 +323,58 @@ def check_us_state_select(field: dict, frontend_text: str, script_lines: list) -
         findings.append(_finding(field, "conditional_logic",
             f"'{key}' switches between a text box and a US-state dropdown on {spec['countryField']}",
             f"no reference to '{spec['countryField']}' near '{key}'s wiring (within {WINDOW_LINES} lines)"))
+    return findings
+
+
+# A payload built by walking every form control (form.elements or a broad
+# querySelectorAll by tag or bare [name]) and copying disabled ones back in by
+# name. With a usStateSelect field, the unused half of the text box / US-state
+# dropdown pair is disabled and has the same name, so it overwrites the live value —
+# e.g. state.1 goes out empty and EMAP answers "State is required".
+ALL_CONTROLS_RE = re.compile(
+    r"\.elements\b|querySelectorAll\(\s*['\"`][^'\"`]*(?:\binput\b|\bselect\b|\btextarea\b|\[name\s*\])")
+NAME_KEYED_COPY_RE = re.compile(
+    r"\[\s*(\w+)\.name\s*\]\s*=\s*\1\.value\b|\.(?:append|set)\(\s*(\w+)\.name\s*,\s*\2\.value\b")
+# Keeps disabled controls: `if (!el.disabled ...) return;`, `if (el.disabled) {...copy...}`,
+# `el.disabled && ...`, `.filter(el => el.disabled)`. Not `if (el.disabled) return;`,
+# which skips them like FormData does.
+KEEPS_DISABLED_RE = re.compile(
+    r"!\s*\w+\.disabled\b[^;\n]*\b(?:return|continue)\b"
+    r"|\bif\s*\(\s*\w+\.disabled\s*\)(?!\s*(?:return|continue)\b)"
+    r"|\w+\.disabled\s*&&"
+    r"|filter\([^)]*=>\s*\w+\.disabled\b")
+# Start of the loop a copy sits in; only that loop's own lines are checked, so
+# a neighbouring loop over other controls can't combine with it.
+LOOP_START_RE = re.compile(r"\bforEach\b|\bfor\s*\(|\.filter\(|\.map\(|\.reduce\(")
+COPY_WINDOW = 8  # how far above the copy its loop may start
+
+
+def check_disabled_twin_copy(fields: list, script_lines: list) -> list:
+    """Behavioral bug the per-field checks can't see: each half of a
+    usStateSelect pair is wired correctly, but a later "add the locked fields
+    back" step that copies every disabled control undoes it. Locked fields
+    must be read back by id instead."""
+    twins = [f for f in fields if f.get("usStateSelect")]
+    if not twins:
+        return []
+    findings = []
+    for i, line in enumerate(script_lines):
+        if not NAME_KEYED_COPY_RE.search(line):
+            continue
+        start = next((j for j in range(i, max(-1, i - COPY_WINDOW - 1), -1)
+                      if LOOP_START_RE.search(script_lines[j])), None)
+        if start is None:
+            continue
+        loop = "\n".join(script_lines[start:i + 1])
+        if ALL_CONTROLS_RE.search(loop) and KEEPS_DISABLED_RE.search(loop):
+            keys = ", ".join(f["key"] for f in twins)
+            findings.append(_finding(twins[0] | {"key": keys}, "conditional_logic",
+                "disabled fields are added back to the payload by id (only the ones locked on "
+                "purpose), since each usStateSelect field's hidden text box / US-state dropdown "
+                "twin is also disabled and shares its name",
+                f"script line {i + 1} copies every disabled control's value by name: "
+                f"`{line.strip()[:100]}` — the hidden twin overwrites the chosen state, so EMAP "
+                "gets it empty (\"State is required\")"))
     return findings
 
 
@@ -751,6 +806,9 @@ def main() -> int:
             findings.extend(check_country_validation(field, combined_text))
         if run_cond:
             findings.extend(check_conditional_logic(field, script_lines))
+
+    if run_cond:
+        findings.extend(check_disabled_twin_copy(fields, script_lines))
 
     if run_dropdown:
         fallback_text = frontend_text + "\n" + "\n".join(

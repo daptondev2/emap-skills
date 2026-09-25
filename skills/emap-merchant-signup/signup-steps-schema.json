@@ -354,7 +354,7 @@
         ],
         "step_count": 1,
         "successResponse": {
-          "status": true,
+          "success": true,
           "message": "Success",
           "uuid": "string — store this UUID; all subsequent step calls require it"
         },
@@ -363,6 +363,24 @@
           "verificationLink": true,
           "url": "string — redirect the applicant here to verify email and continue"
         }
+      },
+      "autoSave": {
+        "method": "POST",
+        "url": "/api/v1/signup/auto-save",
+        "fields": [
+          "first_name",
+          "last_name",
+          "email",
+          "phone"
+        ],
+        "trigger": "blur of any of the fields once all four are filled (valid email, 10-15 phone digits); not once Step 1 has a uuid or the honeypot is filled",
+        "also_send": "partner_key (if set) and getTracking() values",
+        "successResponse": {
+          "success": true,
+          "message": "User has been created successfully."
+        },
+        "onResponse": "200 or 400 (email already registered): stop auto-saving that email. 422: do not resend the same values. Never show the merchant an error.",
+        "submitWaits": "Step 1 submit awaits a running auto-save before POST /api/v1/signup"
       },
       "fields": [
         {
@@ -525,7 +543,7 @@
         ],
         "step_count": 2,
         "successResponse": {
-          "status": true,
+          "success": true,
           "message": "Step 2 submitted successfully",
           "step": 2,
           "uuid": "string"
@@ -1013,7 +1031,7 @@
         "url": "/api/v1/application/step",
         "step_count": 3,
         "successResponse": {
-          "status": true,
+          "success": true,
           "message": "Step 3 submitted successfully",
           "step": 3,
           "uuid": "string"
@@ -1231,7 +1249,7 @@
         ],
         "step_count": 4,
         "successResponse": {
-          "status": true,
+          "success": true,
           "message": "Owners created successfully",
           "uuid": "string"
         },
@@ -2053,7 +2071,7 @@
         "url": "/api/v1/application/step",
         "step_count": 5,
         "successResponse": {
-          "status": true,
+          "success": true,
           "message": "Step 5 submitted successfully",
           "step": 5,
           "uuid": "string"
@@ -2227,7 +2245,7 @@
         "url": "/api/v1/application/step",
         "step_count": 6,
         "successResponse": {
-          "status": true,
+          "success": true,
           "message": "Step 6 submitted successfully",
           "step": 6,
           "uuid": "string"

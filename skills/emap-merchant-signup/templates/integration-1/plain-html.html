@@ -1142,8 +1142,8 @@
         <label for="bad_experience">Have you had a bad experience with a provider? <span class="required">*</span></label>
         <select id="bad_experience" name="bad_experience" required>
           <option value="">Select…</option>
-          <option value="0">No</option>
           <option value="1">Yes</option>
+          <option value="0">No</option>
         </select>
         <span class="field-error" id="err_bad_experience"></span>
       </div>
@@ -2486,6 +2486,43 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
 
     // ── Step form submissions ────────────────────────────────────────────────
 
+    // ── Step 1 auto-save ─────────────────────────────────────────────────────
+    // Like EMAP's own signup page: once name, email and phone are filled in,
+    // leaving one of those fields saves the person to EMAP (POST
+    // /api/v1/signup/auto-save), which creates their account and HubSpot
+    // contact before Step 1 is submitted, so a merchant who stops here can
+    // still be followed up. It runs in the background and never shows an
+    // error; Step 1's submit waits for one that is still running.
+    var AUTOSAVE_FIELDS = ['first_name', 'last_name', 'email', 'phone'];
+    var autoSavedEmail = '';   // saved (or already registered) — nothing more to do for it
+    var autoSaveTriedKey = ''; // values EMAP last rejected, so they aren't resent unchanged
+    var autoSavePending = null;
+    function autoSaveStep1() {
+      if (appUUID || autoSavePending) return;
+      if (document.querySelector('#form-step1 [name="_hp"]').value) return;
+      var v = {};
+      AUTOSAVE_FIELDS.forEach(function (id) { v[id] = (document.getElementById(id).value || '').trim(); });
+      var digits = v.phone.replace(/\D/g, '');
+      if (!v.first_name || !v.last_name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email) ||
+          digits.length < 10 || digits.length > 15) return;
+      var key = JSON.stringify(v);
+      if (v.email === autoSavedEmail || key === autoSaveTriedKey) return;
+      var payload = Object.assign({}, v, getTracking());
+      if (EMAP_PARTNER_KEY) payload.partner_key = EMAP_PARTNER_KEY;
+      autoSavePending = fetch(EMAP_BASE_URL + '/api/v1/signup/auto-save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(payload),
+      }).then(function (res) {
+        // 400 = the email is already registered; Step 1's submit handles that.
+        if (res.ok || res.status === 400) autoSavedEmail = v.email;
+        else if (res.status === 422) autoSaveTriedKey = key;
+      }).catch(function () {}).then(function () { autoSavePending = null; });
+    }
+    AUTOSAVE_FIELDS.forEach(function (id) {
+      document.getElementById(id).addEventListener('blur', autoSaveStep1);
+    });
+
     // STEP 1
     document.getElementById('form-step1').addEventListener('submit', async function (e) {
       e.preventDefault();
@@ -2533,6 +2570,9 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       if (EMAP_PARTNER_KEY)        payload.partner_key            = EMAP_PARTNER_KEY;
       Object.assign(payload, getTracking());
 
+      // Let a running auto-save finish first, so it and Step 1 don't both
+      // create the account.
+      if (autoSavePending) { btn.disabled = true; await autoSavePending; }
       var result = await submitStep(1, payload, btn, 'Continue — Company Info →');
       if (!result) return;
 
@@ -2702,9 +2742,15 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       var raw = {};
       for (var pair of fd.entries()) raw[pair[0]] = pair[1];
       // Locked (disabled) fields are left out of FormData, so add their values back.
-      Array.prototype.forEach.call(this.elements, function (el) {
-        if (!el.disabled || !el.name || (el.type === 'radio' && !el.checked)) return;
-        raw[el.name] = el.value;
+      // Only the ones locked on purpose: other disabled fields, like the unused
+      // half of a State text box / US-state dropdown pair, share a name with the
+      // live control and would overwrite its value.
+      STEP4_LOCKED_IDS.forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el && el.disabled && el.name) raw[el.name] = el.value;
+      });
+      document.querySelectorAll('[name="primary_contact"]').forEach(function (r) {
+        if (r.disabled && r.checked) raw[r.name] = r.value;
       });
 
       var isPrimaryContact = raw['primary_contact'] === '1';

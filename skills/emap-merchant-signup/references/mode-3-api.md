@@ -17,6 +17,13 @@ origin must be registered with Easy Pay Direct.
 the production URL Easy Pay Direct gives you before launch. Don't create test applications on
 production.
 
+## Auto-save
+
+Before the form is submitted, it saves the merchant with `POST {EMAP_BASE_URL}/api/v1/signup/auto-save`
+once name, email and phone are filled in — the same call and rules as Integration 1's Step 1 auto-save
+(see [`mode-1-fullform.md`](mode-1-fullform.md#step-1-auto-save--post-apiv1signupauto-save)). The
+submit waits for a running auto-save; an auto-saved email is then accepted by `/api/v1/signup`.
+
 The form is filled in by the merchant, so all its wording speaks to the merchant: "Start Your
 Merchant Application", "Email Me a Secure Link", "Check Your Email".
 
