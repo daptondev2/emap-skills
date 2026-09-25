@@ -2380,8 +2380,24 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         document.getElementById('first_name_1').required = isRep;
         document.getElementById('last_name_1').required = isRep;
         document.getElementById('email_1').required = isRep;
+        prefillOwner1Phone(isRep);
       });
     });
+
+    // Like EMAP's own signup page: when the applicant is the owner, Owner 1's
+    // Mobile Phone starts as the Step 1 phone number (still editable). When
+    // they're a representative, the Step 1 number is theirs, not the owner's,
+    // so it is cleared. A number typed in by hand is never overwritten.
+    function prefillOwner1Phone(isRep) {
+      var step1Phone = (document.getElementById('phone').value || '').trim();
+      var ownerPhone = document.getElementById('phone_1');
+      if (!step1Phone) return;
+      if (isRep) {
+        if (ownerPhone.value.trim() === step1Phone) ownerPhone.value = '';
+      } else if (!ownerPhone.value.trim()) {
+        ownerPhone.value = step1Phone;
+      }
+    }
 
     // Step 4: owner 1 ownership → show owner 2
     document.getElementById('ownership_percentage_1').addEventListener('input', function () {
@@ -2708,6 +2724,7 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         var dbaEl   = document.getElementById('dba_name');
         if (legalEl && !legalEl.value) legalEl.value = d.company_name || '';
         if (dbaEl   && !dbaEl.value)   dbaEl.value   = d.company_name || '';
+        prefillOwner1Phone(document.querySelector('[name="primary_contact"]:checked').value === '0');
       }
     });
 
