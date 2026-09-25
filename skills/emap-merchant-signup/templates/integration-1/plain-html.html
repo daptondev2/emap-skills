@@ -825,6 +825,7 @@
           <div class="form-group">
             <label for="city_1">City <span class="required">*</span></label>
             <input id="city_1" name="city.1" type="text" maxlength="100" required>
+            <span class="field-error" id="err_city_1"></span>
           </div>
           <div class="form-group">
             <label for="country_1">Country <span class="required">*</span></label>
@@ -853,6 +854,7 @@
           <div class="form-group">
             <label for="postal_code_1"><span id="postal_code_1_text">Postal code</span> <span class="required">*</span></label>
             <input id="postal_code_1" name="postal_code.1" type="text" maxlength="20" required>
+            <span class="field-error" id="err_postal_code_1"></span>
           </div>
         </div>
 
@@ -987,16 +989,19 @@
             <div class="form-group">
               <label for="street_number_2">Street Number <span class="required">*</span></label>
               <input id="street_number_2" name="street_number.2" type="text" maxlength="10">
+              <span class="field-error" id="err_street_number_2"></span>
             </div>
             <div class="form-group">
               <label for="street_address_2">Street Address <span class="required">*</span></label>
               <input id="street_address_2" name="street_address.2" type="text" maxlength="255">
+              <span class="field-error" id="err_street_address_2"></span>
             </div>
           </div>
           <div class="form-row">
             <div class="form-group">
               <label for="city_2">City <span class="required">*</span></label>
               <input id="city_2" name="city.2" type="text" maxlength="100">
+              <span class="field-error" id="err_city_2"></span>
             </div>
             <div class="form-group">
               <label for="country_2">Country <span class="required">*</span></label>
@@ -1018,6 +1023,7 @@
             <div class="form-group">
               <label for="postal_code_2"><span id="postal_code_2_text">Postal code</span> <span class="required">*</span></label>
               <input id="postal_code_2" name="postal_code.2" type="text" maxlength="20">
+              <span class="field-error" id="err_postal_code_2"></span>
             </div>
           </div>
 
@@ -1555,8 +1561,8 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       stepEl.querySelectorAll('.error').forEach(function (el) { el.classList.remove('error'); });
     }
 
-    function displayServerErrors(errors) {
-      var fieldMap = { name: 'company_name' };
+    function displayServerErrors(errors, stepNum) {
+      var fieldMap = stepNum === 1 ? { name: 'company_name' } : {};
       Object.entries(errors).forEach(function (entry) {
         var field = entry[0];
         var messages = entry[1];
@@ -1664,7 +1670,7 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
 
         if (res.status === 422) {
           showAlert('error', 'Please correct the errors below.');
-          displayServerErrors((data && data.errors) || {});
+          displayServerErrors((data && data.errors) || {}, stepNum);
           btn.disabled = false; btn.textContent = btnLabel;
           return null;
         }
@@ -2787,7 +2793,6 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
     document.getElementById('form-step2').addEventListener('submit', async function (e) {
       e.preventDefault();
       clearStepErrors(this);
-      if (!checkDateFields(this)) return;
 
       var fd = new FormData(this);
       var payload = { uuid: appUUID, step_count: 2 };
@@ -2805,32 +2810,43 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         delete payload['marketingModel[]'];
       }
 
-      if (!checkPhone('customer_service_telephone_number', 'Customer service phone number')) return;
-      payload.customer_service_telephone_number = getPhone('customer_service_telephone_number');
+      // Check every field before stopping, so all errors show at once.
+      var ok = true;
+      function fail(id, message) { setError(id, message); ok = false; }
+      function isShown(id) {
+        var el = document.getElementById(id);
+        return el && window.getComputedStyle(el).display !== 'none';
+      }
+      function val(name) { return (payload[name] || '').trim(); }
+
+      if (!val('legal_name')) fail('legal_name', 'Legal company name is required');
+      if (!val('name')) fail('name', 'Company name (DBA) is required');
+      if (!checkPhone('customer_service_telephone_number', 'Customer service phone number')) ok = false;
+      if (!val('business_organized')) fail('business_organized', 'Company legal structure is required');
+      if (!val('business_location')) fail('business_location', 'Type of company location is required');
+
+      var formed = val('business_formed');
+      if (!formed) fail('business_formed', 'Company formation date is required');
+      else if (!isRealISODate(formed)) fail('business_formed', 'Please enter the date as YYYY-MM-DD');
+      else if (formed < '1800-01-01') fail('business_formed', 'Company formation date cannot be before 1800');
+      else if (formed > new Date().toISOString().slice(0, 10)) fail('business_formed', 'Company formation date cannot be in the future');
 
       // federal_tax_id: hidden+disabled+non-required when country=CA OR
       // business_organized=Sole-Proprietorship (see updateFederalTaxVisibility()
       // above). Disabled fields are never in FormData, so this only fires when
       // the group is visible.
-      var einGrp = document.getElementById('federal_tax_id_group');
-      var einVal = (payload.federal_tax_id || '').trim();
-      var einCountry = (step1Country || '').toUpperCase();
-      if (einGrp && window.getComputedStyle(einGrp).display !== 'none') {
-        if (!einVal) {
-          setError('federal_tax_id', 'Tax ID is required');
-          return;
-        }
+      if (isShown('federal_tax_id_group')) {
+        var einVal = val('federal_tax_id');
+        var einCountry = (step1Country || '').toUpperCase();
         // US/CA/PR: XXX-XX-XXXX (3-2-4); every other country: XX-XXXXXXX (2-7) — matches
         // EMAP's own signup form's formatting exactly.
-        var einPattern = (einCountry === 'US' || einCountry === 'CA' || einCountry === 'PR')
-          ? /^\d{3}-\d{2}-\d{4}$/
-          : /^\d{2}-\d{7}$/;
-        if (!einPattern.test(einVal)) {
-          var einFormatMsg = (einCountry === 'US' || einCountry === 'CA' || einCountry === 'PR')
+        var einUsFormat = einCountry === 'US' || einCountry === 'CA' || einCountry === 'PR';
+        if (!einVal) {
+          fail('federal_tax_id', 'Tax ID is required');
+        } else if (!(einUsFormat ? /^\d{3}-\d{2}-\d{4}$/ : /^\d{2}-\d{7}$/).test(einVal)) {
+          fail('federal_tax_id', einUsFormat
             ? 'Tax ID must be in the format XXX-XX-XXXX (e.g. 123-45-6789)'
-            : 'Tax ID must be in the format XX-XXXXXXX (e.g. 12-3456789)';
-          setError('federal_tax_id', einFormatMsg);
-          return;
+            : 'Tax ID must be in the format XX-XXXXXXX (e.g. 12-3456789)');
         }
       }
 
@@ -2838,53 +2854,46 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       // (US-only, see the note in updateFederalTaxVisibility() above — NOT
       // also exempt for PR or CA+Sole-Proprietorship, verified against the
       // live API).
-      var regGrp = document.getElementById('business_register_number_group');
-      if (regGrp && window.getComputedStyle(regGrp).display !== 'none') {
-        var regVal = (payload.business_register_number || '').trim();
-        if (!regVal) {
-          setError('business_register_number', 'Business registration number is required');
-          return;
-        }
+      if (isShown('business_register_number_group') && !val('business_register_number')) {
+        fail('business_register_number', 'Business registration number is required');
+      }
+
+      if (!payload.marketingModel || !payload.marketingModel.length) {
+        fail('marketingModel', 'Please select at least one revenue model');
       }
 
       // Subscription Frequency (required whenever the group is visible)
-      var freqGrp = document.getElementById('subscription_frequency_group');
-      if (freqGrp && window.getComputedStyle(freqGrp).display !== 'none') {
-        var freqVal = (payload.subscription_frequency || '').trim();
-        if (!freqVal) {
-          setError('subscription_frequency', 'Subscription frequency is required');
-          return;
-        }
+      if (isShown('subscription_frequency_group') && !val('subscription_frequency')) {
+        fail('subscription_frequency', 'Subscription frequency is required');
       }
 
       // Subscription Frequency — "Other" description (required whenever its
-      // group is visible)
-      var freqOtherGrp = document.getElementById('subscription_frequency_other_group');
-      if (freqOtherGrp && window.getComputedStyle(freqOtherGrp).display !== 'none') {
-        var freqOtherVal = (payload.subscription_frequency_other || '').trim();
-        if (!freqOtherVal) {
-          setError('subscription_frequency_other', 'Please describe the frequency');
-          return;
-        }
+      // group is visible; EMAP needs at least 5 characters)
+      if (isShown('subscription_frequency_other_group')) {
+        var freqOther = val('subscription_frequency_other');
+        if (!freqOther) fail('subscription_frequency_other', 'Please describe the frequency');
+        else if (freqOther.length < 5) fail('subscription_frequency_other', 'Please enter at least 5 characters');
       }
+
+      // Legal Address
+      ['street_number', 'street_address', 'city', 'address_country', 'state', 'postal_code']
+        .forEach(function (f) { if (!val(f)) fail(f, 'This field is required'); });
 
       // Physical Address (required whenever the "different address" section
       // is visible)
-      var physSection = document.getElementById('physical_address_section');
-      if (physSection && window.getComputedStyle(physSection).display !== 'none') {
-        var physFields = ['physical_address_street_number', 'physical_address_street_address',
+      if (isShown('physical_address_section')) {
+        ['physical_address_street_number', 'physical_address_street_address',
           'physical_address_city', 'physical_address_state', 'physical_address_postal_code',
-          'physical_address_country'];
-        var physMissing = false;
-        physFields.forEach(function (f) {
-          var v = (payload[f] || '').trim();
-          if (!v) {
-            setError(f, 'This field is required');
-            physMissing = true;
-          }
-        });
-        if (physMissing) return;
+          'physical_address_country']
+          .forEach(function (f) { if (!val(f)) fail(f, 'This field is required'); });
       }
+
+      if (!ok) {
+        var firstErr = this.querySelector('.field-error:not(:empty)');
+        if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      payload.customer_service_telephone_number = getPhone('customer_service_telephone_number');
 
       var btn = document.getElementById('btn-step2');
       var result = await submitStep(2, payload, btn, 'Continue — Products →');
@@ -2896,17 +2905,57 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       e.preventDefault();
       clearStepErrors(this);
 
-      var total = ['card_swiped','customer_entered','staff_entered']
-        .reduce(function (s, id) { return s + (parseInt(document.getElementById(id).value, 10) || 0); }, 0);
-      if (total !== 100) {
-        setError('card_swiped', 'Card, customer, and staff percentages must total 100%');
-        document.getElementById('pct_sum_note').classList.add('error');
-        return;
-      }
-
       var fd = new FormData(this);
       var payload = { uuid: appUUID, step_count: 3 };
       for (var pair of fd.entries()) payload[pair[0]] = pair[1];
+
+      // Check every field before stopping, so all errors show at once.
+      var ok = true;
+      function fail(id, message) { setError(id, message); ok = false; }
+      function isShown(id) {
+        var el = document.getElementById(id);
+        return el && window.getComputedStyle(el).display !== 'none';
+      }
+      function val(name) { return (payload[name] || '').trim(); }
+
+      if (!val('fulfillment_by')) fail('fulfillment_by', 'Fulfillment method is required');
+      if (!val('customer_service_time')) fail('customer_service_time', 'Fulfillment timeframe is required');
+      if (isShown('fullfillment_company_group') && !val('fullfillment_company')) {
+        fail('fullfillment_company', 'Fulfillment vendor name is required');
+      }
+      if (!val('refund_policy')) fail('refund_policy', 'Refund policy is required');
+      if (!val('shopping_cart')) fail('shopping_cart', 'Shopping cart / CRM is required');
+      if (isShown('shopping_cart_other_group') && !val('shopping_cart_other')) {
+        fail('shopping_cart_other', 'Other sales platform is required');
+      }
+      if (!val('leave_deposit')) fail('leave_deposit', 'Please select whether customers are required to leave deposits');
+
+      var total = ['card_swiped','customer_entered','staff_entered']
+        .reduce(function (s, id) { return s + (parseInt(document.getElementById(id).value, 10) || 0); }, 0);
+      if (total !== 100) {
+        fail('card_swiped', 'Card, customer, and staff percentages must total 100%');
+        document.getElementById('pct_sum_note').classList.add('error');
+      }
+
+      // Same messages as EMAP's own signup form (single-page accordion step 3).
+      [['average_transaction_amount', 'Please enter the average transaction amount'],
+        ['highest_transaction_amount', 'Please enter the highest transaction amount']]
+        .forEach(function (f) {
+          if (!val(f[0])) fail(f[0], f[1]);
+          else if (!(Number(val(f[0])) >= 1)) fail(f[0], 'Please enter an amount of at least 1');
+        });
+      if (!val('describe_services')) {
+        fail('describe_services', 'Please provide a description of your products or services');
+      }
+      var highestDesc = val('describe_highest_transaction');
+      if (!highestDesc) fail('describe_highest_transaction', 'Please describe your highest-priced product or service');
+      else if (highestDesc.length < 15) fail('describe_highest_transaction', 'Please provide at least 15 characters of description');
+
+      if (!ok) {
+        var firstErr = this.querySelector('.field-error:not(:empty)');
+        if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
 
       var btn = document.getElementById('btn-step3');
       var result = await submitStep(3, payload, btn, 'Continue — Owners →');
@@ -2917,7 +2966,16 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
     document.getElementById('form-step4').addEventListener('submit', async function (e) {
       e.preventDefault();
       clearStepErrors(this);
-      if (!checkDateFields(this)) return;
+      // Every field is checked before returning, so all errors show at once.
+      // The first message set on a field wins (e.g. a bad date format is not
+      // replaced by an age message).
+      var ok = checkDateFields(this);
+      function fail(id, message) {
+        var span = document.getElementById('err_' + id);
+        if (!span || !span.textContent) setError(id, message);
+        ok = false;
+      }
+      function isShown(id) { var el = document.getElementById(id); return el && window.getComputedStyle(el).display !== 'none'; }
 
       var fd = new FormData(this);
       var raw = {};
@@ -2933,10 +2991,98 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       document.querySelectorAll('[name="primary_contact"]').forEach(function (r) {
         if (r.disabled && r.checked) raw[r.name] = r.value;
       });
+      function val(name) { return (raw[name] || '').trim(); }
 
       var isPrimaryContact = raw['primary_contact'] === '1';
       var pct1 = parseInt(raw['ownership_percentage.1'], 10) || 0;
       var hasOwner2 = !isNaN(pct1) && pct1 < 51;
+
+      var REQUIRED = 'This field is required';
+      var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      var today = new Date().toISOString().slice(0, 10);
+
+      // SSN / Tax ID format depends on step1Country (the single Step 1
+      // formation country), applied identically to BOTH owners, NOT each
+      // owner's own country.1/country.2 (home address/residence — a separate
+      // field used only for driver's license gating). Matches EMAP's own
+      // signup form: the same single formation-country value drives both
+      // owner_ssn fields — see updateSsnField(n) for the live masking.
+      var SSN_RE = /^\d{3}-\d{2}-\d{4}$/;
+      var ssnCountry = (step1Country || '').toUpperCase();
+      var ssnRequiresFormat = ssnCountry === 'US' || ssnCountry === 'CA' || ssnCountry === 'PR';
+      var ssnLabel = ssnRequiresFormat ? 'SSN/SIN' : 'SSN (or personal Tax ID equivalent)';
+
+      if (!isPrimaryContact) {
+        // Applicant is a representative — the owner's identity is required
+        if (!val('primary_contact_job_title')) fail('primary_contact_job_title', 'Your job title is required');
+        if (!val('first_name.1')) fail('first_name_1', 'First name is required');
+        if (!val('last_name.1')) fail('last_name_1', 'Last name is required');
+        if (!EMAIL_RE.test(val('email.1'))) fail('email_1', 'A valid email address is required');
+      }
+
+      // Fields shared by both owners. n = 1 or 2.
+      function checkOwner(n) {
+        if (!checkPhone('phone_' + n, 'Mobile phone')) ok = false;
+        if (!val('title.' + n)) fail('title_' + n, 'Please select a title');
+
+        var ssn = val('ssn.' + n);
+        if (!ssn) fail('ssn_' + n, ssnLabel + ' is required');
+        else if (ssnRequiresFormat && !SSN_RE.test(ssn)) fail('ssn_' + n, 'SSN/SIN must be in the format XXX-XX-XXXX (e.g. 123-45-6789)');
+
+        var dobErr = validateDOB(val('dob.' + n));
+        if (dobErr) fail('dob_' + n, dobErr);
+
+        var pct = val('ownership_percentage.' + n);
+        if (!pct) fail('ownership_percentage_' + n, 'Please enter the ownership percentage');
+        else if (!/^\d+$/.test(pct) || +pct < 1 || +pct > 100) fail('ownership_percentage_' + n, 'Please enter a whole number from 1 to 100');
+
+        ['street_number', 'street_address', 'city', 'state', 'postal_code'].forEach(function (f) {
+          if (!val(f + '.' + n)) fail(f + '_' + n, REQUIRED);
+        });
+        if (!val('country.' + n)) fail('country_' + n, 'Please select a country');
+
+        var license = val('license.' + n);
+        if (!license) fail('license_' + n, REQUIRED);
+        else if (license.length < 5) fail('license_' + n, 'Please enter at least 5 characters');
+
+        // US-only: driver license state + expiry
+        if (raw['country.' + n] === 'US') {
+          if (!val('driver_license_state.' + n)) fail('driver_license_state_' + n, 'License state is required');
+          if (!val('driver_license_expiration_date.' + n)) fail('driver_license_expiration_date_' + n, 'License expiration date is required');
+        }
+
+        // Bankruptcy cascade
+        if (raw['bankruptcy_filed.' + n] === '1') {
+          if (!raw['bankruptcy_discharged.' + n]) {
+            fail('bankruptcy_discharged_' + n, 'Please indicate whether the bankruptcy was discharged');
+          } else if (raw['bankruptcy_discharged.' + n] === '1') {
+            var dischargedOn = val('bankruptcy_discharged_date.' + n);
+            if (!dischargedOn) fail('bankruptcy_discharged_date_' + n, 'Discharge date is required');
+            else if (dischargedOn > today) fail('bankruptcy_discharged_date_' + n, 'Discharge date must be today or a past date');
+          }
+        }
+      }
+
+      // Owner 1 — always required
+      checkOwner(1);
+
+      // Owner 2 — only when Owner 1 owns < 51% (the section is shown then)
+      if (hasOwner2 && isShown('owner2_section')) {
+        if (!val('first_name.2')) fail('first_name_2', 'First name is required');
+        if (!val('last_name.2')) fail('last_name_2', 'Last name is required');
+        if (!EMAIL_RE.test(val('email.2'))) fail('email_2', 'A valid email address is required');
+        checkOwner(2);
+        // Same rule as EMAP's single-page signup
+        if (pct1 + (parseInt(raw['ownership_percentage.2'], 10) || 0) > 100) {
+          fail('ownership_percentage_2', 'Total Ownership percentage should be 100');
+        }
+      }
+
+      if (!ok) {
+        var firstErr = this.querySelector('.field-error:not(:empty)');
+        if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
 
       // Build payload with only the fields the API expects
       var payload = { uuid: appUUID, step_count: 4 };
@@ -2945,163 +3091,45 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       payload['primary_contact'] = raw['primary_contact'];
       if (!isPrimaryContact) {
         // Applicant is a representative — send owner's identity so EMAP can verify
-        payload['primary_contact_job_title'] = (raw['primary_contact_job_title'] || '').trim();
-        payload['first_name.1'] = (raw['first_name.1'] || '').trim();
-        payload['last_name.1']  = (raw['last_name.1']  || '').trim();
-        payload['email.1']      = (raw['email.1']      || '').trim();
-
-        if (!payload['first_name.1']) {
-          setError('first_name_1', 'First name is required');
-          return;
-        }
-        if (!payload['last_name.1']) {
-          setError('last_name_1', 'Last name is required');
-          return;
-        }
-        if (!payload['email.1'] || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload['email.1'])) {
-          setError('email_1', 'A valid email address is required');
-          return;
-        }
+        payload['primary_contact_job_title'] = val('primary_contact_job_title');
+        payload['first_name.1'] = val('first_name.1');
+        payload['last_name.1']  = val('last_name.1');
+        payload['email.1']      = val('email.1');
       }
       // When primary_contact=1, first_name/last_name/email must NOT be sent —
       // EMAP uses the Step 1 contact data for the owner identity.
 
-      // Owner 1 — always required
-      if (!checkPhone('phone_1', 'Mobile phone')) return;
-      payload['phone.1']               = getPhone('phone_1');
-      payload['title.1']               = raw['title.1'] || '';
-      payload['ssn.1']                 = (raw['ssn.1'] || '').trim();
-      payload['dob.1']                 = raw['dob.1'] || '';
-      payload['ownership_percentage.1'] = pct1;           // integer
-      payload['street_number.1']       = (raw['street_number.1'] || '').trim();
-      payload['street_address.1']      = (raw['street_address.1'] || '').trim();
-      payload['city.1']                = (raw['city.1'] || '').trim();
-      payload['state.1']               = (raw['state.1'] || '').trim();
-      payload['postal_code.1']         = (raw['postal_code.1'] || '').trim();
-      payload['country.1']             = raw['country.1'] || '';
-      payload['license.1']             = (raw['license.1'] || '').trim();
-      payload['bankruptcy_filed.1']    = raw['bankruptcy_filed.1'] || '0';
-
-      // US-only: driver license state + expiry
-      if (raw['country.1'] === 'US') {
-        payload['driver_license_state.1']           = raw['driver_license_state.1'] || '';
-        payload['driver_license_expiration_date.1'] = raw['driver_license_expiration_date.1'] || '';
-        if (!payload['driver_license_state.1']) {
-          setError('driver_license_state_1', 'License state is required');
-          return;
+      function addOwner(n) {
+        payload['phone.' + n]                = getPhone('phone_' + n);
+        payload['title.' + n]                = raw['title.' + n] || '';
+        payload['ssn.' + n]                  = val('ssn.' + n);
+        payload['dob.' + n]                  = raw['dob.' + n] || '';
+        payload['ownership_percentage.' + n] = parseInt(raw['ownership_percentage.' + n], 10) || 0; // integer
+        payload['street_number.' + n]        = val('street_number.' + n);
+        payload['street_address.' + n]       = val('street_address.' + n);
+        payload['city.' + n]                 = val('city.' + n);
+        payload['state.' + n]                = val('state.' + n);
+        payload['postal_code.' + n]          = val('postal_code.' + n);
+        payload['country.' + n]              = raw['country.' + n] || '';
+        payload['license.' + n]              = val('license.' + n);
+        payload['bankruptcy_filed.' + n]     = raw['bankruptcy_filed.' + n] || '0';
+        if (raw['country.' + n] === 'US') {
+          payload['driver_license_state.' + n]           = raw['driver_license_state.' + n] || '';
+          payload['driver_license_expiration_date.' + n] = raw['driver_license_expiration_date.' + n] || '';
         }
-        if (!payload['driver_license_expiration_date.1']) {
-          setError('driver_license_expiration_date_1', 'License expiration date is required');
-          return;
-        }
-      }
-
-      // Bankruptcy cascade for Owner 1
-      if (raw['bankruptcy_filed.1'] === '1') {
-        payload['bankruptcy_discharged.1'] = raw['bankruptcy_discharged.1'] || '';
-        if (!payload['bankruptcy_discharged.1']) {
-          setError('bankruptcy_discharged_1', 'Please indicate whether the bankruptcy was discharged');
-          return;
-        }
-        if (raw['bankruptcy_discharged.1'] === '1') {
-          payload['bankruptcy_discharged_date.1'] = raw['bankruptcy_discharged_date.1'] || '';
-          if (!payload['bankruptcy_discharged_date.1']) {
-            setError('bankruptcy_discharged_date_1', 'Discharge date is required');
-            return;
+        if (raw['bankruptcy_filed.' + n] === '1') {
+          payload['bankruptcy_discharged.' + n] = raw['bankruptcy_discharged.' + n] || '';
+          if (raw['bankruptcy_discharged.' + n] === '1') {
+            payload['bankruptcy_discharged_date.' + n] = raw['bankruptcy_discharged_date.' + n] || '';
           }
         }
       }
-
-      // Owner 2 — only when Owner 1 owns < 51%
+      addOwner(1);
       if (hasOwner2) {
-        payload['first_name.2']          = (raw['first_name.2'] || '').trim();
-        payload['last_name.2']           = (raw['last_name.2']  || '').trim();
-        payload['email.2']               = (raw['email.2']      || '').trim();
-        if (!checkPhone('phone_2', 'Mobile phone')) return;
-        payload['phone.2']               = getPhone('phone_2');
-        payload['title.2']               = raw['title.2'] || '';
-        payload['ssn.2']                 = (raw['ssn.2'] || '').trim();
-        payload['dob.2']                 = raw['dob.2'] || '';
-        payload['ownership_percentage.2'] = parseInt(raw['ownership_percentage.2'], 10) || 0;
-        payload['street_number.2']       = (raw['street_number.2'] || '').trim();
-        payload['street_address.2']      = (raw['street_address.2'] || '').trim();
-        payload['city.2']                = (raw['city.2'] || '').trim();
-        payload['state.2']               = (raw['state.2'] || '').trim();
-        payload['postal_code.2']         = (raw['postal_code.2'] || '').trim();
-        payload['country.2']             = raw['country.2'] || '';
-        payload['license.2']             = (raw['license.2'] || '').trim();
-        payload['bankruptcy_filed.2']    = raw['bankruptcy_filed.2'] || '0';
-
-        // Owner 2 is only visible/required here because hasOwner2 is true
-        // (ownership_percentage.1 < 51) — the US DL check below only applies
-        // to this branch, so it's implicitly gated on Owner 2 being shown.
-        if (raw['country.2'] === 'US') {
-          payload['driver_license_state.2']           = raw['driver_license_state.2'] || '';
-          payload['driver_license_expiration_date.2'] = raw['driver_license_expiration_date.2'] || '';
-          if (!payload['driver_license_state.2']) {
-            setError('driver_license_state_2', 'License state is required');
-            return;
-          }
-          if (!payload['driver_license_expiration_date.2']) {
-            setError('driver_license_expiration_date_2', 'License expiration date is required');
-            return;
-          }
-        }
-
-        if (raw['bankruptcy_filed.2'] === '1') {
-          payload['bankruptcy_discharged.2'] = raw['bankruptcy_discharged.2'] || '';
-          if (!payload['bankruptcy_discharged.2']) {
-            setError('bankruptcy_discharged_2', 'Please indicate whether the bankruptcy was discharged');
-            return;
-          }
-          if (raw['bankruptcy_discharged.2'] === '1') {
-            payload['bankruptcy_discharged_date.2'] = raw['bankruptcy_discharged_date.2'] || '';
-            if (!payload['bankruptcy_discharged_date.2']) {
-              setError('bankruptcy_discharged_date_2', 'Discharge date is required');
-              return;
-            }
-          }
-        }
-      }
-
-      // DOB age validation (18–100)
-      var dobErr1 = validateDOB(payload['dob.1']);
-      if (dobErr1) { setError('dob_1', dobErr1); return; }
-      if (hasOwner2 && payload['dob.2']) {
-        var dobErr2 = validateDOB(payload['dob.2']);
-        if (dobErr2) { setError('dob_2', dobErr2); return; }
-      }
-
-      // SSN / Tax ID validation — format depends on step1Country (the single
-      // Step 1 formation country), applied identically to BOTH owners, NOT
-      // each owner's own country.1/country.2 (home address/residence — a
-      // separate field used only for driver's license gating above). Matches
-      // EMAP's own signup form: the same single formation-country value drives
-      // both owner_ssn fields — see updateSsnField(n) for the live masking.
-      var SSN_RE = /^\d{3}-\d{2}-\d{4}$/;
-      var ssnCountry = (step1Country || '').toUpperCase();
-      var ssnRequiresFormat = ssnCountry === 'US' || ssnCountry === 'CA' || ssnCountry === 'PR';
-      var ssnLabel = ssnRequiresFormat ? 'SSN/SIN' : 'SSN (or personal Tax ID equivalent)';
-
-      var ssn1Val = (raw['ssn.1'] || '').trim();
-      if (!ssn1Val) {
-        setError('ssn_1', ssnLabel + ' is required');
-        return;
-      }
-      if (ssnRequiresFormat && !SSN_RE.test(ssn1Val)) {
-        setError('ssn_1', 'SSN/SIN must be in the format XXX-XX-XXXX (e.g. 123-45-6789)');
-        return;
-      }
-      if (hasOwner2) {
-        var ssn2Val = (raw['ssn.2'] || '').trim();
-        if (!ssn2Val) {
-          setError('ssn_2', ssnLabel + ' is required');
-          return;
-        }
-        if (ssnRequiresFormat && !SSN_RE.test(ssn2Val)) {
-          setError('ssn_2', 'SSN/SIN must be in the format XXX-XX-XXXX (e.g. 123-45-6789)');
-          return;
-        }
+        payload['first_name.2'] = val('first_name.2');
+        payload['last_name.2']  = val('last_name.2');
+        payload['email.2']      = val('email.2');
+        addOwner(2);
       }
 
       // Convert flat dot-keys to nested objects — EMAP's ownership API expects this shape.
