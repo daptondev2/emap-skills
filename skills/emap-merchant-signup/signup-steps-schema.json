@@ -204,7 +204,7 @@
         "slug": "7-30-days"
       },
       {
-        "label": "31+ days",
+        "label": "30+ days",
         "slug": "31+days"
       }
     ],
@@ -437,7 +437,9 @@
           "label": "Company Website",
           "type": "url",
           "required": true,
-          "pattern": "^(?:(?:https?)://)?(?:[\\w-]+\\.)+[a-z]{2,63}+\\/?$",
+          "pattern": "^(?:https?://)?(?:[\\w-]+\\.)+[a-z]{2,63}/?$",
+          "patternFlags": "i",
+          "patternNote": "Same rule as /api/v1/signup (which also rejects vulnweb.com). A bare domain with an optional http(s):// and trailing slash; paths such as facebook.com/yourpage are rejected. Check it in the Step 1 submit handler and show 'Please enter a valid URL'.",
           "placeholder": "https://yoursite.com",
           "hint": "If unavailable, link to your social media profile"
         },

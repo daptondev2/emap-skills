@@ -523,6 +523,10 @@
       document.getElementById('form-alert').style.display = 'none';
     }
 
+    // Same rule as /api/v1/signup's website check (and the schema's `pattern`):
+    // a domain with an optional http(s):// and trailing slash, no path.
+    const WEBSITE_RE = /^(?:https?:\/\/)?(?:[\w-]+\.)+[a-z]{2,63}\/?$/i;
+
     function validateLocally(data) {
       const errors = {};
       if (!data.first_name)   errors.first_name   = 'First name is required';
@@ -532,6 +536,8 @@
       if (!data.phone)        errors.phone        = 'Phone number is required';
       if (!data.company_name) errors.company_name = 'Company name is required';
       if (!data.website)      errors.website      = 'Website is required';
+      else if (!WEBSITE_RE.test(data.website) || /vulnweb\.com/i.test(data.website))
+                              errors.website      = 'Please enter a valid URL';
       if (!data.country)      errors.country      = 'Country is required';
       if (!data.annual_sales || isNaN(Number(data.annual_sales)) || Number(data.annual_sales) < 1)
                               errors.annual_sales = 'Annual sales must be a positive number';

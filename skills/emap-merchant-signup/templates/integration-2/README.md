@@ -10,7 +10,8 @@ the merchant's browser, not from a server proxy.
 ### `plain-html.html`
 A complete standalone HTML page. The form collects step-1 data and on submit redirects
 the browser to EMAP's `/signup` with all values as query parameters, built entirely
-client-side.
+client-side. Once name, email and phone are filled in, it also auto-saves them to
+`/api/v1/signup/auto-save` in the background (see `references/mode-2-redirect.md`).
 
 **Use when:** you have a static site, a CMS with no custom server code, or you want the
 simplest possible integration.
@@ -22,8 +23,8 @@ the client-visibility tradeoff.
 
 ### `SignupForm.tsx`
 A **React component** wrapping the exact same tested markup, styles, and logic as
-`plain-html.html`. It makes no server-side calls: the redirect URL is built and followed
-entirely in the browser, same as the plain HTML version.
+`plain-html.html`. It makes no server-side calls: the Step 1 auto-save `POST` and the redirect
+are made entirely in the browser, same as the plain HTML version.
 
 **Use when:** the site is built with React. That covers Next.js (App or Pages Router), Vite,
 Remix / React Router, Gatsby, and Astro (`client:only="react"`). For a JavaScript project,

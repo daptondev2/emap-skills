@@ -583,7 +583,7 @@
             <option value="">Select…</option>
             <option value="0-7-days">0–7 days</option>
             <option value="7-30-days">7–30 days</option>
-            <option value="31+days">31+ days</option>
+            <option value="31+days">30+ days</option>
           </select>
           <span class="field-error" id="err_customer_service_time"></span>
         </div>
@@ -2486,6 +2486,10 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
 
     // ── Step form submissions ────────────────────────────────────────────────
 
+    // Same rule as /api/v1/signup's website check (and the schema's `pattern`):
+    // a domain with an optional http(s):// and trailing slash, no path.
+    var WEBSITE_RE = /^(?:https?:\/\/)?(?:[\w-]+\.)+[a-z]{2,63}\/?$/i;
+
     // ── Step 1 auto-save ─────────────────────────────────────────────────────
     // Like EMAP's own signup page: once name, email and phone are filled in,
     // leaving one of those fields saves the person to EMAP (POST
@@ -2541,6 +2545,8 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       if (!d.phone)              errs.phone        = 'Phone is required';
       if (!d.company_name)       errs.company_name = 'Company name is required';
       if (!d.website)            errs.website      = 'Website is required';
+      else if (!WEBSITE_RE.test(d.website) || /vulnweb\.com/i.test(d.website))
+                                 errs.website      = 'Please enter a valid URL';
       if (!d.country)            errs.country      = 'Country is required';
       if (!d.annual_sales || isNaN(Number(d.annual_sales)) || Number(d.annual_sales) < 1)
                                  errs.annual_sales = 'Annual sales must be at least 1';

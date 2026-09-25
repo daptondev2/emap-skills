@@ -4,7 +4,7 @@ How each integration handles EMAP's responses. Every call is made from the merch
 every message here is shown to the merchant: keep it generic and never show EMAP's raw error text.
 
 - [Step 1 signup: `POST /api/v1/signup`](#step-1-signup-post-apiv1signup) (Integrations 1 and 3)
-- [Step 1 auto-save: `POST /api/v1/signup/auto-save`](#step-1-auto-save-post-apiv1signupauto-save) (Integrations 1 and 3)
+- [Step 1 auto-save: `POST /api/v1/signup/auto-save`](#step-1-auto-save-post-apiv1signupauto-save) (all integrations)
 - [Steps 2–6 (Integration 1)](#steps-26-integration-1)
 - [Integration 2 (redirect)](#integration-2-redirect)
 - [Dropdown `GET`s](#dropdown-gets-apipartner) (all integrations)
@@ -176,8 +176,9 @@ application" button lets the merchant start again.
 
 ## Integration 2 (redirect)
 
-Integration 2 doesn't call EMAP's API, so there are no API errors to handle. The form's only job is
-to validate its own fields before navigating. After the navigation, EMAP's `/signup` page shows
+Integration 2's only EMAP `POST` is the background auto-save (see
+[above](#step-1-auto-save-post-apiv1signupauto-save)), whose responses are never shown. The form
+submits nothing else to EMAP: its job is to validate its own fields before navigating. After the navigation, EMAP's `/signup` page shows
 its own validation messages on its prefilled form; the partner's page can't see or change them.
 
 If `EMAP_BASE_URL` is empty, the template logs a console error on load so the developer notices

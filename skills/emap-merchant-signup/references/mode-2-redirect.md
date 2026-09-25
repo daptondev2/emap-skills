@@ -60,6 +60,28 @@ Confirm step 5 on production before launch; it was observed only on the test ser
 
 ---
 
+## Step 1 auto-save
+
+EMAP's own `/signup` page auto-saves a visitor's contact details as they type, but it skips that
+for visitors arriving from a redirect (the prefilled URL sets `from_lander`). So the form does it
+itself, exactly like Integrations 1 and 3:
+
+- Once `first_name`, `last_name`, `email` (valid format) and `phone` are all filled in, leaving any
+  of them POSTs them, plus the UTM/click-id params and `partner_key` (if set), as JSON to
+  `{EMAP_BASE_URL}/api/v1/signup/auto-save` from the browser.
+- EMAP creates an unconfirmed user and queues the HubSpot contact. When the merchant later
+  finishes step 1 on EMAP's page, EMAP completes that same user.
+- It is sent at most once per email, and never after submit. Every response (duplicate email 400,
+  422, 429, network error) is ignored: nothing is shown to the merchant. See
+  [`api-errors.md`](api-errors.md#step-1-auto-save-post-apiv1signupauto-save).
+- On submit, the form waits for a running auto-save before redirecting, so the navigation doesn't
+  cancel it.
+
+This is a `POST` with a JSON body, so it needs EMAP's CORS config to allow the partner's origin
+(the same as the dropdown `GET`s).
+
+---
+
 ## Building the redirect URL
 
 ### JavaScript (client-side)
@@ -116,8 +138,9 @@ function buildEmapRedirectUrl(fields, emapBaseUrl, partnerKey) {
 
 EMAP reads the `secretKey` URL param and links the new application to the partner with that key.
 The value is the same partner key the other integrations send as `partner_key`; only the parameter
-name differs. Set it in the template's `EMAP_PARTNER_KEY` constant. The form has no backend or
-`.env` file, so the key is visible in the deployed page's JavaScript and in the redirect URL. See
+name differs (the auto-save `POST` sends it as `partner_key`). Set it in the template's
+`EMAP_PARTNER_KEY` constant. The form has no backend or `.env` file, so the key is visible in the
+deployed page's JavaScript and in the redirect URL. See
 `SKILL.md` Step 2 for the tradeoff.
 
 ---

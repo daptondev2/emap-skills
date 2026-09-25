@@ -191,7 +191,7 @@ For an existing user (`verificationLink: true`), tell the merchant to check thei
 | `highest_transaction_amount` | Yes | Numeric, min 1 |
 | `shopping_cart` | Yes | Slug from `/api/partner/shopping-carts` (dynamic; load from API). List "I don't use one" then "I don't know, Other" first; see [api-quirks.md](api-quirks.md#dropdown-order-comes-from-the-api) |
 | `refund_policy` | Yes | One of: `Full-Refund`, `No-Refund`, `Exchange-Only`, `Partial-Refund` |
-| `customer_service_time` | Yes | One of: `0-7-days`, `7-30-days`, `31+days` |
+| `customer_service_time` | Yes | One of: `0-7-days`, `7-30-days`, `31+days` (shown as "30+ days", as on EMAP's signup page) |
 
 **Card percentage rule:** `card_swiped + customer_entered + staff_entered` must equal exactly 100. Each value must be a multiple of 5.
 

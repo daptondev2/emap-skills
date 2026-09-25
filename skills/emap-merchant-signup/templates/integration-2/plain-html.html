@@ -447,7 +447,47 @@
       return errors;
     }
 
-    document.getElementById('signup-form').addEventListener('submit', function (e) {
+    // ── Auto-save ────────────────────────────────────────────────────────────
+    // Like EMAP's own signup page: once name, email and phone are filled in,
+    // leaving one of those fields saves the person to EMAP (POST
+    // /api/v1/signup/auto-save), which creates their account and HubSpot
+    // contact before the form is submitted, so a merchant who stops here can
+    // still be followed up. EMAP's page skips its own auto-save for visitors
+    // sent here with Step 1 filled in, so this is the only one they get. It
+    // runs in the background and never shows an error; the submit waits for
+    // one that is still running before redirecting.
+    const AUTOSAVE_FIELDS = ['first_name', 'last_name', 'email', 'phone'];
+    let autoSavedEmail = '';   // saved (or already registered) — nothing more to do for it
+    let autoSaveTriedKey = ''; // values EMAP last rejected, so they aren't resent unchanged
+    let autoSavePending = null;
+    let formSubmitted = false;
+    function autoSave() {
+      if (formSubmitted || autoSavePending || !EMAP_BASE_URL) return;
+      if (document.querySelector('[name="_hp"]').value) return;
+      const v = {};
+      AUTOSAVE_FIELDS.forEach(function (id) { v[id] = (document.getElementById(id).value || '').trim(); });
+      const digits = v.phone.replace(/\D/g, '');
+      if (!v.first_name || !v.last_name || !EMAIL_RE.test(v.email) ||
+          digits.length < 10 || digits.length > 15) return;
+      const key = JSON.stringify(v);
+      if (v.email === autoSavedEmail || key === autoSaveTriedKey) return;
+      const payload = Object.assign({}, v, getTrackingParams());
+      if (EMAP_PARTNER_KEY) payload.partner_key = EMAP_PARTNER_KEY;
+      autoSavePending = fetch(EMAP_BASE_URL + '/api/v1/signup/auto-save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(payload),
+      }).then(function (res) {
+        // 400 = the email is already registered; EMAP's signup page handles that.
+        if (res.ok || res.status === 400) autoSavedEmail = v.email;
+        else if (res.status === 422) autoSaveTriedKey = key;
+      }).catch(function () {}).then(function () { autoSavePending = null; });
+    }
+    AUTOSAVE_FIELDS.forEach(function (id) {
+      document.getElementById(id).addEventListener('blur', autoSave);
+    });
+
+    document.getElementById('signup-form').addEventListener('submit', async function (e) {
       e.preventDefault();
       clearErrors();
 
@@ -471,6 +511,11 @@
       const btn = document.getElementById('submit-btn');
       btn.disabled = true;
       btn.textContent = 'Redirecting…';
+
+      // Let a running auto-save finish first, so it and EMAP's Step 1 don't
+      // both try to create the account.
+      formSubmitted = true;
+      if (autoSavePending) await autoSavePending;
 
       const params = new URLSearchParams();
 

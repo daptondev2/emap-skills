@@ -473,6 +473,12 @@ server; see [`references/mode-2-redirect.md`](references/mode-2-redirect.md).)
    - For any other component framework, mount the reference or port it 1:1 (see
      [`references/stack-guide.md`](references/stack-guide.md)). The redirect must be a browser
      navigation, never a server-side redirect built from the submitted data.
+   - **Step 1 auto-save:** once first name, last name, email and phone are filled in, leaving one
+     of them POSTs them to `/api/v1/signup/auto-save` in the background, as Integrations 1 and 3
+     do. EMAP's own `/signup` page skips its auto-save for visitors arriving from the redirect,
+     so this is what saves a merchant who fills in their details but never submits. No error is
+     ever shown, and submit waits for a running auto-save before redirecting. See
+     [`references/mode-2-redirect.md`](references/mode-2-redirect.md#step-1-auto-save).
 
 2. **On submit — build redirect URL:**
    ```javascript
