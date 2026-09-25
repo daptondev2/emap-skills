@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Apply for a Merchant Account</title>
+  <!-- intl-tel-input: the country picker and as-you-type formatting on the phone fields (see the
+       script tags at the end of the page). Its flag images load from the same CDN folder. -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@22.0.2/build/css/intlTelInput.min.css"
+        integrity="sha384-zkg2N3gGDqOTGBhCkfklKR0tEmqmpU/Rz+fr8hMw/Azi8AO5D5L5XpdEMRLnobhM"
+        crossorigin="anonymous">
   <style>
     .emap-signup, .emap-signup *, .emap-signup *::before, .emap-signup *::after { box-sizing: border-box; }
 
@@ -111,6 +116,10 @@
       font-family: inherit;
     }
     .emap-signup textarea { resize: vertical; min-height: 80px; }
+    /* intl-tel-input wraps each phone field in .iti, which is inline-block by default. */
+    .emap-signup .iti { display: block; width: 100%; }
+    /* Keep room for the country flag; our input padding rule above would otherwise win. */
+    .emap-signup .iti input.iti__tel-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]) { padding-left: var(--iti-selected-country-arrow-padding); }
     .emap-signup input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus, .emap-signup select:focus, .emap-signup textarea:focus {
       outline: none;
       border-color: #3b82f6;
@@ -225,7 +234,7 @@
     }
   </style>
   <!-- Standalone-page chrome only. When embedding the form into an existing
-       page/template, copy the style block above, the .emap-signup element
+       page/template, copy the stylesheet link and style block above, the .emap-signup element
        and the script tags, but NOT this block: it styles the host page's
        body element. -->
   <style>
@@ -280,7 +289,7 @@
 
       <div class="form-group">
         <label for="phone">Phone Number <span class="required">*</span></label>
-        <input id="phone" name="phone" type="tel" maxlength="20" autocomplete="tel" placeholder="+1 202 555 1234" required>
+        <input id="phone" name="phone" type="tel" maxlength="20" autocomplete="tel" required>
         <span class="field-error" id="err_phone"></span>
       </div>
 
@@ -364,7 +373,7 @@
 
       <div class="form-group">
         <label for="customer_service_telephone_number">Customer Service Phone Number <span class="required">*</span></label>
-        <input id="customer_service_telephone_number" name="customer_service_telephone_number" type="tel" maxlength="20" placeholder="+1 800 000 0000" required>
+        <input id="customer_service_telephone_number" name="customer_service_telephone_number" type="tel" maxlength="20" required>
         <span class="field-error" id="err_customer_service_telephone_number"></span>
       </div>
 
@@ -748,7 +757,7 @@
         <div class="form-row">
           <div class="form-group">
             <label for="phone_1">Mobile Phone <span class="required">*</span></label>
-            <input id="phone_1" name="phone.1" type="tel" maxlength="20" placeholder="+1 202 555 1234">
+            <input id="phone_1" name="phone.1" type="tel" maxlength="20">
             <span class="field-error" id="err_phone_1"></span>
           </div>
           <div class="form-group">
@@ -933,7 +942,7 @@
           <div class="form-row">
             <div class="form-group">
               <label for="phone_2">Mobile Phone <span class="required">*</span></label>
-              <input id="phone_2" name="phone.2" type="tel" maxlength="20" placeholder="+1 202 555 1234">
+              <input id="phone_2" name="phone.2" type="tel" maxlength="20">
               <span class="field-error" id="err_phone_2"></span>
             </div>
             <div class="form-group">
@@ -1411,6 +1420,15 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
        hash makes the browser refuse the file if the CDN ever serves anything else. -->
   <script src="https://cdn.jsdelivr.net/npm/cleave.js@1.6.0/dist/cleave.min.js"
           integrity="sha384-0l/4N8UmdKZf4HDwajHdZopkL4bSX+rDJa13b96s1VetCeGSFv/G4YJl2Xmv2IDp"
+          crossorigin="anonymous"></script>
+  <!-- intl-tel-input 22.0.2, the version EMAP's own signup page uses, and its utils.js (the
+       per-country formatting and validation rules). utils.js gets its own tag so it can carry an
+       integrity hash; the library's utilsScript option would load it without one. -->
+  <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@22.0.2/build/js/intlTelInput.min.js"
+          integrity="sha384-BOjOCoz73GcRFlGhmVpAWUwE8iy3GWh5J1TTWp0OFMwZnQQ4Z+RQa7bGlO64P62a"
+          crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@22.0.2/build/js/utils.js"
+          integrity="sha384-JPPA6YNaxetQHJkicGpfD7TvnCtmohWFhO/PJ98hL5SLbROFbWXO48k91hsoTe06"
           crossorigin="anonymous"></script>
 
   <script>
@@ -2389,13 +2407,12 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
     // they're a representative, the Step 1 number is theirs, not the owner's,
     // so it is cleared. A number typed in by hand is never overwritten.
     function prefillOwner1Phone(isRep) {
-      var step1Phone = (document.getElementById('phone').value || '').trim();
-      var ownerPhone = document.getElementById('phone_1');
+      var step1Phone = getPhone('phone');
       if (!step1Phone) return;
       if (isRep) {
-        if (ownerPhone.value.trim() === step1Phone) ownerPhone.value = '';
-      } else if (!ownerPhone.value.trim()) {
-        ownerPhone.value = step1Phone;
+        if (getPhone('phone_1') === step1Phone) document.getElementById('phone_1').value = '';
+      } else if (!getPhone('phone_1')) {
+        phoneInputs.phone_1.setNumber(step1Phone);
       }
     }
 
@@ -2598,6 +2615,42 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
     // federal_tax_id masking is handled by updateEinFormat(), called from
     // updateFederalTaxVisibility() above (Cleave.js, same pattern as SSN masking).
 
+    // ── Phone fields ─────────────────────────────────────────────────────────
+    // Like EMAP's own signup page: each phone field gets intl-tel-input's
+    // country picker (US first, then CA) and formats the number for that
+    // country as it's typed. Numbers are checked with isValidNumber() and sent
+    // in international form (e.g. +12025551234), as EMAP's page sends them.
+    // utils.js is loaded by its own script tag, so it's handed to the library here.
+    if (!window.intlTelInput.utils && window.intlTelInputUtils) {
+      window.intlTelInput.utils = window.intlTelInputUtils;
+    }
+    var phoneInputs = {};
+    ['phone', 'customer_service_telephone_number', 'phone_1', 'phone_2'].forEach(function (id) {
+      phoneInputs[id] = window.intlTelInput(document.getElementById(id), {
+        initialCountry: 'us',
+        countryOrder: ['us', 'ca'],
+      });
+    });
+
+    // The number in international form, or '' when the field is empty.
+    function getPhone(id) {
+      return document.getElementById(id).value.trim() ? phoneInputs[id].getNumber() : '';
+    }
+
+    // Shows an error and returns false when the field is empty or the number
+    // isn't valid for the chosen country.
+    function checkPhone(id, label) {
+      if (!document.getElementById(id).value.trim()) {
+        setError(id, label + ' is required');
+        return false;
+      }
+      if (!phoneInputs[id].isValidNumber()) {
+        setError(id, 'Please enter a valid phone number');
+        return false;
+      }
+      return true;
+    }
+
     // ── Step form submissions ────────────────────────────────────────────────
 
     // Same rule as /api/v1/signup's website check (and the schema's `pattern`):
@@ -2620,9 +2673,9 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       if (document.querySelector('#form-step1 [name="_hp"]').value) return;
       var v = {};
       AUTOSAVE_FIELDS.forEach(function (id) { v[id] = (document.getElementById(id).value || '').trim(); });
-      var digits = v.phone.replace(/\D/g, '');
+      v.phone = getPhone('phone');
       if (!v.first_name || !v.last_name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email) ||
-          digits.length < 10 || digits.length > 15) return;
+          !v.phone || !phoneInputs.phone.isValidNumber()) return;
       var key = JSON.stringify(v);
       if (v.email === autoSavedEmail || key === autoSaveTriedKey) return;
       var payload = Object.assign({}, v, getTracking());
@@ -2657,6 +2710,8 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       if (!d.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email))
                                  errs.email        = 'A valid email address is required';
       if (!d.phone)              errs.phone        = 'Phone is required';
+      else if (!phoneInputs.phone.isValidNumber())
+                                 errs.phone        = 'Please enter a valid phone number';
       if (!d.company_name)       errs.company_name = 'Company name is required';
       if (!d.website)            errs.website      = 'Website is required';
       else if (!WEBSITE_RE.test(d.website) || /vulnweb\.com/i.test(d.website))
@@ -2679,7 +2734,7 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       var payload = {
         step_count: 1,
         first_name: d.first_name, last_name: d.last_name,
-        email: d.email, phone: d.phone,
+        email: d.email, phone: getPhone('phone'),
         name: d.company_name, website: d.website,
         country: d.country, annual_sales: Number(d.annual_sales),
       };
@@ -2749,6 +2804,9 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         payload.marketingModel = payload['marketingModel[]'];
         delete payload['marketingModel[]'];
       }
+
+      if (!checkPhone('customer_service_telephone_number', 'Customer service phone number')) return;
+      payload.customer_service_telephone_number = getPhone('customer_service_telephone_number');
 
       // federal_tax_id: hidden+disabled+non-required when country=CA OR
       // business_organized=Sole-Proprietorship (see updateFederalTaxVisibility()
@@ -2909,7 +2967,8 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       // EMAP uses the Step 1 contact data for the owner identity.
 
       // Owner 1 — always required
-      payload['phone.1']               = (raw['phone.1'] || '').trim();
+      if (!checkPhone('phone_1', 'Mobile phone')) return;
+      payload['phone.1']               = getPhone('phone_1');
       payload['title.1']               = raw['title.1'] || '';
       payload['ssn.1']                 = (raw['ssn.1'] || '').trim();
       payload['dob.1']                 = raw['dob.1'] || '';
@@ -2958,7 +3017,8 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
         payload['first_name.2']          = (raw['first_name.2'] || '').trim();
         payload['last_name.2']           = (raw['last_name.2']  || '').trim();
         payload['email.2']               = (raw['email.2']      || '').trim();
-        payload['phone.2']               = (raw['phone.2']      || '').trim();
+        if (!checkPhone('phone_2', 'Mobile phone')) return;
+        payload['phone.2']               = getPhone('phone_2');
         payload['title.2']               = raw['title.2'] || '';
         payload['ssn.2']                 = (raw['ssn.2'] || '').trim();
         payload['dob.2']                 = raw['dob.2'] || '';

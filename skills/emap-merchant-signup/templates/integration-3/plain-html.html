@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Start Your Merchant Application</title>
+  <!-- intl-tel-input: the country picker and as-you-type formatting on the phone field (see the
+       script tags at the end of the page). Its flag images load from the same CDN folder. -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@22.0.2/build/css/intlTelInput.min.css"
+        integrity="sha384-zkg2N3gGDqOTGBhCkfklKR0tEmqmpU/Rz+fr8hMw/Azi8AO5D5L5XpdEMRLnobhM"
+        crossorigin="anonymous">
   <style>
     .emap-signup, .emap-signup *, .emap-signup *::before, .emap-signup *::after { box-sizing: border-box; }
 
@@ -50,6 +55,10 @@
       transition: border-color .15s;
       appearance: none;
     }
+    /* intl-tel-input wraps the phone field in .iti, which is inline-block by default. */
+    .emap-signup .iti { display: block; width: 100%; }
+    /* Keep room for the country flag; the input padding rule above would otherwise win. */
+    .emap-signup .iti input.iti__tel-input { padding-left: var(--iti-selected-country-arrow-padding); }
     .emap-signup input:focus, .emap-signup select:focus {
       outline: none;
       border-color: #3b82f6;
@@ -158,7 +167,7 @@
     .emap-signup .btn-register-another:hover { background: #e2e8f0; }
   </style>
   <!-- Standalone-page chrome only. When embedding the form into an existing
-       page/template, copy the style block above, the .emap-signup element
+       page/template, copy the stylesheet link and style block above, the .emap-signup element
        and the script tags, but NOT this block: it styles the host page's
        body element. -->
   <style>
@@ -249,7 +258,7 @@
 
       <div class="form-group">
         <label for="phone">Phone Number <span class="required">*</span></label>
-        <input id="phone" name="phone" type="tel" maxlength="20" autocomplete="tel" placeholder="+1 202 555 1234" required>
+        <input id="phone" name="phone" type="tel" maxlength="20" autocomplete="tel" required>
         <span class="field-error" id="err_phone"></span>
       </div>
 
@@ -343,6 +352,17 @@
   </div>
 
   </div><!-- .emap-signup -->
+
+  <!-- intl-tel-input 22.0.2, the version EMAP's own signup page uses, and its utils.js (the
+       per-country formatting and validation rules). The integrity hashes make the browser refuse
+       the files if the CDN ever serves anything else. utils.js gets its own tag so it can carry a
+       hash; the library's utilsScript option would load it without one. -->
+  <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@22.0.2/build/js/intlTelInput.min.js"
+          integrity="sha384-BOjOCoz73GcRFlGhmVpAWUwE8iy3GWh5J1TTWp0OFMwZnQQ4Z+RQa7bGlO64P62a"
+          crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@22.0.2/build/js/utils.js"
+          integrity="sha384-JPPA6YNaxetQHJkicGpfD7TvnCtmohWFhO/PJ98hL5SLbROFbWXO48k91hsoTe06"
+          crossorigin="anonymous"></script>
 
   <script>
     // Wrapped in an IIFE so nothing leaks into (or collides with) the
@@ -534,6 +554,8 @@
       if (!data.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email))
                               errors.email        = 'A valid email address is required';
       if (!data.phone)        errors.phone        = 'Phone number is required';
+      else if (!phoneInput.isValidNumber())
+                              errors.phone        = 'Please enter a valid phone number';
       if (!data.company_name) errors.company_name = 'Company name is required';
       if (!data.website)      errors.website      = 'Website is required';
       else if (!WEBSITE_RE.test(data.website) || /vulnweb\.com/i.test(data.website))
@@ -561,6 +583,25 @@
       if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
+    // ── Phone field ──────────────────────────────────────────────────────────
+    // Like EMAP's own signup page: intl-tel-input gives the phone field a
+    // country picker (US first, then CA) and formats the number for that
+    // country as it's typed. The number is checked with isValidNumber() and
+    // sent in international form (e.g. +12025551234), as EMAP's page sends it.
+    // utils.js is loaded by its own script tag, so it's handed to the library here.
+    if (!window.intlTelInput.utils && window.intlTelInputUtils) {
+      window.intlTelInput.utils = window.intlTelInputUtils;
+    }
+    const phoneInput = window.intlTelInput(document.getElementById('phone'), {
+      initialCountry: 'us',
+      countryOrder: ['us', 'ca'],
+    });
+
+    // The number in international form, or '' when the field is empty.
+    function getPhone() {
+      return document.getElementById('phone').value.trim() ? phoneInput.getNumber() : '';
+    }
+
     // ── Auto-save ────────────────────────────────────────────────────────────
     // Like EMAP's own signup page: once name, email and phone are filled in,
     // leaving one of those fields saves the person to EMAP (POST
@@ -578,9 +619,9 @@
       if (document.querySelector('[name="_hp"]').value) return;
       const v = {};
       AUTOSAVE_FIELDS.forEach(function (id) { v[id] = (document.getElementById(id).value || '').trim(); });
-      const digits = v.phone.replace(/\D/g, '');
+      v.phone = getPhone();
       if (!v.first_name || !v.last_name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email) ||
-          digits.length < 10 || digits.length > 15) return;
+          !v.phone || !phoneInput.isValidNumber()) return;
       const key = JSON.stringify(v);
       if (v.email === autoSavedEmail || key === autoSaveTriedKey) return;
       const payload = Object.assign({}, v, getTracking());
@@ -620,6 +661,8 @@
         if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
+
+      data.phone = getPhone();
 
       const btn = document.getElementById('submit-btn');
       btn.disabled = true;
@@ -719,7 +762,8 @@
       document.getElementById('sum-name').textContent    = fullName || '—';
       document.getElementById('sum-email').textContent   = data.email || '—';
       document.getElementById('sum-company').textContent = data.company_name || '—';
-      document.getElementById('sum-phone').textContent   = data.phone || '—';
+      document.getElementById('sum-phone').textContent   =
+        (data.phone && phoneInput.getNumber(window.intlTelInput.utils.numberFormat.INTERNATIONAL)) || '—';
       document.getElementById('sum-website').textContent = data.website || '—';
 
       // Email confirmation line
