@@ -3148,43 +3148,53 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
     document.getElementById('form-step5').addEventListener('submit', async function (e) {
       e.preventDefault();
       clearStepErrors(this);
+      // Every field is checked before returning, so all errors show at once.
+      var ok = true;
+      function fail(id, message) { setError(id, message); ok = false; }
+      function val(id) { return (document.getElementById(id).value || '').trim(); }
 
       // Country-specific bank field validation — HTML attributes alone can be bypassed
       // (autofill, programmatic value set), so re-check here before submitting.
       var bankCountry = (step1Country || '').toUpperCase();
-      var routingVal = (document.getElementById('routing_number').value || '').trim();
-      var accountVal = (document.getElementById('account_number').value || '').trim();
+      var routingVal = val('routing_number');
+      var accountVal = val('account_number');
+      if (!routingVal) fail('routing_number', 'Routing number is required');
+      if (!accountVal) fail('account_number', 'Account number is required');
       if (bankCountry === 'US') {
-        if (!/^[0-9]{9}$/.test(routingVal)) {
-          setError('routing_number', 'US routing number must be exactly 9 digits');
-          return;
+        if (routingVal && !/^[0-9]{9}$/.test(routingVal)) {
+          fail('routing_number', 'US routing number must be exactly 9 digits');
         }
-        if (accountVal.length < 8 || accountVal.length > 17) {
-          setError('account_number', 'US account number must be 8–17 characters');
-          return;
+        if (accountVal && (accountVal.length < 8 || accountVal.length > 17)) {
+          fail('account_number', 'US account number must be 8–17 characters');
         }
       } else {
-        if (!/^[0-9A-Za-z]+$/.test(routingVal)) {
-          setError('routing_number', 'Routing number may only contain letters and numbers');
-          return;
+        if (routingVal && !/^[0-9A-Za-z]+$/.test(routingVal)) {
+          fail('routing_number', 'Routing number may only contain letters and numbers');
         }
-        if (!/^[0-9A-Za-z]+$/.test(accountVal)) {
-          setError('account_number', 'Account number may only contain letters and numbers');
-          return;
+        if (accountVal && !/^[0-9A-Za-z]+$/.test(accountVal)) {
+          fail('account_number', 'Account number may only contain letters and numbers');
         }
       }
 
       if (bankCountry === 'CA') {
-        var instVal = (document.getElementById('institution_number').value || '').trim();
-        if (!/^[0-9]{3}$/.test(instVal)) {
-          setError('institution_number', 'Institution number must be exactly 3 digits');
-          return;
+        if (!/^[0-9]{3}$/.test(val('institution_number'))) {
+          fail('institution_number', 'Institution number must be exactly 3 digits');
         }
-        var curVal = (document.querySelector('[name="customer_pay_currency"]:checked') || {}).value;
-        if (!curVal) {
-          setError('customer_pay_currency', 'Please select which currency the customer pays in');
-          return;
+        if (!document.querySelector('[name="customer_pay_currency"]:checked')) {
+          fail('customer_pay_currency', 'Please select which currency the customer pays in');
         }
+      }
+
+      if (!val('current_processing')) {
+        fail('current_processing', 'Please select whether you are currently processing credit cards');
+      } else if (val('current_processing') === '1' && !val('processor_name')) {
+        fail('processor_name', 'Please enter your current processor name');
+      }
+
+      if (!ok) {
+        var firstErr = this.querySelector('.field-error:not(:empty)');
+        if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
       }
 
       var fd = new FormData(this);
@@ -3200,9 +3210,28 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
     document.getElementById('form-step6').addEventListener('submit', async function (e) {
       e.preventDefault();
       clearStepErrors(this);
+      // Every field is checked before returning, so all errors show at once.
+      var ok = true;
+      function fail(id, message) { setError(id, message); ok = false; }
+      function isShown(id) { var el = document.getElementById(id); return el && window.getComputedStyle(el).display !== 'none'; }
+      function val(id) { return (document.getElementById(id).value || '').trim(); }
 
+      if (!val('howdidyouhear')) fail('howdidyouhear', 'Please select how you found us');
+      else if (isShown('hear_other_group') && !val('hear_about_us_other')) {
+        fail('hear_about_us_other', 'Please enter additional information about how you found us');
+      }
+      if (!val('multiple_merchant_accounts')) fail('multiple_merchant_accounts', 'Please select whether you need multiple merchant accounts');
+      if (!val('bad_experience')) fail('bad_experience', 'Please select whether you have had a bad experience with a provider');
+      else if (val('bad_experience') === '1' && !val('bad_experience_happened')) {
+        fail('bad_experience_happened', 'Please enter the provider you had a bad experience with');
+      }
       if (!document.getElementById('terms_agreed').checked) {
-        setError('terms_agreed', 'You must accept the Terms and Conditions');
+        fail('terms_agreed', 'You must accept the Terms and Conditions');
+      }
+
+      if (!ok) {
+        var firstErr = this.querySelector('.field-error:not(:empty)');
+        if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
 
