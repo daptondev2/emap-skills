@@ -49,8 +49,11 @@ stack, and for the porting rules if you rewrite it natively.
 ## How it works
 
 1. Merchant fills in Step 1 (basic business info). The browser POSTs directly to
-   `EMAP /api/v1/signup`. EMAP returns a `uuid` that identifies the in-progress application.
-2. The `uuid` is stored in `localStorage` and sent with every subsequent step.
+   `EMAP /api/v1/signup`. EMAP returns a `uuid` that identifies the in-progress application and a
+   `signup_token` that authorizes the later steps.
+2. Both are stored in `localStorage` and sent with every subsequent step. Each successful step
+   returns a fresh `signup_token`, which replaces the saved one. The token expires 24 hours after
+   the last saved step; EMAP then answers with HTTP 403 and the form clears the saved progress.
 3. Steps 2, 3, 5, and 6 POST to `EMAP /api/v1/application/step` with the appropriate `step_count`.
 4. Step 4 (ownership) POSTs to `EMAP /api/v1/ownership` with `step_count: 4`.
 
@@ -75,11 +78,11 @@ that to registered partner sites, register your site's origin with Easy Pay Dire
 | Dropdown load | `GET /api/partner/interest-details` | Same fallback behavior |
 | Step 1 auto-save | `POST /api/v1/signup/auto-save` | On leaving first/last name, email or phone once all four are filled in; creates the user and HubSpot contact in the background, no error shown |
 | Step 1 submit | `POST /api/v1/signup` (`step_count=1`) | Sends `partner_key` from the `EMAP_PARTNER_KEY` constant, if set |
-| Step 2 submit | `POST /api/v1/application/step` (`step_count=2`) | Requires `uuid` |
-| Step 3 submit | `POST /api/v1/application/step` (`step_count=3`) | Requires `uuid` |
-| Step 4 submit | `POST /api/v1/ownership` (`step_count=4`) | Requires `uuid` |
-| Step 5 submit | `POST /api/v1/application/step` (`step_count=5`) | Requires `uuid` |
-| Step 6 submit | `POST /api/v1/application/step` (`step_count=6`) | Requires `uuid`; redirects to `/upload-document/{uuid}?redirect=1` on success |
+| Step 2 submit | `POST /api/v1/application/step` (`step_count=2`) | Requires `uuid` and `signup_token` |
+| Step 3 submit | `POST /api/v1/application/step` (`step_count=3`) | Requires `uuid` and `signup_token` |
+| Step 4 submit | `POST /api/v1/ownership` (`step_count=4`) | Requires `uuid` and `signup_token` |
+| Step 5 submit | `POST /api/v1/application/step` (`step_count=5`) | Requires `uuid` and `signup_token` |
+| Step 6 submit | `POST /api/v1/application/step` (`step_count=6`) | Requires `uuid` and `signup_token`; redirects to `/upload-document/{uuid}?redirect=1` on success |
 
 ---
 
@@ -103,23 +106,26 @@ that to registered partner sites, register your site's origin with Easy Pay Dire
 | Key | Value | When set | Cleared |
 |---|---|---|---|
 | `emap_uuid` | Application UUID from Step 1 response | After Step 1 succeeds | Step 6 success |
+| `emap_signup_token` | Latest `signup_token` from EMAP | After each step succeeds | Step 6 success, a 403, or on load once expired |
 | `emap_country` | 2-char country code (e.g. `US`, `CA`) | After Step 1 succeeds | Step 6 success |
 | `emap_step` | The step to resume at | After each step succeeds | Step 6 success |
 | `emap_marketing_model` | Step 2 marketing-model answer, which controls later conditional fields | When the merchant changes it in Step 2 | Step 6 success |
 
 `localStorage` is used (not `sessionStorage`) so the application survives accidental
-tab closes and browser restarts. When the merchant reopens the page, the stored UUID is
-read back and they can continue from where they left off without repeating Step 1.
+tab closes and browser restarts. When the merchant reopens the page within 24 hours of their last
+saved step, the stored UUID and token are read back and they can continue from where they left
+off without repeating Step 1. After that the token has expired: the form clears the saved
+progress and tells them to continue from EMAP's email or start again.
 
 Because this is per-browser, a shared computer (a shop counter, a family PC) would drop the
 next person into the previous merchant's application. So whenever a saved application is
 restored, the form shows "You're continuing a saved application. Not you? Start a new
-application". That button clears all four keys and reloads the form. Keep it in any port.
+application". That button clears all five keys and reloads the form. Keep it in any port.
 
-All four keys are cleared on Step 6 success (application complete).
+All five keys are cleared on Step 6 success (application complete).
 
-`emap_uuid` is sensitive: EMAP's step API accepts it as the only proof of access to the
-application. Never display it, log it, or send it to analytics or error reporting.
+`emap_uuid` and `emap_signup_token` are sensitive: together they are EMAP's proof of access to
+the application. Never display it, log it, or send it to analytics or error reporting.
 
 ---
 

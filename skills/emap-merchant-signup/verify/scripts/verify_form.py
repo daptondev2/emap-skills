@@ -27,7 +27,8 @@ Checks 5 categories:
                     is fetched directly from the browser, and an embedded
                     fallback dataset (real rows, not just the word) exists.
   error_handling — Integrations 1 and 3 (which POST to EMAP) handle HTTP 429
-                    and 422 explicitly.
+                    and 422 explicitly; Integration 1 also sends signup_token
+                    and handles 403.
 
 Usage:
   verify_form.py [--schema PATH] [--form-dir DIR] [--frontend FILE ...]
@@ -577,6 +578,21 @@ def check_error_handling(frontend_text: str, integration: str) -> list:
                 "file": "(frontend)", "field": f"http-{code}", "category": "error_handling",
                 "expected": f"an explicit HTTP {code} branch ({meaning}), see references/api-errors.md",
                 "actual": f"no {code} status check found in the form's files", "severity": "blocker",
+            })
+    # Steps 2-6 (Integration 1 only) need the signup_token from the previous
+    # step, and answer 403 once it has expired or the application is locked.
+    if integration == "1":
+        if not re.search(r"\bsignup_token\b", frontend_text):
+            findings.append({
+                "file": "(frontend)", "field": "signup_token", "category": "error_handling",
+                "expected": "steps 2-6 send the latest `signup_token` and save the new one from each response, see references/mode-1-fullform.md",
+                "actual": "no `signup_token` found in the form's files", "severity": "blocker",
+            })
+        if not re.search(r"\b403\b", frontend_text):
+            findings.append({
+                "file": "(frontend)", "field": "http-403", "category": "error_handling",
+                "expected": "an explicit HTTP 403 branch (application expired or locked: clear saved progress and offer a restart), see references/api-errors.md",
+                "actual": "no 403 status check found in the form's files", "severity": "blocker",
             })
     return findings
 

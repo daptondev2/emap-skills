@@ -39,14 +39,17 @@ Each step is called directly: `fetch(EMAP_BASE_URL + '<EMAP endpoint>', ...)` fr
 | Step | EMAP endpoint | Notes |
 |---|---|---|
 | 1 (auto-save) | `POST /api/v1/signup/auto-save` | Before Step 1 is submitted, once name, email and phone are filled in; see below |
-| 1 | `POST /api/v1/signup` | `step_count=1`; returns the `uuid` used by every later step |
+| 1 | `POST /api/v1/signup` | `step_count=1`; returns the `uuid` and `signup_token` used by every later step |
 | 2 | `POST /api/v1/application/step` | `step_count=2` |
 | 3 | `POST /api/v1/application/step` | `step_count=3` |
 | 4 | `POST /api/v1/ownership` | `step_count=4`; nested dot-notation fields (see Step 4 below) |
 | 5 | `POST /api/v1/application/step` | `step_count=5` |
 | 6 | `POST /api/v1/application/step` | `step_count=6` |
 
-The `uuid` returned by Step 1 must be included in every subsequent request.
+The `uuid` and `signup_token` returned by Step 1 must be included in every subsequent request.
+Each successful step returns a fresh `signup_token`; always send the newest one. EMAP refuses
+Steps 2–6 with **HTTP 403** when the token is missing, wrong or expired (24 hours after the last
+saved step), or when the application is past the stage where it can be edited from this form.
 
 ---
 
@@ -129,7 +132,7 @@ Send these with Step 1 only. Steps 2 to 6 and the ownership step ignore them, so
 
 Same shapes as Integration 3. See [`api-errors.md`](api-errors.md) for the full table.
 
-On success: `{ "status": true, "uuid": "<uuid>" }`. Store the `uuid` and `country` in `localStorage` as `emap_uuid` and `emap_country` (see [UUID lifecycle](#uuid-lifecycle)). The persisted `emap_country` code drives conditional field visibility in steps 2 and 5 — do not use the address country fields for this purpose.
+On success: `{ "status": true, "uuid": "<uuid>", "signup_token": "<token>" }`. Store the `uuid`, `signup_token` and `country` in `localStorage` as `emap_uuid`, `emap_signup_token` and `emap_country` (see [UUID lifecycle](#uuid-lifecycle)). The persisted `emap_country` code drives conditional field visibility in steps 2 and 5 — do not use the address country fields for this purpose.
 
 For an existing user (`verificationLink: true`), tell the merchant to check their email. Don't link to the returned `url`: the email is what proves they own the address.
 
@@ -334,6 +337,7 @@ On any step, EMAP may return:
 |---|---|---|
 | 200 | `{"status":true, ...}` | Advance to next step |
 | 200 | `{"status":false, ...}` | Stay on the step; show a generic error |
+| 403 | `{"status":false,"message":"..."}` | Steps 2–6: the application can't be continued here (token expired or application locked). Clear the saved progress and tell the merchant to continue from EMAP's email or start again |
 | 422 | `{"status":false,"errors":{...}}` | Show per-field errors |
 | 429 | — | Show "too many requests, try again" |
 | 500+ | — | Show generic error; the merchant can retry the same step |
@@ -345,22 +349,27 @@ See [`api-errors.md`](api-errors.md) for the complete table.
 ## UUID lifecycle
 
 ```
-Step 1 success → emap_uuid, emap_country saved to localStorage
+Step 1 success → emap_uuid, emap_signup_token, emap_country saved to localStorage
 Each step      → emap_step saved; the step 2 marketing-model choice → emap_marketing_model
-Steps 2–6      → uuid read from localStorage, sent in every request
-Step 6 success → all four keys cleared
+Steps 2–6      → uuid and signup_token read from localStorage, sent in every request;
+                 the fresh signup_token in each response replaces the saved one
+Page load      → saved progress whose signup_token has expired is cleared, not resumed
+Step 2–6 403   → all keys cleared; merchant continues from EMAP's email or starts again
+Step 6 success → all five keys cleared
 ```
 
-The template saves exactly these four keys (`SAVED_PROGRESS_KEYS`): `emap_uuid`, `emap_country`,
-`emap_step` and `emap_marketing_model`. `localStorage` is used (not `sessionStorage`) so progress
+The template saves exactly these five keys (`SAVED_PROGRESS_KEYS`): `emap_uuid`,
+`emap_signup_token`, `emap_country`, `emap_step` and `emap_marketing_model`. The token is
+`<expiry unix seconds>.<signature>`; the template reads the expiry on page load so it doesn't
+resume progress EMAP will refuse. The token lasts 24 hours from the last saved step. `localStorage` is used (not `sessionStorage`) so progress
 survives accidental tab closes and browser restarts. When the merchant reopens the page, the form
 resumes at the saved step without repeating Step 1.
 
-**The `uuid` is sensitive.** Anyone holding it can continue that application, so treat it like a
+**The `uuid` and `signup_token` are sensitive.** Anyone holding both can continue that application, so treat them like a
 password: never display it, log it, or send it to analytics or an error tracker. Because it stays
 in `localStorage`, the next person on a shared computer would land inside the previous merchant's
 application. The template handles this with a resume notice, "You're continuing a saved
-application. Not you? Start a new application", which clears all four keys.
+application. Not you? Start a new application", which clears all five keys.
 
 **Never store other sensitive fields (SSN, DOB, bank data) in localStorage.**
 
@@ -374,5 +383,5 @@ application. Not you? Start a new application", which clears all four keys.
 - Never store SSN, DOB, or bank account numbers anywhere yourself after sending them to EMAP —
   there is no backend or database of this form's own to store them in.
 - Never `console.log` request bodies on steps that contain SSN or bank data (steps 4 and 5), and
-  never log the `uuid`.
+  never log the `uuid` or `signup_token`.
 - See [`security-checklist.md`](security-checklist.md) before going live.

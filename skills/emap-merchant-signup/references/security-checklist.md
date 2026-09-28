@@ -93,14 +93,14 @@ What still matters:
 
 ## Privacy — all integrations
 
-- [ ] **The application `uuid` is treated like a password.** Anyone holding it can continue that
+- [ ] **The application `uuid` and `signup_token` are treated like a password.** Anyone holding both can continue that
   application. Never display it, log it, or send it to analytics or an error tracker. Integration
   3's success panel doesn't show it; keep it that way.
 
 - [ ] **No PII in browser storage.** Don't save form values to `localStorage` or `sessionStorage`
-  beyond what the template already does: Integration 1's `emap_uuid`, `emap_country`, `emap_step`
+  beyond what the template already does: Integration 1's `emap_uuid`, `emap_signup_token`, `emap_country`, `emap_step`
   and `emap_marketing_model` resume keys, plus the `emap_tracking` campaign values (UTM params and
-  click IDs, kept 30 days, not cleared by "Start a new application"). None of them is PII, but `emap_uuid` is sensitive (see
+  click IDs, kept 30 days, not cleared by "Start a new application"). None of them is PII, but `emap_uuid` and `emap_signup_token` are sensitive (see
   above). Keep Integration 1's "Not you? Start a new application" notice, so the next person on a
   shared computer can discard a saved application instead of continuing it.
 

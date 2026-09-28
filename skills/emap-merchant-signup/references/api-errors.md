@@ -15,10 +15,10 @@ every message here is shown to the merchant: keep it generic and never show EMAP
 
 | HTTP | Condition | Response body | Recommended action |
 |---|---|---|---|
-| 200 | New user created | `{"status":true,"message":"Success","uuid":"..."}` | Integration 3: show "Check Your Email". Integration 1: keep the `uuid` in `localStorage` and go to step 2. Never display or log the `uuid`: anyone holding it can continue the application. |
+| 200 | New user created | `{"status":true,"message":"Success","uuid":"...","signup_token":"..."}` | Integration 3: show "Check Your Email". Integration 1: keep the `uuid` and `signup_token` in `localStorage` and go to step 2. Never display or log the `uuid`: anyone holding it can continue the application. |
 | 200 | Existing user | `{"message":"success","verificationLink":true,"url":"..."}` | Tell the merchant to check their email for a link to continue. Don't link to or navigate to `url`: the email is what proves they own the address. |
 | 200 | Company exists | `{"status":false,"message":"Company already exists","data":{...}}` | "An application for this company already exists. Check your inbox for an earlier email from Easy Pay Direct, or contact their support team." |
-| 400 | Application creation failed | `{"status":false,"message":"Error while creating application","data":"Something went wrong."}` | "Something went wrong. Please try again." Re-enable the submit button. |
+| 400 | Application creation failed | `{"status":false,"message":"Error while creating application"}` | "Something went wrong. Please try again." Re-enable the submit button. |
 | 403 | Request refused (for example, a blocked region) | `{"status":false,"message":"Unauthorised access."}` | "Sorry, we can't accept applications from your location. Please contact Easy Pay Direct." |
 | 422 | Validation error | `{"status":false,"message":"Validation failed","errors":{"field":["message",...]}}` | Display per-field errors from `errors`. See [field mapping](#mapping-422-field-names-to-form-field-ids). |
 | 429 | Rate limited | Standard 429; may be HTML | "Too many attempts. Please wait a few minutes and try again." Re-enable the button. Don't retry automatically. |
@@ -150,22 +150,23 @@ The bodies match EMAP's own signup page auto-save (`/signup/auto-save`), so they
 
 ## Steps 2–6 (Integration 1)
 
-Steps 2, 3, 5 and 6 `POST {EMAP_BASE_URL}/api/v1/application/step` with the `uuid` and a
-`step_count`. Step 4 `POST`s `{EMAP_BASE_URL}/api/v1/ownership` with the `uuid`, `step_count: 4` and
-dot-notation owner fields. Step 1 (`/api/v1/signup`) also sends `step_count: 1`. The template's
+Steps 2, 3, 5 and 6 `POST {EMAP_BASE_URL}/api/v1/application/step` with the `uuid`, the latest
+`signup_token` and a `step_count`. Step 4 `POST`s `{EMAP_BASE_URL}/api/v1/ownership` with the `uuid`,
+the latest `signup_token`, `step_count: 4` and dot-notation owner fields. Step 1 (`/api/v1/signup`) also sends `step_count: 1`. The template's
 `submitStep()` handles all five the same way:
 
 | HTTP | Response | Action |
 |---|---|---|
-| 200 | `{"status":true,...}` (step 6 also returns `uuid`) | Go to the next step. After step 6, clear the saved progress and navigate the top window to `{EMAP_BASE_URL}/upload-document/{uuid}?redirect=1` |
+| 200 | `{"status":true,"uuid":"...","signup_token":"...",...}` | Save the new `signup_token` over the old one and go to the next step. After step 6, clear the saved progress and navigate the top window to `{EMAP_BASE_URL}/upload-document/{uuid}?redirect=1` |
 | 200 | `{"status":false,...}` | Stay on the step and show a generic "Something went wrong. Please try again." |
+| 403 | `{"status":false,"message":"This application cannot be updated..."}` | The `signup_token` is missing, wrong or expired (24 hours after the last saved step), or the application is past the stage where this form can edit it. Clear the saved progress and show "This application can no longer be continued here. Check your inbox for an email from Easy Pay Direct to continue it, or start a new application." with a button back to a blank Step 1. Don't retry |
 | 422 | `{"errors":{"field.1":["..."],...}}` | "Please correct the errors below." plus per-field errors. Owner field keys use dot notation (`ssn.1`), so map them to the input's `name` |
 | 429 | Standard 429; may be HTML | "Too many attempts. Please wait a few minutes and try again." |
 | 5xx | varies | "The service is temporarily unavailable. Please try again." |
 | other / not JSON | — | "Something went wrong. Please try again." |
 | network error | `fetch` throws | "A network error occurred. Please check your connection and try again." |
 
-Every branch re-enables the button. None of them clears the saved `uuid`, so the merchant can
+Every branch re-enables the button. Apart from the 403, none of them clears the saved `uuid`, so the merchant can
 retry the same step. The merchant can go back to steps 2 to 5 with the Back button, fix a field, and
 re-submit that step. A 422 whose `errors` names a Step 1 field (for example a missing
 `industry_type` reported at step 6) can't be fixed in this session, because Step 1 is read-only
