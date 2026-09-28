@@ -287,10 +287,11 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
 
 4. **Understand the step flow:**
    - **Every step's request carries `step_count`** (1–6) in its JSON body, including Step 1 and Step 4.
-   - Step 1 (`POST /api/v1/signup`, `step_count: 1`) returns a `uuid`. Collect: first name, last name, email, phone, company name, website, country, annual sales, **industry type**, and (if US) business state. Store the `uuid` in `localStorage('emap_uuid')`.
+   - Step 1 (`POST /api/v1/signup`, `step_count: 1`) returns a `uuid` and a `signup_token`. Collect: first name, last name, email, phone, company name, website, country, annual sales, **industry type**, and (if US) business state. Store the `uuid` in `localStorage('emap_uuid')` and the token in `localStorage('emap_signup_token')`.
    - **Step 1 auto-save:** once first name, last name, email and phone are filled in, leaving one of them POSTs them to `/api/v1/signup/auto-save` in the background (EMAP creates the user and HubSpot contact, like its own signup page). No error is ever shown; Step 1's submit waits for a running auto-save. See [`references/mode-1-fullform.md`](references/mode-1-fullform.md#step-1-auto-save--post-apiv1signupauto-save).
-   - Steps 2, 3, 5, 6 call `POST /api/v1/application/step` with the `uuid` and the appropriate `step_count`.
-   - Step 4 calls `POST /api/v1/ownership` with `step_count: 4` and the dot-notation owner fields.
+   - Steps 2, 3, 5, 6 call `POST /api/v1/application/step` with the `uuid`, the latest `signup_token` and the appropriate `step_count`.
+   - Step 4 calls `POST /api/v1/ownership` with the `uuid`, the latest `signup_token`, `step_count: 4` and the dot-notation owner fields.
+   - **Every successful step returns a fresh `signup_token`; save it over the old one.** EMAP answers Steps 2–6 with HTTP 403 when the token is missing, wrong or expired (24 hours after the last saved step). On page load, don't resume saved progress whose token has expired. See [`references/mode-1-fullform.md`](references/mode-1-fullform.md#uuid-lifecycle).
    - Step 6 success → clear `localStorage` and redirect the top-level window to EMAP's
      `{EMAP_BASE_URL}/upload-document/{uuid}?redirect=1` page, where the merchant uploads their
      documents.
@@ -319,7 +320,7 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
    textarea, radio and checkbox visibly (grey background, muted text, `not-allowed` cursor) so
    read-only fields are obvious.
    Render a Back button on steps 2–6. Going back keeps what the merchant typed, and they can edit
-   and re-submit that step: the API accepts a step again with the same `uuid`.
+   and re-submit that step: the API accepts a step again with the same `uuid` and the latest `signup_token`.
    - **Step 1 is read-only** when returned to. `POST /api/v1/signup` can't be replayed (the email
      is now registered), so disable its inputs and have Continue go to step 2 without calling the API.
    - **Step 4: owner identity is read-only** once saved, as in EMAP's single-page signup. Disable
@@ -409,7 +410,8 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
 
 13. **Handle all response shapes** on each step (see [`references/api-errors.md`](references/api-errors.md)):
     - `{"status":true}` → advance to next step.
-    - HTTP 422 → display per-field errors.
+    - HTTP 403 on Steps 2–6 → clear the saved progress; tell the merchant to continue from EMAP's email or start a new application.
+    - HTTP 422 → display per-field errors. An error for a field the form doesn't show (e.g. `partner_key`) goes in the page-level alert.
     - HTTP 429 → ask the merchant to wait and retry.
     - HTTP 5xx → show generic "please try again".
 
