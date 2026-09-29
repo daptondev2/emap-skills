@@ -157,7 +157,9 @@ below. It is a much larger job than the WebView.
   - same dropdown fetches with the embedded fallback data
   - same `localStorage` keys
   - same 422/429 handling
-  - no Back navigation
+  - Integration 1: send the latest `signup_token` on steps 2-6 and save the new one from each
+    response; on 403, clear saved progress and offer a restart
+  - Integration 1: Back buttons on steps 2-6 (Integrations 2 and 3 have a single step)
   - honeypot field kept
   - top-window navigation for the EMAP handoff
 

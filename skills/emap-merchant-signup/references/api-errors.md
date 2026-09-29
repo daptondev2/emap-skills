@@ -45,6 +45,17 @@ async function handleEmapResponse(response) {
     return { type: 'validation', errors: (data && data.errors) || {} };
   }
 
+  if (response.status === 403) {
+    // Step 1: request refused (e.g. blocked region).
+    // Steps 2-6 (Integration 1): signup_token missing/expired or application locked:
+    // clear saved progress (uuid, token) and offer a restart.
+    return { type: 'forbidden' };
+  }
+
+  if (response.status >= 500) {
+    return { type: 'unavailable' };
+  }
+
   if (!response.ok || !data) {
     // Show a generic message; don't display EMAP's raw message text.
     return { type: 'server_error' };
@@ -56,7 +67,9 @@ async function handleEmapResponse(response) {
   }
 
   if (data.status === true && data.uuid) {
-    return { type: 'success', uuid: data.uuid };  // keep in memory only
+    // Integration 1 also saves data.signup_token (and later steps' fresh tokens)
+    // and keeps both in localStorage for resume; clear them after Step 6.
+    return { type: 'success', uuid: data.uuid, signupToken: data.signup_token };
   }
 
   if (data.status === false && data.message === 'Company already exists') {

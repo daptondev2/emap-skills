@@ -15,8 +15,9 @@ client-side, no backend of this form's own. The merchant never visits the EMAP d
 > obvious from a value-format note alone):
 > - `marketingModel` — schema `type: checkbox-group`, not a select of raw integers.
 > - `is_physical_address_same_as_legal_address`, `primary_contact`, `bankruptcy_filed.1/.2`,
->   `bankruptcy_discharged.1/.2`, `current_processing`, `bad_experience`,
->   `multiple_merchant_accounts` — schema `type: radio` (Yes/No), not a select.
+>   `bankruptcy_discharged.1/.2` — schema `type: radio` (Yes/No), not a select.
+> - `current_processing`, `bad_experience`, `multiple_merchant_accounts`, `leave_deposit` — schema
+>   `type: select` with Yes/No options: render a `<select>`, not radio buttons.
 > - `routing_number` (US: exactly 9 digits), `account_number` (US: 8–17 chars) — the `countryVariants`
 >   length limit must be enforced in code (HTML attribute + submit-time check), not just shown as a
 >   hint string.

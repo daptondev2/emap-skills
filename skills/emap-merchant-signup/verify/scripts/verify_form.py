@@ -97,6 +97,9 @@ FRONTEND_EXTS = COMPONENT_EXTS | TEMPLATE_EXTS
 SKIP_DIRS = {
     "node_modules", ".git", ".next", ".nuxt", ".svelte-kit", ".output", ".astro", ".turbo",
     ".cache", "dist", "build", "out", "coverage", "vendor", "__pycache__",
+    # Reference copies and fixtures aren't the live form; scanning them would let a
+    # broken form pass on the strength of an untouched template sitting beside it.
+    "examples", "example", "docs", "fixtures", "__tests__", "tests", "test",
 }
 # Test/story/type-declaration files mention field names without wiring them
 # up — scanning them would let a broken form false-pass.
@@ -158,6 +161,67 @@ def all_fields(schema: dict) -> list:
 
 
 # ── HTML/JS id helpers ─────────────────────────────────────────────────────
+
+HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.S)
+# Characters after which a "/" starts a regex literal rather than a division.
+REGEX_PREFIX = set("(,=:[!&|?{};+-*%<>~^") | {"\n"}
+
+
+def strip_html_comments(text: str) -> str:
+    """Commented-out markup must not count as a rendered widget. Newlines are
+    kept so line numbers (and conditional_logic proximity) don't shift."""
+    return HTML_COMMENT_RE.sub(lambda m: "\n" * m.group(0).count("\n"), text)
+
+
+def strip_js_comments(text: str) -> str:
+    """Remove // and /* */ comments so a comment such as "TODO: handle 429"
+    can't satisfy a check. A small scanner that skips string, template and
+    regex literals, so "https://..." in a string is left alone. Newlines are
+    kept so line numbers don't shift."""
+    out, i, n = [], 0, len(text)
+    prev = "\n"  # last significant (non-space) character emitted
+    while i < n:
+        c = text[i]
+        nxt = text[i + 1] if i + 1 < n else ""
+        if c == "/" and nxt == "/":
+            j = text.find("\n", i)
+            i = n if j == -1 else j
+            continue
+        if c == "/" and nxt == "*":
+            j = text.find("*/", i + 2)
+            chunk = text[i:] if j == -1 else text[i:j + 2]
+            out.append("\n" * chunk.count("\n"))
+            i += len(chunk)
+            continue
+        if c in "'\"`" or (c == "/" and prev in REGEX_PREFIX):
+            # String / template / regex literal: copy through to its closing
+            # delimiter. ' and " (and regexes) can't span lines; stop there.
+            j, in_class = i + 1, False
+            while j < n:
+                d = text[j]
+                if d == "\\":
+                    j += 2
+                    continue
+                if d == "\n" and c != "`":
+                    break
+                if c == "/" and d == "[":
+                    in_class = True
+                elif c == "/" and d == "]":
+                    in_class = False
+                elif d == c and not in_class:
+                    j += 1
+                    break
+                j += 1
+            out.append(text[i:j])
+            prev = c
+            i = j
+            continue
+        out.append(c)
+        if not c.isspace() or c == "\n":
+            prev = c
+        i += 1
+    return "".join(out)
+
 
 def extract_script_lines(html_text: str) -> list:
     """conditional_logic must be checked against actual JS wiring, not just
@@ -517,11 +581,11 @@ def check_dropdown_routes(schema: dict, frontend_text: str, integration: str, fa
             continue
         checked_any = True
         url = spec.get("url", "")
-        if url and url not in frontend_text and name not in frontend_text:
+        if url and url not in frontend_text:
             findings.append({
                 "file": "(frontend)", "field": f"route:{url}", "category": "dropdown_route",
                 "expected": f"a direct client-side fetch of EMAP {url} (no backend proxy — this form is pure client-side)",
-                "actual": "no reference to this endpoint found in the frontend file", "severity": "blocker",
+                "actual": f"the path {url} does not appear in the form's code", "severity": "blocker",
             })
     if checked_any and "fallback" not in frontend_text.lower():
         findings.append({
@@ -570,10 +634,16 @@ def check_error_handling(frontend_text: str, integration: str) -> list:
     Textual check only: the status code must be compared somewhere."""
     if integration not in POSTING_INTEGRATIONS:
         return []
+
+    def compares(code: str) -> bool:
+        # `status === 429`, `429 == res.status`, `case 429:`, `in (429, 503)`-style lists.
+        return re.search(rf"(?:[=!]=|\bcase\s|[(\[,]\s*){code}\b|\b{code}\s*(?:[=!]=|[,)\]:])",
+                         frontend_text) is not None
+
     findings = []
     for code, meaning in (("429", "rate limited: ask the merchant to wait before retrying"),
                           ("422", "validation failed: show the per-field `errors`")):
-        if not re.search(rf"\b{code}\b", frontend_text):
+        if not compares(code):
             findings.append({
                 "file": "(frontend)", "field": f"http-{code}", "category": "error_handling",
                 "expected": f"an explicit HTTP {code} branch ({meaning}), see references/api-errors.md",
@@ -588,7 +658,7 @@ def check_error_handling(frontend_text: str, integration: str) -> list:
                 "expected": "steps 2-6 send the latest `signup_token` and save the new one from each response, see references/mode-1-fullform.md",
                 "actual": "no `signup_token` found in the form's files", "severity": "blocker",
             })
-        if not re.search(r"\b403\b", frontend_text):
+        if not compares("403"):
             findings.append({
                 "file": "(frontend)", "field": "http-403", "category": "error_handling",
                 "expected": "an explicit HTTP 403 branch (application expired or locked: clear saved progress and offer a restart), see references/api-errors.md",
@@ -724,17 +794,22 @@ def load_sources(paths: list) -> tuple:
     for p in paths:
         text = p.read_text(encoding="utf-8", errors="replace")
         if p.suffix.lower() in COMPONENT_EXTS:
-            stripped, decoded = decode_long_js_strings(text)
+            stripped, decoded = decode_long_js_strings(strip_js_comments(text))
+            decoded = [strip_js_comments(strip_html_comments(d)) for d in decoded]
+            text = stripped
             widget_parts.append(text + "\n" + "\n".join(decoded))
             logic = [stripped] + [d for d in decoded
                                   if JS_CODE_RE.search(d) and not d.lstrip().startswith("<")]
             logic_parts.append("\n".join(logic))
         else:
-            widget_parts.append(text)
+            text = strip_html_comments(text)
+            scripts = strip_js_comments("\n".join(extract_script_lines(text)))
+            # Markup plus the comment-free script, so neither kind of comment counts.
+            text = re.sub(r"(<script(?:\s[^>]*)?>).*?(</script>)", r"\1\2", text, flags=re.S)
+            widget_parts.append(text + "\n" + scripts)
             template_texts.append(text)
-            scripts = extract_script_lines(text)
-            if scripts:
-                logic_parts.append("\n".join(scripts))
+            if scripts.strip():
+                logic_parts.append(scripts)
     if not logic_parts:
         # No JS found anywhere (e.g. a template whose script tags are
         # rendered by a helper) — fall back to the whole template text.
@@ -778,8 +853,9 @@ def main() -> int:
     data_paths = discover_data_files(form_dir) if not args.frontend else []
     fp_inputs = [args.schema] + list(frontend_paths) + data_paths + ([backend_path] if backend_path else [])
     # The integration is part of the key: the same files pass or fail differently per integration.
-    fp = fingerprint(fp_inputs, extra=f"integration={args.integration}")
-    scoped = args.category or args.step or args.fields
+    # The verifier itself is part of the key too, so a stricter version never reuses an old PASS.
+    fp = fingerprint(fp_inputs + [Path(__file__).resolve()], extra=f"integration={args.integration}")
+    scoped = args.category or args.step is not None or args.fields
     use_cache = cache_path is not None and not args.no_cache and not scoped
     if use_cache:
         cached = load_cache(cache_path)
@@ -797,18 +873,28 @@ def main() -> int:
     if args.integration in ("2", "3"):
         fields = [f for f in fields if f["step"] == 1]
 
-    if args.step:
+    if args.step is not None:
         fields = [f for f in fields if f["step"] == args.step]
     if args.fields:
-        wanted = set(args.fields.split(","))
+        wanted = {k.strip() for k in args.fields.split(",") if k.strip()}
+        unknown = wanted - {f["key"] for f in fields}
+        if unknown:
+            print(f"ERROR: --fields names keys not in scope for this run: {', '.join(sorted(unknown))}. "
+                  "Use the exact schema keys from the findings.", file=sys.stderr)
+            return 2
         fields = [f for f in fields if f["key"] in wanted]
+    if (args.step is not None or args.fields) and not fields:
+        print(f"ERROR: --step {args.step} matches no fields for Integration {args.integration}.",
+              file=sys.stderr)
+        return 2
 
     findings = []
     run_widget = args.category in (None, "widget_type")
     run_country = args.category in (None, "country_validation")
     run_cond = args.category in (None, "conditional_logic")
-    run_dropdown = args.category in (None, "dropdown_route") and not args.step and not args.fields
-    run_errors = args.category in (None, "error_handling") and not args.step and not args.fields
+    unscoped_fields = args.step is None and not args.fields
+    run_dropdown = args.category in (None, "dropdown_route") and unscoped_fields
+    run_errors = args.category in (None, "error_handling") and unscoped_fields
 
     combined_text = frontend_text + "\n" + backend_text
 

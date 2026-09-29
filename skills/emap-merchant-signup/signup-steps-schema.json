@@ -354,7 +354,7 @@
         ],
         "step_count": 1,
         "successResponse": {
-          "success": true,
+          "status": true,
           "message": "Success",
           "uuid": "string — store this UUID; all subsequent step calls require it",
           "signup_token": "string — store this token (emap_signup_token); Steps 2-6 require the latest one"
@@ -362,7 +362,7 @@
         "existingUserResponse": {
           "message": "success",
           "verificationLink": true,
-          "url": "string — redirect the applicant here to verify email and continue"
+          "url": "string — do NOT link to or navigate to this; tell the merchant to check their email for the link (the email proves they own the address). See references/api-errors.md"
         }
       },
       "autoSave": {
@@ -548,7 +548,7 @@
         ],
         "step_count": 2,
         "successResponse": {
-          "success": true,
+          "status": true,
           "message": "Step 2 submitted successfully",
           "step": 2,
           "uuid": "string",
@@ -1047,7 +1047,7 @@
         "url": "/api/v1/application/step",
         "step_count": 3,
         "successResponse": {
-          "success": true,
+          "status": true,
           "message": "Step 3 submitted successfully",
           "step": 3,
           "uuid": "string",
@@ -1281,7 +1281,7 @@
         ],
         "step_count": 4,
         "successResponse": {
-          "success": true,
+          "status": true,
           "message": "Owners created successfully",
           "uuid": "string",
           "signup_token": "string — replaces the saved signup_token; send it on the next step"
@@ -2113,7 +2113,7 @@
         "url": "/api/v1/application/step",
         "step_count": 5,
         "successResponse": {
-          "success": true,
+          "status": true,
           "message": "Step 5 submitted successfully",
           "step": 5,
           "uuid": "string",
@@ -2302,7 +2302,7 @@
         "url": "/api/v1/application/step",
         "step_count": 6,
         "successResponse": {
-          "success": true,
+          "status": true,
           "message": "Step 6 submitted successfully",
           "step": 6,
           "uuid": "string",

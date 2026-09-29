@@ -168,12 +168,16 @@ that holds nothing else. `verify_form.py` scans it recursively for all frontend 
    Use `"2"` or `"3"` to match the mode being built. Set `form_dir` to the folder holding the
    generated form files, relative to the project root. That folder should hold nothing else.
 
-3. **Optional: have your agent enforce the gate automatically.**
+3. **Optional: have your agent enforce the gate automatically.** Ask the developer first and
+   install a hook only if they agree: it changes their agent's settings and runs a script every
+   time the agent finishes, until they remove it.
    - **Claude Code:** merge the `hooks` key from
      [`verify/hooks/claude-code-settings.json`](verify/hooks/claude-code-settings.json) into the
      target project's `.claude/settings.json`. Create the file if it doesn't exist. If `hooks.Stop`
      already has entries, **append** this entry and never overwrite the others. Claude Code then
      can't finish its turn until the gate passes or the build is marked `blocked` or `cancelled`.
+     Tell the developer how to remove it: delete that `Stop` entry (it also does nothing once
+     `.emap/emap_gate.py` is gone).
    - **Other agents with a hook that runs when the agent finishes:** register
      `python3 .emap/emap_gate.py` in that agent's hook format. It exits 0 when there is nothing to
      block and 1 with the findings on stdout otherwise.
@@ -362,8 +366,9 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
    - `marketingModel` → **checkbox-group** (`staticDropdowns.marketing_model`), not a select. Render
      the `label` text (e.g. "Recurring/Continuity/Subscription"), send the integer `value`.
    - `is_physical_address_same_as_legal_address`, `primary_contact`, `bankruptcy_filed.1/.2`,
-     `bankruptcy_discharged.1/.2`, `current_processing`, `bad_experience`,
-     `multiple_merchant_accounts`, `leave_deposit` → **radio buttons** (Yes/No), not a select.
+     `bankruptcy_discharged.1/.2` → **radio buttons** (Yes/No), not a select.
+   - `current_processing`, `bad_experience`, `multiple_merchant_accounts`, `leave_deposit` →
+     **`<select>`** with Yes/No options (schema `type: select`; the verifier requires a `<select>`).
    - `terms_and_conditions_agreed` → **checkbox**, not a select.
    - Fields backed by `optionsSource: dynamicDropdownEndpoints.*` (`country`, `industry_type`,
      `shopping_cart`, `howdidyouhear`, etc.) are correctly rendered as `<select>`.
@@ -663,7 +668,8 @@ not just a clean `verify_form.py` run**:
 - [ ] Integration 3: the success panel doesn't show the application `uuid`, and no form stores it
   anywhere except Integration 1's own `localStorage` resume key.
 - [ ] Submit button disabled on first click (double-submit prevention).
-- [ ] Generic user-facing errors — do not expose EMAP's raw error messages verbatim to the merchant.
+- [ ] Generic user-facing errors — do not expose EMAP's raw error messages verbatim to the merchant,
+  except 422 per-field messages shown under their field via `textContent`.
 - [ ] **The embedded dropdown-fallback data is actually present in the deployed file**, not
   stripped out by a build step — confirm `EMAP_DROPDOWN_FALLBACKS` (or the template's equivalent
   constant) still exists in what's actually deployed, and that the fallback path is genuinely

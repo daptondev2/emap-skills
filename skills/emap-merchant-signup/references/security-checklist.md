@@ -125,9 +125,11 @@ What still matters:
 
 ## UX security
 
-- [ ] **Generic user-facing error messages.** The templates already map EMAP's error responses to
-  friendly text (`showAlert`) rather than surfacing EMAP's raw error strings — verify this is still
-  true if you modified the error-handling code.
+- [ ] **Generic user-facing error messages.** The templates map EMAP's error responses to
+  friendly text (`showAlert`) rather than surfacing EMAP's raw error strings. The one exception is
+  422: its per-field messages (e.g. "Email must be a valid email address") are shown under each
+  field, always via `textContent`, never `innerHTML`. Verify this is still true if you modified
+  the error-handling code.
 
 - [ ] **429 handling.** If EMAP returns 429 (its own rate limit), the templates already tell the
   merchant to wait and retry — verify this is still true if you modified `submitStep`/the fetch
@@ -140,8 +142,10 @@ What still matters:
 - [ ] **Content-Security-Policy header** on your form page, where your host allows setting
   response headers. A starting point:
   ```
-  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'nonce-<RANDOM>'; connect-src 'self' <EMAP_BASE_URL origin>; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' https://cdn.jsdelivr.net; frame-ancestors 'self'
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net/npm/intl-tel-input@22.0.2/ https://cdn.jsdelivr.net/npm/cleave.js@1.6.0/ 'nonce-<RANDOM>'; connect-src 'self' <EMAP_BASE_URL origin>; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net/npm/intl-tel-input@22.0.2/; img-src 'self' https://cdn.jsdelivr.net/npm/intl-tel-input@22.0.2/; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'self'
   ```
+  - Allow the exact package paths, not all of `https://cdn.jsdelivr.net`: jsDelivr serves every
+    npm package, so a bare host lets an injected `<script>` load anything from it.
   - `connect-src` must include the `EMAP_BASE_URL` origin (the production one at launch), or the
     browser blocks every call to EMAP.
   - The templates' logic is an **inline** `<script>`, which `script-src 'self'` alone blocks.
@@ -155,6 +159,11 @@ What still matters:
     it. Every tag carries an `integrity` hash; keep it if you change the URL. Or self-host the
     files and drop the CDN. If you self-host intl-tel-input, keep `build/img/` next to
     `build/css/`, because the stylesheet loads the flags from `../img/`.
+
+- [ ] **No third-party scripts on the form page.** It collects SSNs, dates of birth and bank
+  account numbers. Analytics, tag managers, chat widgets and session-replay tools (Hotjar,
+  FullStory, etc.) can read or record those fields. Put the form on its own page or subdomain
+  without them; if a tool can't be removed, configure it to mask every input on that page.
 
 - [ ] **X-Frame-Options or CSP frame-ancestors** to prevent clickjacking:
   ```
