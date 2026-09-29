@@ -1013,10 +1013,6 @@
         "code": "AL"
       },
       {
-        "name": "American Samoa",
-        "code": "AS"
-      },
-      {
         "name": "Arizona",
         "code": "AZ"
       },
@@ -1045,20 +1041,12 @@
         "code": "DC"
       },
       {
-        "name": "Federated States of Micronesia",
-        "code": "FM"
-      },
-      {
         "name": "Florida",
         "code": "FL"
       },
       {
         "name": "Georgia",
         "code": "GA"
-      },
-      {
-        "name": "Guam",
-        "code": "GU"
       },
       {
         "name": "Hawaii",
@@ -1095,10 +1083,6 @@
       {
         "name": "Maine",
         "code": "ME"
-      },
-      {
-        "name": "Marshall Islands",
-        "code": "MH"
       },
       {
         "name": "Maryland",
@@ -1161,10 +1145,6 @@
         "code": "ND"
       },
       {
-        "name": "Northern Mariana Islands",
-        "code": "MP"
-      },
-      {
         "name": "Ohio",
         "code": "OH"
       },
@@ -1177,16 +1157,8 @@
         "code": "OR"
       },
       {
-        "name": "Palau",
-        "code": "PW"
-      },
-      {
         "name": "Pennsylvania",
         "code": "PA"
-      },
-      {
-        "name": "Puerto Rico",
-        "code": "PR"
       },
       {
         "name": "Rhode Island",
@@ -1217,10 +1189,6 @@
         "code": "VT"
       },
       {
-        "name": "Virgin Islands",
-        "code": "VI"
-      },
-      {
         "name": "Virginia",
         "code": "VA"
       },
@@ -1239,30 +1207,6 @@
       {
         "name": "Wyoming",
         "code": "WY"
-      },
-      {
-        "name": "Armed Forces Africa",
-        "code": "AE"
-      },
-      {
-        "name": "Armed Forces Americas (except Canada)",
-        "code": "AA"
-      },
-      {
-        "name": "Armed Forces Canada",
-        "code": "AE"
-      },
-      {
-        "name": "Armed Forces Europe",
-        "code": "AE"
-      },
-      {
-        "name": "Armed Forces Middle East",
-        "code": "AE"
-      },
-      {
-        "name": "Armed Forces Pacific",
-        "code": "AP"
       }
     ]
   },
