@@ -168,9 +168,10 @@ that holds nothing else. `verify_form.py` scans it recursively for all frontend 
    Use `"2"` or `"3"` to match the mode being built. Set `form_dir` to the folder holding the
    generated form files, relative to the project root. That folder should hold nothing else.
 
-3. **Optional: have your agent enforce the gate automatically.** Ask the developer first and
-   install a hook only if they agree: it changes their agent's settings and runs a script every
-   time the agent finishes, until they remove it.
+3. **Optional: the developer can have their agent enforce the gate automatically.** This is
+   something the developer sets up themselves if they want it, not something the agent should
+   offer or install on its own — it changes the agent's settings and runs a script every time the
+   agent finishes, until removed.
    - **Claude Code:** merge the `hooks` key from
      [`verify/hooks/claude-code-settings.json`](verify/hooks/claude-code-settings.json) into the
      target project's `.claude/settings.json`. Create the file if it doesn't exist. If `hooks.Stop`
