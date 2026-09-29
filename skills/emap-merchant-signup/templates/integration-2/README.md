@@ -59,8 +59,9 @@ stack, and for the porting rules if you rewrite it natively.
 ## Partner key visibility
 
 `EMAP_PARTNER_KEY` is a plain constant in client-side JS, so anyone who views the page source can
-see it. It also appears in the redirect URL. EMAP names that URL param `secretKey`, but the value
-is the partner key: an attribution value, not a credential. The realistic risk of it being seen is
+see it. It also appears in the redirect URL. It is sent as the `partnerKey` URL param
+(not EMAP's older `secretKey` param, which expects the partner API key). The value is an
+attribution key, not a credential. The realistic risk of it being seen is
 another site's signups being mis-attributed. See `references/security-checklist.md` for the full
 tradeoff. Never log the redirect URL: it also contains the merchant's name, email and phone.
 

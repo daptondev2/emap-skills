@@ -24,7 +24,8 @@ Commands run from the target project's root, using the copies installed by SKILL
    python3 .emap/emap_gate.py
    ```
    It reads `.emap/build-state.json`, runs a full `verify_form.py` check of `form_dir`, and records
-   the result there. Exit code 0 means verified (or nothing to check); 1 means findings.
+   the result there. Exit code 0 means verified (or nothing to check); 1 means findings; 2 means a
+   setup error (missing script or schema, invalid `build-state.json`, no `form_dir`).
 3. **Read only the findings it prints.** Do not re-open the schema or the generated files to
    double-check its work; that defeats the point. Output is either `PASS`, `PASS (with
    advisories...)`, or a list of `[category:blocker]` / `[category:advisory]` lines, each with the
@@ -112,6 +113,10 @@ right:
 - **`hear_about_us_other`'s condition specifically** — its schema entry is a prose `note`, not a
   structured `field`/`value`/`logic`, so there's nothing for the script to compare textually. It
   always reports as an `advisory`, every run, for every build. This is expected, not a regression.
+- **Tampering.** The gate is a quality check, not a security boundary. It re-runs the verifier
+  instead of trusting a written `"verified"`, but it does trust `integration`, `form_dir` and a
+  `"cancelled"` status in `build-state.json`, and anyone who can edit the form can also edit
+  `.emap/`. If you rely on it, run the gate in CI from a checked-in copy of the scripts.
 - **Anything not in the schema at all** — deployment config, security headers, partner-key
   handling. That's what [`../references/security-checklist.md`](../references/security-checklist.md)
   is for.
@@ -126,8 +131,10 @@ re-checking costs nothing.
 
 The same property holds when an agent hook calls the gate. The Claude Code Stop hook
 (`--claude-stop-hook`) blocks the agent from finishing while the gate fails, and lets it finish
-once the gate passes or the build is `blocked` or `cancelled`. The 5-round cap guarantees the hook
-can't block forever.
+once the gate passes or the build is `blocked` or `cancelled`. Failing runs count toward the
+5-round cap. Setup errors don't advance the counter, so the hook blocks on one only once and then
+lets the stop through, and a crash in the gate never blocks. If `.emap/emap_gate.py` is deleted,
+the hook command exits 0 and does nothing.
 
 ## Time budget
 

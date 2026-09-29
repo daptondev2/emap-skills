@@ -56,10 +56,10 @@ Do not proceed until the developer has chosen one of the three variants.
 
 ### Question 2 — Partner key
 
-After the developer has chosen their variant, ask them to pick one of exactly these 3 options, the same way as Question 1 (a multiple-choice question tool if your agent has one, otherwise a numbered list in plain text). The description for each option must include the retrieval instructions exactly as written below — this is what the developer reads to know where to find or get their key. Also tell them, before they answer: **EMAP is called from the merchant's browser, so the key will be embedded directly in the page's JavaScript and visible to anyone who views the page source.** EMAP treats it purely as an attribution/referral value (not a credential that grants access to anything), so the practical risk of exposure is another site's signups being mis-attributed to this key, not a security breach — but they should know that before deciding.
+After the developer has chosen their variant, ask them to pick one of exactly these 3 options, the same way as Question 1 (a multiple-choice question tool if your agent has one, otherwise a numbered list in plain text). The description for each option must include the retrieval instructions exactly as written below — this is what the developer reads to know where to find or get their key. Also tell them, before they answer: **EMAP is called from the merchant's browser, so the key will be embedded directly in the page's JavaScript and visible to anyone who views the page source.** The partner key is an attribution/referral value (not a credential that grants access to anything), so the practical risk of exposure is another site's signups being mis-attributed to this key, not a security breach — but they should know that before deciding. The partner portal also shows an **API key** (the `Authorization` value in API Documentation). That one is a credential: it must never go in a web page, and it is not what this form needs.
 
-- **Yes, I have a partner key** — description: "Log in to the partner portal → Integration → API Integration → copy the API key shown there → paste it here."
-- **No, I don't have a partner key** — description: "Sign up as a partner at https://emap.easypaydirect.com/signup/partner. Once registered, go to Integration → API Integration → copy the partner key → come back and paste it here."
+- **Yes, I have a partner key** — description: "Log in to the partner portal → Integration → copy the key under Partner Key (not the API key from API Documentation) → paste it here."
+- **No, I don't have a partner key** — description: "Sign up as a partner at https://emap.easypaydirect.com/signup/partner. Once registered, go to Integration → copy the key under Partner Key → come back and paste it here."
 - **Skip (proceed without a key)** — description: "Signups will still work, but they won't be attributed to your partner account. Choose this if you'd rather not have the key visible in your page's source."
 
 **If the developer selects "Yes, I have a partner key":**
@@ -168,12 +168,16 @@ that holds nothing else. `verify_form.py` scans it recursively for all frontend 
    Use `"2"` or `"3"` to match the mode being built. Set `form_dir` to the folder holding the
    generated form files, relative to the project root. That folder should hold nothing else.
 
-3. **Optional: have your agent enforce the gate automatically.**
+3. **Optional: have your agent enforce the gate automatically.** Ask the developer first and
+   install a hook only if they agree: it changes their agent's settings and runs a script every
+   time the agent finishes, until they remove it.
    - **Claude Code:** merge the `hooks` key from
      [`verify/hooks/claude-code-settings.json`](verify/hooks/claude-code-settings.json) into the
      target project's `.claude/settings.json`. Create the file if it doesn't exist. If `hooks.Stop`
      already has entries, **append** this entry and never overwrite the others. Claude Code then
      can't finish its turn until the gate passes or the build is marked `blocked` or `cancelled`.
+     Tell the developer how to remove it: delete that `Stop` entry (it also does nothing once
+     `.emap/emap_gate.py` is gone).
    - **Other agents with a hook that runs when the agent finishes:** register
      `python3 .emap/emap_gate.py` in that agent's hook format. It exits 0 when there is nothing to
      block and 1 with the findings on stdout otherwise.
@@ -203,9 +207,9 @@ build.
 
 - **Integrations 1 and 3 (API):** the template sends it as `partner_key` in the JSON body of the
   Step 1 POST.
-- **Integration 2 (redirect):** the template sends it as EMAP's `secretKey` URL parameter. Despite
-  that parameter's name, the value is the same partner key, and it is also visible in the redirect
-  URL.
+- **Integration 2 (redirect):** the template sends it as the `partnerKey` URL parameter, so it is
+  also visible in the redirect URL. Never use EMAP's older `secretKey` URL parameter: it takes the
+  partner's API key.
 
 Never commit a real key value to source control in a public repo, even though it is visible
 client-side once deployed — treat "in the deployed page" and "in git history" as different
@@ -362,8 +366,9 @@ Read [`references/mode-1-fullform.md`](references/mode-1-fullform.md) before pro
    - `marketingModel` → **checkbox-group** (`staticDropdowns.marketing_model`), not a select. Render
      the `label` text (e.g. "Recurring/Continuity/Subscription"), send the integer `value`.
    - `is_physical_address_same_as_legal_address`, `primary_contact`, `bankruptcy_filed.1/.2`,
-     `bankruptcy_discharged.1/.2`, `current_processing`, `bad_experience`,
-     `multiple_merchant_accounts`, `leave_deposit` → **radio buttons** (Yes/No), not a select.
+     `bankruptcy_discharged.1/.2` → **radio buttons** (Yes/No), not a select.
+   - `current_processing`, `bad_experience`, `multiple_merchant_accounts`, `leave_deposit` →
+     **`<select>`** with Yes/No options (schema `type: select`; the verifier requires a `<select>`).
    - `terms_and_conditions_agreed` → **checkbox**, not a select.
    - Fields backed by `optionsSource: dynamicDropdownEndpoints.*` (`country`, `industry_type`,
      `shopping_cart`, `howdidyouhear`, etc.) are correctly rendered as `<select>`.
@@ -612,8 +617,9 @@ Read [`references/mode-3-api.md`](references/mode-3-api.md) before proceeding.
    the merchant, so every message speaks to them:
    - `{"status":true,"uuid":"..."}` → show "Check Your Email" with the address the link went to.
      **Never display, log or store the `uuid`**: anyone holding it can continue that application.
-   - `{"verificationLink":true,"url":"..."}` (existing user) → show the same "Check Your Email"
-     panel with a note that the email is already registered. Don't navigate to `url`.
+   - `{"verificationLink":true}` (existing user) → show the same "Check Your Email"
+     panel with a note that the email is already registered. EMAP creates nothing for this email
+     and emails the account owner a link to sign in.
    - `{"status":false,"message":"Company already exists"}` → tell the merchant an application
      already exists and to check their inbox or contact Easy Pay Direct.
    - HTTP 422 → display per-field errors from `response.errors`.
@@ -663,7 +669,8 @@ not just a clean `verify_form.py` run**:
 - [ ] Integration 3: the success panel doesn't show the application `uuid`, and no form stores it
   anywhere except Integration 1's own `localStorage` resume key.
 - [ ] Submit button disabled on first click (double-submit prevention).
-- [ ] Generic user-facing errors — do not expose EMAP's raw error messages verbatim to the merchant.
+- [ ] Generic user-facing errors — do not expose EMAP's raw error messages verbatim to the merchant,
+  except 422 per-field messages shown under their field via `textContent`.
 - [ ] **The embedded dropdown-fallback data is actually present in the deployed file**, not
   stripped out by a build step — confirm `EMAP_DROPDOWN_FALLBACKS` (or the template's equivalent
   constant) still exists in what's actually deployed, and that the fallback path is genuinely

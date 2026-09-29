@@ -52,7 +52,10 @@ def default_root() -> Path:
 def load_state(state_path: Path) -> dict | None:
     if not state_path.is_file():
         return None
-    return json.loads(state_path.read_text(encoding="utf-8"))
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    if not isinstance(state, dict):
+        raise ValueError("the state file must hold a JSON object")
+    return state
 
 
 def save_state(state_path: Path, state: dict) -> bool:
@@ -95,7 +98,8 @@ def gate(root: Path) -> tuple[str, int, str]:
     try:
         state = load_state(state_path)
     except Exception:  # noqa: BLE001
-        return "error", 2, f"{state_path} is not valid JSON. Fix or rewrite it (see verify/README.md)."
+        return "error", 2, (f"{state_path} is not a valid JSON object. Fix or rewrite it "
+                            "(see verify/README.md).")
     if state is None:
         return "idle", 0, f"No EMAP build tracked ({state_path} not found). Nothing to check."
 
@@ -121,7 +125,11 @@ def gate(root: Path) -> tuple[str, int, str]:
                               "these findings to the developer. To resume fixing, set \"status\" "
                               "to \"in_progress\" and \"rounds\" to 0 in .emap/build-state.json.")
 
-    rounds = int(state.get("rounds", 0)) + 1
+    try:
+        rounds = int(state.get("rounds", 0)) + 1
+    except (TypeError, ValueError):
+        return "error", 2, f'{state_path} has a non-integer "rounds". Set it to 0.'
+
     state.update(status="blocked" if rounds >= MAX_ROUNDS else "in_progress",
                  rounds=rounds, last_findings=output)
     saved = save_state(state_path, state)
@@ -142,11 +150,18 @@ def claude_stop_hook(root: Path) -> None:
         payload = json.load(sys.stdin)
     except Exception:  # noqa: BLE001
         payload = {}
-    outcome, _, message = gate(root)
+    if not isinstance(payload, dict):
+        payload = {}
+    try:
+        outcome, _, message = gate(root)
+    except Exception as e:  # noqa: BLE001 — a crashing gate must never trap the agent
+        print(f"EMAP gate crashed ({e}); not blocking.", file=sys.stderr)
+        sys.exit(0)
     if outcome in ("idle", "pass", "blocked"):
         sys.exit(0)
-    if outcome == "fail-uncounted" and payload.get("stop_hook_active"):
-        # The round counter can't advance, so the cap can't end the loop: let the stop through.
+    if outcome in ("error", "fail-uncounted") and payload.get("stop_hook_active"):
+        # Neither outcome advances the round counter, so the cap can't end the loop.
+        # Block once (so the agent sees the message), then let the stop through.
         sys.exit(0)
     reason = message
     if outcome == "capped":

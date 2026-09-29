@@ -15,8 +15,9 @@ client-side, no backend of this form's own. The merchant never visits the EMAP d
 > obvious from a value-format note alone):
 > - `marketingModel` — schema `type: checkbox-group`, not a select of raw integers.
 > - `is_physical_address_same_as_legal_address`, `primary_contact`, `bankruptcy_filed.1/.2`,
->   `bankruptcy_discharged.1/.2`, `current_processing`, `bad_experience`,
->   `multiple_merchant_accounts` — schema `type: radio` (Yes/No), not a select.
+>   `bankruptcy_discharged.1/.2` — schema `type: radio` (Yes/No), not a select.
+> - `current_processing`, `bad_experience`, `multiple_merchant_accounts`, `leave_deposit` — schema
+>   `type: select` with Yes/No options: render a `<select>`, not radio buttons.
 > - `routing_number` (US: exactly 9 digits), `account_number` (US: 8–17 chars) — the `countryVariants`
 >   length limit must be enforced in code (HTML attribute + submit-time check), not just shown as a
 >   hint string.
@@ -134,7 +135,7 @@ Same shapes as Integration 3. See [`api-errors.md`](api-errors.md) for the full 
 
 On success: `{ "status": true, "uuid": "<uuid>", "signup_token": "<token>" }`. Store the `uuid`, `signup_token` and `country` in `localStorage` as `emap_uuid`, `emap_signup_token` and `emap_country` (see [UUID lifecycle](#uuid-lifecycle)). The persisted `emap_country` code drives conditional field visibility in steps 2 and 5 — do not use the address country fields for this purpose.
 
-For an existing user (`verificationLink: true`), tell the merchant to check their email. Don't link to the returned `url`: the email is what proves they own the address.
+For an existing user (`verificationLink: true`), tell the merchant to check their email. EMAP creates nothing for this email; it emails the account owner a link to sign in, which is what proves they own the address.
 
 ---
 

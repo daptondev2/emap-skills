@@ -16,7 +16,7 @@ every message here is shown to the merchant: keep it generic and never show EMAP
 | HTTP | Condition | Response body | Recommended action |
 |---|---|---|---|
 | 200 | New user created | `{"status":true,"message":"Success","uuid":"...","signup_token":"..."}` | Integration 3: show "Check Your Email". Integration 1: keep the `uuid` and `signup_token` in `localStorage` and go to step 2. Never display or log the `uuid`: anyone holding it can continue the application. |
-| 200 | Existing user | `{"message":"success","verificationLink":true,"url":"..."}` | Tell the merchant to check their email for a link to continue. Don't link to or navigate to `url`: the email is what proves they own the address. |
+| 200 | Existing user | `{"message":"success","verificationLink":true}` | Tell the merchant to check their email for a link to continue. EMAP creates nothing for this email; the emailed link is what proves they own the address. |
 | 200 | Company exists | `{"status":false,"message":"Company already exists","data":{...}}` | "An application for this company already exists. Check your inbox for an earlier email from Easy Pay Direct, or contact their support team." |
 | 400 | Application creation failed | `{"status":false,"message":"Error while creating application"}` | "Something went wrong. Please try again." Re-enable the submit button. |
 | 403 | Request refused (for example, a blocked region) | `{"status":false,"message":"Unauthorised access."}` | "Sorry, we can't accept applications from your location. Please contact Easy Pay Direct." |
@@ -45,6 +45,17 @@ async function handleEmapResponse(response) {
     return { type: 'validation', errors: (data && data.errors) || {} };
   }
 
+  if (response.status === 403) {
+    // Step 1: request refused (e.g. blocked region).
+    // Steps 2-6 (Integration 1): signup_token missing/expired or application locked:
+    // clear saved progress (uuid, token) and offer a restart.
+    return { type: 'forbidden' };
+  }
+
+  if (response.status >= 500) {
+    return { type: 'unavailable' };
+  }
+
   if (!response.ok || !data) {
     // Show a generic message; don't display EMAP's raw message text.
     return { type: 'server_error' };
@@ -52,11 +63,13 @@ async function handleEmapResponse(response) {
 
   // HTTP 200 — check body shape
   if (data.verificationLink === true) {
-    return { type: 'existing_user' };        // don't pass data.url on
+    return { type: 'existing_user' };
   }
 
   if (data.status === true && data.uuid) {
-    return { type: 'success', uuid: data.uuid };  // keep in memory only
+    // Integration 1 also saves data.signup_token (and later steps' fresh tokens)
+    // and keeps both in localStorage for resume; clear them after Step 6.
+    return { type: 'success', uuid: data.uuid, signupToken: data.signup_token };
   }
 
   if (data.status === false && data.message === 'Company already exists') {
