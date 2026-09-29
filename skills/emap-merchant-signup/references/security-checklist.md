@@ -33,7 +33,7 @@ to.
 ## Partner key exposure (not "secrets management" — there is nothing to keep secret here)
 
 This form calls EMAP directly from the browser, so `EMAP_PARTNER_KEY` (sent as `partner_key`, or
-as the `secretKey` URL param in Integration 2) is necessarily visible in the deployed page's JavaScript source to anyone who looks. That is the
+as the `partnerKey` URL param in Integration 2) is necessarily visible in the deployed page's JavaScript source to anyone who looks. That is the
 accepted tradeoff of this architecture (see SKILL.md Step 2), not a bug to fix by adding a backend.
 What still matters:
 
@@ -104,8 +104,14 @@ What still matters:
   above). Keep Integration 1's "Not you? Start a new application" notice, so the next person on a
   shared computer can discard a saved application instead of continuing it.
 
-- [ ] **Existing-user responses don't link to EMAP's verification `url`.** The templates only tell
-  the merchant to check their email; the email is what proves they own the address.
+- [ ] **Existing-user responses only say "check your email".** EMAP creates nothing for an email
+  that already has an account and emails the owner instead; the email is what proves they own the
+  address.
+
+- [ ] **Only the partner key is in the page, never the partner API key.** `EMAP_PARTNER_KEY` holds
+  the key under Partner Key on the partner portal's Integration page. The API key (the
+  `Authorization` value in API Documentation) is a credential. Integration 2 sends the key as the
+  `partnerKey` URL param, never EMAP's older `secretKey` param, which takes the API key.
 
 ---
 

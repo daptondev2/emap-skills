@@ -598,11 +598,17 @@
     function displayServerErrors(errors) {
       // EMAP uses 'name' for company; map it back to our form field
       const fieldMap = { name: 'company_name' };
+      const unplaced = [];
       for (const [field, messages] of Object.entries(errors)) {
         const localField = fieldMap[field] || field;
         const msg = Array.isArray(messages) ? messages[0] : messages;
-        setError(localField, msg);
+        // An error for a field the form has no input for (e.g. partner_key, which
+        // comes from the EMAP_PARTNER_KEY constant) goes in the page-level alert,
+        // so the merchant isn't left with nothing marked.
+        if (document.getElementById('err_' + localField)) setError(localField, msg);
+        else unplaced.push(msg);
       }
+      if (unplaced.length) showAlert('error', 'Please correct the errors below. ' + unplaced.join(' '));
       const firstError = document.querySelector('.field-error:not(:empty)');
       if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }

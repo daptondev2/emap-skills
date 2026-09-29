@@ -361,8 +361,7 @@
         },
         "existingUserResponse": {
           "message": "success",
-          "verificationLink": true,
-          "url": "string — do NOT link to or navigate to this; tell the merchant to check their email for the link (the email proves they own the address). See references/api-errors.md"
+          "verificationLink": true
         }
       },
       "autoSave": {

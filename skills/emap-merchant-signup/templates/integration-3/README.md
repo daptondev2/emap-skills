@@ -78,7 +78,7 @@ EMAP returns HTTP 200 for most outcomes, including business-level errors. Always
 | Body shape | Meaning | Your action |
 |---|---|---|
 | `{"status":true,"uuid":"..."}` | New account created; EMAP emailed the merchant a link | Show "Check Your Email". Never display or log the `uuid`: anyone holding it can continue the application |
-| `{"verificationLink":true,"url":"..."}` | The email already has an account; EMAP emailed a verification link | Show "Check Your Email" with a note that the email is already registered. Don't link to or navigate to `url` |
+| `{"verificationLink":true}` | The email already has an account; EMAP emailed the owner a link to sign in and nothing was created | Show "Check Your Email" with a note that the email is already registered |
 | `{"status":false,"message":"Company already exists"}` | An application for this company already exists | Tell the merchant to check their inbox for an earlier email from Easy Pay Direct, or contact their support team |
 | HTTP 422 + `{"errors":{...}}` | Validation error | Show per-field errors |
 | HTTP 429 | Rate limited | Ask the merchant to wait a few minutes. Don't retry automatically |
