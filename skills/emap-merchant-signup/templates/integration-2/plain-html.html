@@ -281,12 +281,12 @@
     // Easy Pay Direct gives you before launch. No trailing slash.
     const EMAP_BASE_URL = 'https://emap.epd.dev';
 
-    // Optional: your partner key, for commission attribution. EMAP's /signup
-    // page reads it from a URL parameter named `secretKey`, but it is not a
-    // secret: it ends up in the page source and in the redirect URL. EMAP
-    // treats it as an attribution/referral value that grants no access, so
-    // the realistic risk of exposing it is another site's signups being
-    // attributed to you. Leave it '' to skip attribution.
+    // Optional: your partner key, for commission attribution. It ends up in
+    // the page source and in the redirect URL (as `partnerKey`); EMAP treats
+    // it as an attribution value that grants no access, so the realistic risk
+    // of exposing it is another site's signups being attributed to you.
+    // Never put your partner API key here: that one is a credential.
+    // Leave it '' to skip attribution.
     const EMAP_PARTNER_KEY = '';
 
     if (!EMAP_BASE_URL) {
@@ -596,9 +596,8 @@
       // Pass through tracking params from current page
       Object.entries(getTrackingParams()).forEach(function ([k, v]) { params.set(k, v); });
 
-      // Partner attribution: EMAP names this URL param secretKey, but the value is
-      // the partner key, an attribution value that is visible in the page anyway.
-      if (EMAP_PARTNER_KEY) params.set('secretKey', EMAP_PARTNER_KEY);
+      // Partner attribution: the public partner key, visible in the page anyway.
+      if (EMAP_PARTNER_KEY) params.set('partnerKey', EMAP_PARTNER_KEY);
 
       const redirectUrl = EMAP_BASE_URL + '/signup?' + params.toString();
       navigateTop(redirectUrl);

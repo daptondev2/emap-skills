@@ -116,9 +116,8 @@ function buildEmapRedirectUrl(fields, emapBaseUrl, partnerKey) {
   ['utm_campaign','utm_source','utm_medium','utm_term','utm_content','gclid','gbraid','wbraid','fbclid']
     .forEach(k => { if (currentParams.has(k)) params.set(k, currentParams.get(k)); });
 
-  // Partner attribution. EMAP names this URL param `secretKey`, but the value is
-  // the partner key: an attribution value, visible in the page and in this URL.
-  if (partnerKey) params.set('secretKey', partnerKey);
+  // Partner attribution: the public partner key, visible in the page and in this URL.
+  if (partnerKey) params.set('partnerKey', partnerKey);
 
   return `${emapBaseUrl}/signup?${params.toString()}`;
 }
@@ -136,9 +135,10 @@ function buildEmapRedirectUrl(fields, emapBaseUrl, partnerKey) {
 
 ## Partner attribution
 
-EMAP reads the `secretKey` URL param and links the new application to the partner with that key.
-The value is the same partner key the other integrations send as `partner_key`; only the parameter
-name differs (the auto-save `POST` sends it as `partner_key`). Set it in the template's
+EMAP reads the `partnerKey` URL param and links the new application to the partner with that key.
+The value is the same partner key the other integrations send as `partner_key` in JSON (the
+auto-save `POST` sends it as `partner_key`). Don't use EMAP's older `secretKey` URL param: it takes
+the partner's API key, which is a credential and must never be put in a web page. Set it in the template's
 `EMAP_PARTNER_KEY` constant. The form has no backend or `.env` file, so the key is visible in the
 deployed page's JavaScript and in the redirect URL. See
 `SKILL.md` Step 2 for the tradeoff.
@@ -208,7 +208,7 @@ https://emap.epd.dev/signup            ← EMAP's TEST server; use the productio
   &annual_sales=500000
   &industry_type=E-Commerce
   &promo_code=PARTNER10
-  &secretKey=YOUR_PARTNER_KEY
+  &partnerKey=YOUR_PARTNER_KEY
 ```
 
 Effect: EMAP loads its form prefilled. All five auto-submit params are present, so if EMAP's

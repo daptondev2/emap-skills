@@ -56,10 +56,10 @@ Do not proceed until the developer has chosen one of the three variants.
 
 ### Question 2 — Partner key
 
-After the developer has chosen their variant, ask them to pick one of exactly these 3 options, the same way as Question 1 (a multiple-choice question tool if your agent has one, otherwise a numbered list in plain text). The description for each option must include the retrieval instructions exactly as written below — this is what the developer reads to know where to find or get their key. Also tell them, before they answer: **EMAP is called from the merchant's browser, so the key will be embedded directly in the page's JavaScript and visible to anyone who views the page source.** EMAP treats it purely as an attribution/referral value (not a credential that grants access to anything), so the practical risk of exposure is another site's signups being mis-attributed to this key, not a security breach — but they should know that before deciding.
+After the developer has chosen their variant, ask them to pick one of exactly these 3 options, the same way as Question 1 (a multiple-choice question tool if your agent has one, otherwise a numbered list in plain text). The description for each option must include the retrieval instructions exactly as written below — this is what the developer reads to know where to find or get their key. Also tell them, before they answer: **EMAP is called from the merchant's browser, so the key will be embedded directly in the page's JavaScript and visible to anyone who views the page source.** The partner key is an attribution/referral value (not a credential that grants access to anything), so the practical risk of exposure is another site's signups being mis-attributed to this key, not a security breach — but they should know that before deciding. The partner portal also shows an **API key** (the `Authorization` value in API Documentation). That one is a credential: it must never go in a web page, and it is not what this form needs.
 
-- **Yes, I have a partner key** — description: "Log in to the partner portal → Integration → API Integration → copy the API key shown there → paste it here."
-- **No, I don't have a partner key** — description: "Sign up as a partner at https://emap.easypaydirect.com/signup/partner. Once registered, go to Integration → API Integration → copy the partner key → come back and paste it here."
+- **Yes, I have a partner key** — description: "Log in to the partner portal → Integration → copy the key under Partner Key (not the API key from API Documentation) → paste it here."
+- **No, I don't have a partner key** — description: "Sign up as a partner at https://emap.easypaydirect.com/signup/partner. Once registered, go to Integration → copy the key under Partner Key → come back and paste it here."
 - **Skip (proceed without a key)** — description: "Signups will still work, but they won't be attributed to your partner account. Choose this if you'd rather not have the key visible in your page's source."
 
 **If the developer selects "Yes, I have a partner key":**
@@ -207,9 +207,9 @@ build.
 
 - **Integrations 1 and 3 (API):** the template sends it as `partner_key` in the JSON body of the
   Step 1 POST.
-- **Integration 2 (redirect):** the template sends it as EMAP's `secretKey` URL parameter. Despite
-  that parameter's name, the value is the same partner key, and it is also visible in the redirect
-  URL.
+- **Integration 2 (redirect):** the template sends it as the `partnerKey` URL parameter, so it is
+  also visible in the redirect URL. Never use EMAP's older `secretKey` URL parameter: it takes the
+  partner's API key.
 
 Never commit a real key value to source control in a public repo, even though it is visible
 client-side once deployed — treat "in the deployed page" and "in git history" as different
@@ -617,8 +617,9 @@ Read [`references/mode-3-api.md`](references/mode-3-api.md) before proceeding.
    the merchant, so every message speaks to them:
    - `{"status":true,"uuid":"..."}` → show "Check Your Email" with the address the link went to.
      **Never display, log or store the `uuid`**: anyone holding it can continue that application.
-   - `{"verificationLink":true,"url":"..."}` (existing user) → show the same "Check Your Email"
-     panel with a note that the email is already registered. Don't navigate to `url`.
+   - `{"verificationLink":true}` (existing user) → show the same "Check Your Email"
+     panel with a note that the email is already registered. EMAP creates nothing for this email
+     and emails the account owner a link to sign in.
    - `{"status":false,"message":"Company already exists"}` → tell the merchant an application
      already exists and to check their inbox or contact Easy Pay Direct.
    - HTTP 422 → display per-field errors from `response.errors`.

@@ -2031,12 +2031,11 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       var now = new Date();
       var maxDob = new Date(now.getFullYear() - 18, now.getMonth(), now.getDate());
       var minDob = new Date(now.getFullYear() - 100, now.getMonth(), now.getDate());
-      var toISODate = function (d) { return d.toISOString().slice(0, 10); };
       ['dob_1', 'dob_2'].forEach(function (id) {
         var el = datePickerFor(id);
         if (el) {
-          el.setAttribute('max', toISODate(maxDob));
-          el.setAttribute('min', toISODate(minDob));
+          el.setAttribute('max', localISODate(maxDob));
+          el.setAttribute('min', localISODate(minDob));
         }
       });
     }
@@ -2046,6 +2045,13 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
     // so it reads the same in every browser and locale. The calendar icon is a
     // transparent native date input: picking a date copies it into the text box.
     var ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+    // YYYY-MM-DD in the merchant's time zone. toISOString() gives the UTC date,
+    // which is a day off for part of the day away from UTC.
+    function localISODate(d) {
+      var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+      return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    }
 
     function datePickerFor(id) {
       var el = document.getElementById(id);
@@ -2959,7 +2965,7 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
       if (!formed) fail('business_formed', 'Company formation date is required');
       else if (!isRealISODate(formed)) fail('business_formed', 'Please enter the date as YYYY-MM-DD');
       else if (formed < '1800-01-01') fail('business_formed', 'Company formation date cannot be before 1800');
-      else if (formed > new Date().toISOString().slice(0, 10)) fail('business_formed', 'Company formation date cannot be in the future');
+      else if (formed > localISODate(new Date())) fail('business_formed', 'Company formation date cannot be in the future');
 
       // federal_tax_id: hidden+disabled+non-required when country=CA OR
       // business_organized=Sole-Proprietorship (see updateFederalTaxVisibility()
@@ -3129,7 +3135,7 @@ A MERCHANT'S SUBMISSION OF A TRANSACTION TO EASY PAY DIRECT SHALL BE DEEMED TO S
 
       var REQUIRED = 'This field is required';
       var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      var today = new Date().toISOString().slice(0, 10);
+      var today = localISODate(new Date());
 
       // SSN / Tax ID format depends on step1Country (the single Step 1
       // formation country), applied identically to BOTH owners, NOT each

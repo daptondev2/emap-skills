@@ -135,7 +135,7 @@ Same shapes as Integration 3. See [`api-errors.md`](api-errors.md) for the full 
 
 On success: `{ "status": true, "uuid": "<uuid>", "signup_token": "<token>" }`. Store the `uuid`, `signup_token` and `country` in `localStorage` as `emap_uuid`, `emap_signup_token` and `emap_country` (see [UUID lifecycle](#uuid-lifecycle)). The persisted `emap_country` code drives conditional field visibility in steps 2 and 5 — do not use the address country fields for this purpose.
 
-For an existing user (`verificationLink: true`), tell the merchant to check their email. Don't link to the returned `url`: the email is what proves they own the address.
+For an existing user (`verificationLink: true`), tell the merchant to check their email. EMAP creates nothing for this email; it emails the account owner a link to sign in, which is what proves they own the address.
 
 ---
 

@@ -99,14 +99,13 @@ from the link in their email.
 ```json
 {
   "message": "success",
-  "verificationLink": true,
-  "url": "https://emap.epd.dev/merchant/signup/verification/<token>"
+  "verificationLink": true
 }
 ```
 
 The merchant already has an EMAP account, and EMAP has emailed them a verification link. Show the
-same "Check Your Email" panel with a note that the email is already registered. Don't navigate to
-`url`: the email is how EMAP confirms the person owns the address. Note: the `status` key is absent
+same "Check Your Email" panel with a note that the email is already registered. EMAP creates
+nothing for this email; the emailed link is how EMAP confirms the person owns the address. Note: the `status` key is absent
 in this shape. Detect it by checking for `verificationLink: true`.
 
 ### Company already exists
