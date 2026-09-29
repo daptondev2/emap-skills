@@ -1,5 +1,0 @@
-.DS_Store
-.env
-.env.*
-.emap/verify-cache.json
-__pycache__/
