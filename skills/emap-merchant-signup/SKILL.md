@@ -203,9 +203,8 @@ build.
 
 - **Integrations 1 and 3 (API):** the template sends it as `partner_key` in the JSON body of the
   Step 1 POST.
-- **Integration 2 (redirect):** the template sends it as EMAP's `secretKey` URL parameter. Despite
-  that parameter's name, the value is the same partner key, and it is also visible in the redirect
-  URL.
+- **Integration 2 (redirect):** the template sends it as the `partnerKey` URL parameter. It is also
+  visible in the redirect URL.
 
 Never commit a real key value to source control in a public repo, even though it is visible
 client-side once deployed — treat "in the deployed page" and "in git history" as different

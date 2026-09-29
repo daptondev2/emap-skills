@@ -33,7 +33,7 @@ to.
 ## Partner key exposure (not "secrets management" — there is nothing to keep secret here)
 
 This form calls EMAP directly from the browser, so `EMAP_PARTNER_KEY` (sent as `partner_key`, or
-as the `secretKey` URL param in Integration 2) is necessarily visible in the deployed page's JavaScript source to anyone who looks. That is the
+as the `partnerKey` URL param in Integration 2) is necessarily visible in the deployed page's JavaScript source to anyone who looks. That is the
 accepted tradeoff of this architecture (see SKILL.md Step 2), not a bug to fix by adding a backend.
 What still matters:
 

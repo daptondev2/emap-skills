@@ -56,7 +56,7 @@ above pre-fills the form. Observed on EMAP's test server; see
 
 | Field | URL param | Notes |
 |---|---|---|
-| Partner Attribution | `secretKey` | The partner key (EMAP's URL param has this name, but the value isn't a secret). Set as the `EMAP_PARTNER_KEY` constant directly in the template's `<script>` block — visible client-side by design, see SKILL.md Step 2 |
+| Partner Attribution | `partnerKey` | The partner key (an attribution value, not a secret). Set as the `EMAP_PARTNER_KEY` constant directly in the template's `<script>` block — visible client-side by design, see SKILL.md Step 2 |
 | UTM Campaign | `utm_campaign` | Pass through from current page URL |
 | UTM Source | `utm_source` | Pass through from current page URL |
 | UTM Medium | `utm_medium` | Pass through from current page URL |

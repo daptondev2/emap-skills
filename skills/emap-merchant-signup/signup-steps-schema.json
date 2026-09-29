@@ -530,7 +530,7 @@
           "label": "Partner Key",
           "type": "hidden",
           "required": false,
-          "note": "Optional partner attribution. Set as a constant in the client code and sent from the browser like every other field (there is no server side in this skill). It is an attribution value, not a secret, and is visible in the page source. Integration 2 passes the same value in EMAP's `secretKey` URL parameter."
+          "note": "Optional partner attribution. Set as a constant in the client code and sent from the browser like every other field (there is no server side in this skill). It is an attribution value, not a secret, and is visible in the page source. Integration 2 passes the same value in the `partnerKey` URL parameter."
         }
       ]
     },
